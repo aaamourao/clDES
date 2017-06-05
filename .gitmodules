@@ -1,0 +1,3 @@
+[submodule "src/clSPARSE"]
+	path = src/lib/clSPARSE
+	url = git@github.com:clMathLibraries/clSPARSE.git
