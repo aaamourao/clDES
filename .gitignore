@@ -33,7 +33,7 @@ Makefile.in
 /texinfo.tex
 
 # Project binaries
-./bin
+/bin/
 
 # http://www.vim.org/
 *.swp
