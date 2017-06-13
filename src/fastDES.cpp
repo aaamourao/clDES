@@ -29,6 +29,7 @@
 
 #include "clSPARSE.h"
 #include "clSPARSE-error.h"
+#include "fastDESConfig.h"
 
 /*!
  * \brief Sample AXPY (C++)
