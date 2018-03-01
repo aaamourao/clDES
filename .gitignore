@@ -35,6 +35,10 @@ Makefile.in
 # Project binaries
 /bin/
 
+# Ignore build and lib dirs
+build
+lib/*
+
 # http://www.vim.org/
 *.swp
 *.orig
