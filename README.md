@@ -12,7 +12,10 @@ developer tools.
 
 ### Clone External Libraries
 
+Create `lib/` dir and clone **ViennaCL** to it:
+
 ```bash
+mkdir lib/
 cd lib/
 git clone https://github.com/viennacl/viennacl-dev
 ```
