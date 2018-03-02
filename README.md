@@ -1,4 +1,4 @@
-# fastDES
+# clDES
 
 ## Introduction
 
