@@ -1,0 +1,4 @@
+// Configure options and settings for clDES
+#define clDESVersionMajor @clDES_VERSION_MAJOR@
+#define clDESVersionMinor @clDES_VERSION_MINOR@
+#define clDESVersionPatch @clDES_VERSION_PATCH@
