@@ -12,10 +12,12 @@ developer tools.
 
 ### Clone External Libraries
 
-Create `lib/` dir and clone **ViennaCL** to it:
+You gonna need have system support to OpenCL. After that, for compiling the
+project:
 
 ```bash
-mkdir lib/
-cd lib/
-git clone https://github.com/viennacl/viennacl-dev
+$ cd  <clDES_root>
+$ mkdir build; cd build
+$ cmake ..
+$ make
 ```
