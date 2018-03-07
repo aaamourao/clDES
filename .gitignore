@@ -38,6 +38,8 @@ Makefile.in
 # Ignore build and lib dirs
 build
 lib/*
+external_dep/*
+libclDES/*
 
 # http://www.vim.org/
 *.swp
