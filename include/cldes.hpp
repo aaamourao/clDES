@@ -23,21 +23,17 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: desystem.cpp
- Description: DESystem class implementation. DESystem is a graph, which
- is modeled as a Sparce Adjacency Matrix.
+ File: desystem.hpp
+ Description: DESystem class definition. DESystem is a graph, which is
+ modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
 
-#include "cldes.hpp"
+#ifndef CLDES_HPP
+#define CLDES_HPP
 
-using namespace clDES;
+#include "DES/desystem.hpp"
 
-DESystem::DESystem() {
-    graph = NULL;
-}
+class clDES::DESystem;
 
-
-viennacl::compressed_matrix<ScalarType> &DESystem::get_graph() const {
-    return *graph;
-}
+#endif

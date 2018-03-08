@@ -34,7 +34,7 @@ ExternalProject_Add(project_viennacl
 # Configure a header file to pass some of the CMake settings
 # to the source code
 configure_file (
-    "${PROJECT_SOURCE_DIR}/include/clDESConfig.h.in"
+    "${PROJECT_SOURCE_DIR}/clDESConfig.h.in"
     "${PROJECT_BINARY_DIR}/include/clDESConfig.h"
 )
 
