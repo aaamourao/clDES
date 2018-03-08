@@ -33,11 +33,14 @@
 
 using namespace clDES;
 
-DESystem::DESystem() {
-    graph = NULL;
+DESystem::DESystem() { graph = new viennacl::compressed_matrix<ScalarType>(); }
+
+DESystem::~DESystem() {
+    if (graph) {
+        delete graph;
+    }
 }
 
-
-viennacl::compressed_matrix<ScalarType> &DESystem::get_graph() const {
+viennacl::compressed_matrix<ScalarType> DESystem::get_graph() const {
     return *graph;
 }
