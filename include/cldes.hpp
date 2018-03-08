@@ -36,4 +36,4 @@
 
 class clDES::DESystem;
 
-#endif
+#endif // CLDESS_HPP

@@ -43,10 +43,17 @@ class DESystem {
 public:
     DESystem();
     virtual ~DESystem();
-    viennacl::compressed_matrix<ScalarType> &get_graph() const;
+
+    /*! \brief DESystem::getgraph() method
+     *
+     * Returns a copy of DESystem's private data member graph. Considering that
+     * graph is a pointer, it returns the contents of graph.
+     */
+    viennacl::compressed_matrix<ScalarType> get_graph() const;
 
 private:
     viennacl::compressed_matrix<ScalarType> *graph;
+    // ScalarType *initialState;
 };
 
 }  // namespace clDES
