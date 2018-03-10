@@ -14,8 +14,9 @@ set (clDES_VERSION_MAJOR 0)
 set (clDES_VERSION_MINOR 3)
 set (clDES_VERSION_PATCH 0)
 
-# OpenCL package is required
+# OpenCL and Boost packages are required
 find_package(OpenCL REQUIRED)
+find_package(Boost 1.64 REQUIRED)
 
 # Vars for configuring outputs dir
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libclDES)
