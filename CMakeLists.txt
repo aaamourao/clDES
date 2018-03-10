@@ -1,3 +1,8 @@
+# Cldes
+#
+# GPL v3
+# Copyright (c) Adriano Madc0ww Mourão <adrianodasho@prontonmail.com>
+
 cmake_minimum_required (VERSION 3.10)
 project (clDES VERSION 0.1.0 DESCRIPTION
     "Discrete Event Systems implementation and operations")
