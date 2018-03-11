@@ -53,7 +53,7 @@ public:
      * Creates the DESystem object with N states defined by the argument
      * aStatesNumber and represented by its graph defined by argument aGraph.
      */
-    DESystem(ublas::compressed_matrix<ScalarType> *aGraph,
+    DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
              const int &aStatesNumber, const int &aInitState,
              std::vector<int> aMarkedStates, const bool &aDevCacheEnabled);
 

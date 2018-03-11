@@ -59,7 +59,7 @@ int main() {
     (*system_graph)(1, 0) = a; (*system_graph)(1, 1) = b;
     (*system_graph)(2, 1) = a * g; (*system_graph)(2, 2) = b;
 
-    sys = new clDES::DESystem(system_graph, n_states, init_state, marked_states, false);
+    sys = new clDES::DESystem(*system_graph, n_states, init_state, marked_states, false);
 
     ublas::compressed_matrix<clDES::ScalarType> graph = sys->GetGraph();
 
