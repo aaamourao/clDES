@@ -38,6 +38,7 @@
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <vector>
+#include <memory>
 #include "viennacl/compressed_matrix.hpp"
 
 namespace clDES {
@@ -75,7 +76,7 @@ public:
      * starting from its initial state. It returns a vector with all nodes
      * which are accessible from the initial state.
      */
-    ublas::compressed_matrix<ScalarType> &AccessiblePart() const;
+    std::vector<int> &AccessiblePart() const;
 
     /*
      * TODO:

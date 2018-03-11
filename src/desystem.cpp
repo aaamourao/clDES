@@ -57,8 +57,8 @@ ublas::compressed_matrix<ScalarType> DESystem::GetGraph() const {
     return *graph_;
 }
 
-ublas::compressed_matrix<ScalarType> &DESystem::AccessiblePart() const {
-    auto result_vector = new ublas::compressed_matrix<ScalarType>();
+std::vector<int> &DESystem::AccessiblePart() const {
+    auto result_vector = new std::vector<int>;
 
     return *result_vector;
 }
