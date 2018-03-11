@@ -36,12 +36,12 @@
 namespace ublas = boost::numeric::ublas;
 
 int main() {
-    clDES::DESystem *sys;
+    cldes::DESystem *sys;
 
     const int n_states = 6;
 
     const auto system_graph =
-        new ublas::compressed_matrix<clDES::ScalarType>(n_states, n_states);
+        new ublas::compressed_matrix<cldes::ScalarType>(n_states, n_states);
 
     // Declare transitions: represented by prime numbers
     // TODO: Transitions still need to be full implemented
@@ -59,9 +59,9 @@ int main() {
     (*system_graph)(1, 0) = a; (*system_graph)(1, 1) = b;
     (*system_graph)(2, 1) = a * g; (*system_graph)(2, 2) = b;
 
-    sys = new clDES::DESystem(*system_graph, n_states, init_state, marked_states, false);
+    sys = new cldes::DESystem(*system_graph, n_states, init_state, marked_states, false);
 
-    ublas::compressed_matrix<clDES::ScalarType> graph = sys->GetGraph();
+    ublas::compressed_matrix<cldes::ScalarType> graph = sys->GetGraph();
 
     if (&graph != NULL) {
         std::cout << "It is a beginning..." << std::endl;

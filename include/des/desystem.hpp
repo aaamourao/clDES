@@ -40,7 +40,7 @@
 #include <vector>
 #include "viennacl/compressed_matrix.hpp"
 
-namespace clDES {
+namespace cldes {
 
 using ScalarType = float;
 namespace ublas = boost::numeric::ublas;
@@ -75,7 +75,7 @@ public:
      * starting from its initial state. It returns a vector with all nodes
      * which are accessible from the initial state.
      */
-    std::vector<int> &AccessiblePart() const;
+    std::set<int> AccessiblePart();
 
     /*
      * TODO:
@@ -95,6 +95,7 @@ private:
      * at runtime.
      *
      * TODO: Explain transition scheme.
+     * TODO: Should it be a smart pointer?
      */
     const ublas::compressed_matrix<ScalarType> *graph_;
 
@@ -115,9 +116,11 @@ private:
 
     /*! \brief DESystem::device_graph_ data member
      *
-     * Replicated graph_ data, but on device memory (usually a GPU). It is a
+     * Transposed graph_ data, but on device memory (usually a GPU). It is a
      * dev_cache_enabled_ is false. It cannot be const, since it may change as
      * dev_cache_enabled_ changes.
+     *
+     * TODO: Should it be a smart pointer?
      */
     viennacl::compressed_matrix<ScalarType> *device_graph_;
 
@@ -133,8 +136,14 @@ private:
      * and some marked states may be deleted.
      */
     std::vector<int> marked_states_;
+
+    /*! \brief DESystem::CacheGraph_ private method
+     *
+     * Put graph transposed data on the device memory.
+     */
+    void CacheGraph_();
 };
 
-}  // namespace clDES
+}  // namespace cldes
 
 #endif  // DESYSTEM_HPP

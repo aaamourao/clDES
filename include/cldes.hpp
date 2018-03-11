@@ -32,8 +32,8 @@
 #ifndef CLDES_HPP
 #define CLDES_HPP
 
-#include "DES/desystem.hpp"
+#include "des/desystem.hpp"
 
-class clDES::DESystem;
+class cldes::DESystem;
 
 #endif // CLDESS_HPP
