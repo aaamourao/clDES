@@ -15,7 +15,7 @@ Synthesizer** parallel algorithm is also available.
 
 ## Compiling
 
-It is necessary to make sure that CMake is installed, such as gnu C/C++
+It is necessary to make sure that CMake is installed, such as **GNU** C/C++
 developer tools.
 
 ### Build project
