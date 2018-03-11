@@ -2,8 +2,16 @@
 
 ## Introduction
 
-C++ Implementation of **Automata** and **Discrete-Event Systems**, their operations and **Discrete
-Controller Synthesis** on a **parallel approach**.
+C++11/OpenCL library for **Automata** as a **Discrete-Event Systems** view
+and its operations on a **parallel approach** . A **Discrete Controller
+Synthesizer** parallel algorithm is also available.
+
+## Available operations
+
+* Accessible Part
+* Coaccessible part
+* Trim
+* Controller Synthesis
 
 ## Compiling
 
@@ -22,7 +30,7 @@ $ cmake ..
 $ make
 ```
 
-### Development Build
+### Dev build
 
 If you wanna contribute **clDES**, you may want to compile with debug flags
 setting cmake's flag `BUILD_TYPE` to `Debug`:
