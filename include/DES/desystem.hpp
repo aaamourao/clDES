@@ -32,16 +32,34 @@
 #ifndef DESYSTEM_HPP
 #define DESYSTEM_HPP
 
+#ifndef VIENNACL_WITH_OPENCL
+#define VIENNACL_WITH_OPENCL
+#endif
+
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <vector>
 #include "viennacl/compressed_matrix.hpp"
-// #include <boost/numeric/ublas/matrix_sparse.hpp>
 
 namespace clDES {
 
-typedef float ScalarType;
+using ScalarType = float;
+namespace ublas = boost::numeric::ublas;
 
 class DESystem {
 public:
-    DESystem();
+    /*! \brief DESystem constructor
+     *
+     * Creates the DESystem object with N states defined by the argument
+     * aStatesNumber and represented by its graph defined by argument aGraph.
+     */
+    DESystem(ublas::compressed_matrix<ScalarType> *aGraph,
+             const int &aStatesNumber, const int &aInitState,
+             std::vector<int> aMarkedStates, const bool &aDevCacheEnabled);
+
+    /*! \brief DESystem destructor
+     *
+     * Delete dinamically allocated data: graph and device_graph.
+     */
     virtual ~DESystem();
 
     /*! \brief DESystem::getgraph() method
@@ -49,11 +67,72 @@ public:
      * Returns a copy of DESystem's private data member graph. Considering that
      * graph is a pointer, it returns the contents of graph.
      */
-    viennacl::compressed_matrix<ScalarType> get_graph() const;
+    ublas::compressed_matrix<ScalarType> GetGraph() const;
+
+    /*! \brief DESystem::accessible_part() method
+     *
+     * Executes a Breadth First Search in the graph, which represents the DES,
+     * starting from its initial state. It returns a vector with all nodes
+     * which are accessible from the initial state.
+     */
+    ublas::compressed_matrix<ScalarType> &AccessiblePart() const;
+
+    /*
+     * TODO:
+     * getters
+     * enable dev cache
+     * CoaccessiblePart
+     * Trim
+     * ...
+     */
 
 private:
-    viennacl::compressed_matrix<ScalarType> *graph;
-    // ScalarType *initialState;
+    /*! \brief DESystem::graph_ data member
+     *
+     * A sparse matrix who represents the automata as a graph in an adjascency
+     * matrix. It is implemented as a CSR scheme. The pointer is constant, but
+     * its content should not be constant, as the graph should change many times
+     * at runtime.
+     *
+     * TODO: Explain transition scheme.
+     */
+    const ublas::compressed_matrix<ScalarType> *graph_;
+
+    /*! \brief DESystem::states_number_ data member
+     *
+     * Hold the number of states that the automata contains. As the automata can
+     * be cut, the states number is not a constant at all.
+     */
+    int states_number_;
+
+    /*! \brief DESystem::dev_cache_enabled_ data member
+     *
+     * If dev_cache_enabled_ is true, the graph should be cached on the device
+     * memory, so device_graph_ is not nullptr. It can be set at any time at run
+     * time, so it is not a constant.
+     */
+    bool dev_cache_enabled_;
+
+    /*! \brief DESystem::device_graph_ data member
+     *
+     * Replicated graph_ data, but on device memory (usually a GPU). It is a
+     * dev_cache_enabled_ is false. It cannot be const, since it may change as
+     * dev_cache_enabled_ changes.
+     */
+    viennacl::compressed_matrix<ScalarType> *device_graph_;
+
+    /*! \brief DESystem::init_state_ data member
+     *
+     * Hold the initial state position.
+     */
+    const int init_state_;
+
+    /*! \brief DESystem::marked_states_ data member
+     *
+     * Hold all marked states. Cannot be const, since the automata can be cut,
+     * and some marked states may be deleted.
+     */
+    std::vector<int> marked_states_;
 };
 
 }  // namespace clDES

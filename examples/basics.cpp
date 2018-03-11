@@ -29,16 +29,41 @@
 */
 
 #include <iostream>
+#include <vector>
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include "cldes.hpp"
+
+namespace ublas = boost::numeric::ublas;
 
 int main() {
     clDES::DESystem *sys;
 
-    sys = new clDES::DESystem();
+    const int n_states = 6;
 
-    viennacl::compressed_matrix<clDES::ScalarType> graph = sys->get_graph();
+    const auto system_graph =
+        new ublas::compressed_matrix<clDES::ScalarType>(n_states, n_states);
 
-    if(&graph != NULL) {
+    // Declare transitions: represented by prime numbers
+    // TODO: Transitions still need to be full implemented
+    const float a = 2.0f;
+    const float b = 3.0f;
+    const float g = 5.0f;
+
+    std::vector<int> marked_states;
+    marked_states.push_back(0);
+    marked_states.push_back(2);
+
+    const int init_state = 0;
+
+    (*system_graph)(0, 0) = a; (*system_graph)(0, 2) = g;
+    (*system_graph)(1, 0) = a; (*system_graph)(1, 1) = b;
+    (*system_graph)(2, 1) = a * g; (*system_graph)(2, 2) = b;
+
+    sys = new clDES::DESystem(system_graph, n_states, init_state, marked_states, false);
+
+    ublas::compressed_matrix<clDES::ScalarType> graph = sys->GetGraph();
+
+    if (&graph != NULL) {
         std::cout << "It is a beginning..." << std::endl;
     }
 
