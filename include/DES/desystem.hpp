@@ -38,7 +38,6 @@
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <vector>
-#include <memory>
 #include "viennacl/compressed_matrix.hpp"
 
 namespace clDES {
