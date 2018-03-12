@@ -54,7 +54,7 @@ public:
      */
     DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
              const int &aStatesNumber, const int &aInitState,
-             std::vector<int> aMarkedStates, const bool &aDevCacheEnabled);
+             std::vector<int> &aMarkedStates, const bool &aDevCacheEnabled);
 
     /*! \brief DESystem destructor
      *
@@ -97,7 +97,7 @@ private:
      * TODO: Explain transition scheme.
      * TODO: Should it be a smart pointer?
      */
-    const ublas::compressed_matrix<ScalarType> *graph_;
+    const ublas::compressed_matrix<ScalarType>* graph_;
 
     /*! \brief DESystem::states_number_ data member
      *
@@ -122,7 +122,7 @@ private:
      *
      * TODO: Should it be a smart pointer?
      */
-    viennacl::compressed_matrix<ScalarType> *device_graph_;
+    viennacl::compressed_matrix<ScalarType>* device_graph_;
 
     /*! \brief DESystem::init_state_ data member
      *

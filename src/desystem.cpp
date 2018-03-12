@@ -39,7 +39,7 @@ using namespace cldes;
 
 DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
                    const int &aStatesNumber, const int &aInitState,
-                   std::vector<int> aMarkedStates, const bool &aDevCacheEnabled)
+                   std::vector<int> &aMarkedStates, const bool &aDevCacheEnabled)
     : graph_(&aGraph), init_state_(aInitState) {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
