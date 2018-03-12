@@ -28,9 +28,9 @@
  =========================================================================
 */
 
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <iostream>
 #include <vector>
-#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include "cldes.hpp"
 
 namespace ublas = boost::numeric::ublas;
@@ -38,7 +38,7 @@ namespace ublas = boost::numeric::ublas;
 int main() {
     cldes::DESystem *sys;
 
-    const int n_states = 6;
+    const int n_states = 4;
 
     const auto system_graph =
         new ublas::compressed_matrix<cldes::ScalarType>(n_states, n_states);
@@ -55,16 +55,30 @@ int main() {
 
     const int init_state = 0;
 
-    (*system_graph)(0, 0) = a; (*system_graph)(0, 2) = g;
-    (*system_graph)(1, 0) = a; (*system_graph)(1, 1) = b;
-    (*system_graph)(2, 1) = a * g; (*system_graph)(2, 2) = b;
+    (*system_graph)(0, 0) = a;
+    (*system_graph)(0, 2) = g;
+    (*system_graph)(1, 0) = a;
+    (*system_graph)(1, 1) = b;
+    (*system_graph)(2, 1) = a * g;
+    (*system_graph)(2, 2) = b;
+    (*system_graph)(2, 3) = a;
+    (*system_graph)(3, 1) = a;
 
-    sys = new cldes::DESystem(*system_graph, n_states, init_state, marked_states, false);
+    sys = new cldes::DESystem(*system_graph, n_states, init_state,
+                              marked_states, false);
 
     ublas::compressed_matrix<cldes::ScalarType> graph = sys->GetGraph();
 
     if (&graph != NULL) {
         std::cout << "It is a beginning..." << std::endl;
+    }
+
+    std::set<int> accessible_states;
+    accessible_states = sys->AccessiblePart();
+
+    for (std::set<int>::iterator it = accessible_states.begin();
+         it != accessible_states.end(); ++it) {
+        std::cout << *it << std::endl;
     }
 
     delete sys;

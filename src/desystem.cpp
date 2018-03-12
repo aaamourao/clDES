@@ -29,9 +29,11 @@
  =========================================================================
 */
 
+#include "des/desystem.hpp"
 #include <memory>
-#include "cldes.hpp"
 #include "viennacl/linalg/prod.hpp"
+
+#include <iostream>
 
 using namespace cldes;
 
@@ -63,10 +65,6 @@ ublas::compressed_matrix<ScalarType> DESystem::GetGraph() const {
 }
 
 std::set<int> DESystem::AccessiblePart() {
-    std::set<int> accessible_states;
-
-    accessible_states.insert(init_state_);
-
     // Cache graph temporally
     if (!dev_cache_enabled_) {
         CacheGraph_();
@@ -78,28 +76,45 @@ std::set<int> DESystem::AccessiblePart() {
      */
 
     // Results sparse vector
-    ublas::compressed_matrix<ScalarType> bfs_res_vector(states_number_, 1);
+    // TODO: When utils::Sum is implemented, change it to
+    // viennacl::compressed_matrix
+    ublas::vector<ScalarType> bfs_host_vector(states_number_);
+    viennacl::vector<ScalarType> bfs_res_vector(states_number_);
 
     // Initialize sparse result vector
-    bfs_res_vector(init_state_, 1) = 1;
-
     for (int i = 0; i < states_number_; ++i) {
-        viennacl::compressed_matrix<ScalarType> X(states_number_, 1);
+        bfs_host_vector(i) = 0;
+    }
+    bfs_host_vector(init_state_) = 1;
+
+    // Copy initial vector to device memory
+    viennacl::copy(bfs_host_vector, bfs_res_vector);
+
+    viennacl::vector<ScalarType> X(states_number_);
+    // Executes BFS
+    for (int i = 0; i < states_number_; ++i) {
 
         if (i == 0) {
-            X(init_state_, 1) = 1;
+            X = bfs_res_vector;
         }
-
-        viennacl::compressed_matrix<ScalarType> Y =
-            viennacl::linalg::prod(*device_graph_, X);
-        ublas::compressed_matrix<ScalarType> Y_ublas(states_number_, 1);
-        viennacl::copy(Y, Y_ublas);
-        bfs_res_vector += Y_ublas;
+        auto Y = viennacl::linalg::prod(*device_graph_, X);
+        bfs_res_vector += Y;
+        X = Y;
     }
 
     // Remove graph_ from device memory, if it is set so
     if (!dev_cache_enabled_) {
         delete device_graph_;
+    }
+
+    // Copy result vector to host memory
+    viennacl::copy(bfs_res_vector, bfs_host_vector);
+
+    std::set<int> accessible_states;
+    for (int i = 0; i < states_number_; ++i) {
+        if (bfs_host_vector(i) != 0) {
+            accessible_states.insert(i);
+        }
     }
 
     return accessible_states;

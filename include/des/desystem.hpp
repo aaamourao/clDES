@@ -38,11 +38,11 @@
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <vector>
+#include "constants.hpp"
 #include "viennacl/compressed_matrix.hpp"
 
 namespace cldes {
 
-using ScalarType = float;
 namespace ublas = boost::numeric::ublas;
 
 class DESystem {
