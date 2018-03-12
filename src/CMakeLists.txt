@@ -4,7 +4,11 @@
 # Copyright (c) Adriano Madc0ww Mourão <adrianodasho@prontonmail.com>
 
 # Library sources
-set(libclDESSrcs desystem.cpp)
+set(libclDESSrcs
+    desystem.cpp
+    oclbackend.cpp
+    # matrop.cpp
+)
 
 # Library public headers
 set(headersDir "${PROJECT_SOURCE_DIR}/include")
