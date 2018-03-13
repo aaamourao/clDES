@@ -54,7 +54,8 @@ public:
      */
     DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
              int const &aStatesNumber, int const &aInitState,
-             std::vector<int> &aMarkedStates, bool const &aDevCacheEnabled);
+             std::vector<int> &aMarkedStates,
+             bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem constructor
      *
@@ -62,7 +63,8 @@ public:
      * ublas::compressed_matrix by the class user.
      */
     DESystem(int const &aStatesNumber, int const &aInitState,
-             std::vector<int> &aMarkedStates, bool const &aDevCacheEnabled);
+             std::vector<int> &aMarkedStates,
+             bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem destructor
      *
