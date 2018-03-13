@@ -41,7 +41,8 @@ DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
                    int const &aStatesNumber, int const &aInitState,
                    std::vector<int> &aMarkedStates,
                    bool const &aDevCacheEnabled)
-    : graph_(&aGraph), init_state_(aInitState) {
+    : graph_(new ublas::compressed_matrix<ScalarType>(aGraph)),
+      init_state_(aInitState) {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
@@ -77,7 +78,6 @@ DESystem::~DESystem() {
     if (graph_) {
         delete graph_;
     }
-    // TODO: Is device_graph_ on heap?
     if (dev_cache_enabled_) {
         delete device_graph_;
     }
