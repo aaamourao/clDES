@@ -36,18 +36,7 @@
 namespace ublas = boost::numeric::ublas;
 
 int main() {
-    cldes::DESystem *sys;
-
     const int n_states = 4;
-
-    const auto system_graph =
-        new ublas::compressed_matrix<cldes::ScalarType>(n_states, n_states);
-
-    // Declare transitions: represented by prime numbers
-    // TODO: Transitions still need to be full implemented
-    const float a = 2.0f;
-    const float b = 3.0f;
-    const float g = 5.0f;
 
     std::vector<int> marked_states;
     marked_states.push_back(0);
@@ -55,17 +44,22 @@ int main() {
 
     const int init_state = 0;
 
-    (*system_graph)(0, 0) = a;
-    (*system_graph)(0, 2) = g;
-    (*system_graph)(1, 0) = a;
-    (*system_graph)(1, 1) = b;
-    (*system_graph)(2, 1) = a * g;
-    (*system_graph)(2, 2) = b;
-    (*system_graph)(2, 3) = a;
-    (*system_graph)(3, 1) = a;
+    auto sys = new cldes::DESystem(n_states, init_state, marked_states, false);
 
-    sys = new cldes::DESystem(*system_graph, n_states, init_state,
-                              marked_states, false);
+    // Declare transitions: represented by prime numbers
+    // TODO: Transitions and Events still need to be full implemented
+    const float a = 2.0f;
+    const float b = 3.0f;
+    const float g = 5.0f;
+
+    (*sys)(0, 0) = a;
+    (*sys)(0, 2) = g;
+    (*sys)(1, 0) = a;
+    (*sys)(1, 1) = b;
+    (*sys)(2, 1) = a * g;
+    (*sys)(2, 2) = b;
+    (*sys)(2, 3) = a;
+    (*sys)(3, 1) = a;
 
     ublas::compressed_matrix<cldes::ScalarType> graph = sys->GetGraph();
 
@@ -76,10 +70,12 @@ int main() {
     std::set<int> accessible_states;
     accessible_states = sys->AccessiblePart();
 
+    std::cout << "Accessible part: ";
     for (std::set<int>::iterator it = accessible_states.begin();
          it != accessible_states.end(); ++it) {
-        std::cout << *it << std::endl;
+        std::cout << *it << " ";
     }
+    std::cout << std::endl;
 
     delete sys;
 
