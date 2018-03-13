@@ -7,7 +7,7 @@
 set(libclDESSrcs
     desystem.cpp
     oclbackend.cpp
-    # matrop.cpp
+    matrop.cpp
 )
 
 # Library public headers
