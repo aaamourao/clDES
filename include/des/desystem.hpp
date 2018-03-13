@@ -53,8 +53,16 @@ public:
      * aStatesNumber and represented by its graph defined by argument aGraph.
      */
     DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
-             const int &aStatesNumber, const int &aInitState,
-             std::vector<int> &aMarkedStates, const bool &aDevCacheEnabled);
+             int const &aStatesNumber, int const &aInitState,
+             std::vector<int> &aMarkedStates, bool const &aDevCacheEnabled);
+
+    /*! \brief DESystem constructor
+     *
+     * Overloads DESystem constructor: does not require to create a
+     * ublas::compressed_matrix by the class user.
+     */
+    DESystem(int const &aStatesNumber, int const &aInitState,
+             std::vector<int> &aMarkedStates, bool const &aDevCacheEnabled);
 
     /*! \brief DESystem destructor
      *

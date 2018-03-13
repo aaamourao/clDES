@@ -38,10 +38,28 @@
 using namespace cldes;
 
 DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
-                   const int &aStatesNumber, const int &aInitState,
+                   int const &aStatesNumber, int const &aInitState,
                    std::vector<int> &aMarkedStates,
-                   const bool &aDevCacheEnabled)
+                   bool const &aDevCacheEnabled)
     : graph_(&aGraph), init_state_(aInitState) {
+    states_number_ = aStatesNumber;
+    marked_states_ = aMarkedStates;
+    dev_cache_enabled_ = aDevCacheEnabled;
+
+    // If device cache is enabled, cache it
+    if (dev_cache_enabled_) {
+        CacheGraph_();
+    } else {
+        device_graph_ = nullptr;
+    }
+}
+
+DESystem::DESystem(int const &aStatesNumber, int const &aInitState,
+                   std::vector<int> &aMarkedStates,
+                   bool const &aDevCacheEnabled)
+    : graph_(new ublas::compressed_matrix<ScalarType>(aStatesNumber,
+                                                      aStatesNumber)),
+      init_state_(aInitState) {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
