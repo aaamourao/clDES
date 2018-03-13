@@ -45,12 +45,14 @@ DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
 
+    // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
         CacheGraph_();
     }
 }
 
 DESystem::~DESystem() {
+    // Delete uBlas data
     if (graph_) {
         delete graph_;
     }
