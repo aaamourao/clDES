@@ -39,7 +39,8 @@ using namespace cldes;
 
 DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
                    const int &aStatesNumber, const int &aInitState,
-                   std::vector<int> &aMarkedStates, const bool &aDevCacheEnabled)
+                   std::vector<int> &aMarkedStates,
+                   const bool &aDevCacheEnabled)
     : graph_(&aGraph), init_state_(aInitState) {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
@@ -48,6 +49,8 @@ DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
         CacheGraph_();
+    } else {
+        device_graph_ = nullptr;
     }
 }
 
@@ -95,7 +98,6 @@ std::set<int> DESystem::AccessiblePart() {
     viennacl::vector<ScalarType> X(states_number_);
     // Executes BFS
     for (int i = 0; i < states_number_; ++i) {
-
         if (i == 0) {
             X = bfs_res_vector;
         }
@@ -123,7 +125,15 @@ std::set<int> DESystem::AccessiblePart() {
 }
 
 void DESystem::CacheGraph_() {
-    device_graph_ = new viennacl::compressed_matrix<ScalarType>(states_number_,
-                                                                states_number_);
+    // If device graph is not allocated, allocate space for it
+    if (!device_graph_) {
+        device_graph_ = new viennacl::compressed_matrix<ScalarType>(
+            states_number_, states_number_);
+    }
     viennacl::copy(trans(*graph_), *device_graph_);
+}
+
+ublas::compressed_matrix<ScalarType>::reference DESystem::operator()(int &lin,
+                                                                     int &col) {
+    return (*graph_)(lin, col);
 }

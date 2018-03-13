@@ -77,6 +77,14 @@ public:
      */
     std::set<int> AccessiblePart();
 
+    /*! \brief DESystem::operator()
+     *
+     * Override operator () for changing transinstions with a single assignment:
+     * e.g. discrete_system_foo(2,1) = 3.0f;
+     */
+    ublas::compressed_matrix<ScalarType>::reference operator()(int &lin,
+                                                               int &col);
+
     /*
      * TODO:
      * getters
@@ -97,7 +105,7 @@ private:
      * TODO: Explain transition scheme.
      * TODO: Should it be a smart pointer?
      */
-    const ublas::compressed_matrix<ScalarType>* graph_;
+    ublas::compressed_matrix<ScalarType> *const graph_;
 
     /*! \brief DESystem::states_number_ data member
      *
@@ -122,7 +130,7 @@ private:
      *
      * TODO: Should it be a smart pointer?
      */
-    viennacl::compressed_matrix<ScalarType>* device_graph_;
+    viennacl::compressed_matrix<ScalarType> *device_graph_;
 
     /*! \brief DESystem::init_state_ data member
      *
