@@ -133,7 +133,7 @@ void DESystem::CacheGraph_() {
     viennacl::copy(trans(*graph_), *device_graph_);
 }
 
-ublas::compressed_matrix<ScalarType>::reference DESystem::operator()(int &lin,
-                                                                     int &col) {
+ublas::compressed_matrix<ScalarType>::reference DESystem::operator()(
+    int const &lin, int const &col) {
     return (*graph_)(lin, col);
 }

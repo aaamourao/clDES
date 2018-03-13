@@ -82,8 +82,8 @@ public:
      * Override operator () for changing transinstions with a single assignment:
      * e.g. discrete_system_foo(2,1) = 3.0f;
      */
-    ublas::compressed_matrix<ScalarType>::reference operator()(int &lin,
-                                                               int &col);
+    ublas::compressed_matrix<ScalarType>::reference operator()(int const &lin,
+                                                               int const &col);
 
     /*
      * TODO:
