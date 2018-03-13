@@ -46,6 +46,7 @@ DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
+    is_cache_outdated_ = true;
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
@@ -91,6 +92,8 @@ std::set<int> DESystem::AccessiblePart() {
     // Cache graph temporally
     if (!dev_cache_enabled_) {
         CacheGraph_();
+    } else if (is_cache_outdated_) {
+        UpdateGraphCache_();
     }
 
     /*
@@ -149,9 +152,20 @@ void DESystem::CacheGraph_() {
             states_number_, states_number_);
     }
     viennacl::copy(trans(*graph_), *device_graph_);
+
+    is_cache_outdated_ = false;
 }
 
+// TODO: Is it changing the value?
 ublas::compressed_matrix<ScalarType>::reference DESystem::operator()(
     int const &lin, int const &col) {
+
+    is_cache_outdated_ = true;
+
     return (*graph_)(lin, col);
+}
+
+void DESystem::UpdateGraphCache_() {
+    viennacl::copy(trans(*graph_), *device_graph_);
+    is_cache_outdated_ = false;
 }

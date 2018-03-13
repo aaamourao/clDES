@@ -125,7 +125,7 @@ private:
      */
     viennacl::compressed_matrix<ScalarType> *device_graph_;
 
-    /*! \brief DESystem::dev_cache_enabled_ data member
+    /*! \brief Device Cache Enabled private data member
      *
      * If dev_cache_enabled_ is true, the graph should be cached on the device
      * memory, so device_graph_ is not nullptr. It can be set at any time at run
@@ -133,31 +133,43 @@ private:
      */
     bool dev_cache_enabled_;
 
-    /*! \brief DESystem::states_number_ data member
+    /*! \brief Is Cache Outdated private data member
+     *
+     * Tracks if cache, dev_graph_, needs to be updated or not.
+     */
+    bool is_cache_outdated_;
+
+    /*! \brief States Number private data member
      *
      * Hold the number of states that the automata contains. As the automata can
      * be cut, the states number is not a constant at all.
      */
     int states_number_;
 
-    /*! \brief DESystem::init_state_ data member
+    /*! \brief Initial State private data member
      *
      * Hold the initial state position.
      */
     const int init_state_;
 
-    /*! \brief DESystem::marked_states_ data member
+    /*! \brief Marked States private data member
      *
      * Hold all marked states. Cannot be const, since the automata can be cut,
      * and some marked states may be deleted.
      */
     std::vector<int> marked_states_;
 
-    /*! \brief DESystem::CacheGraph_ private method
+    /*! \brief Cache Graph private method
      *
      * Put graph transposed data on the device memory.
      */
     void CacheGraph_();
+
+    /*! \brief Upgrade Graph Cache private method
+     *
+     * Refresh the graph data on device memory.
+     */
+    void UpdateGraphCache_();
 };
 
 }  // namespace cldes
