@@ -115,21 +115,6 @@ private:
      */
     ublas::compressed_matrix<ScalarType> *const graph_;
 
-    /*! \brief DESystem::states_number_ data member
-     *
-     * Hold the number of states that the automata contains. As the automata can
-     * be cut, the states number is not a constant at all.
-     */
-    int states_number_;
-
-    /*! \brief DESystem::dev_cache_enabled_ data member
-     *
-     * If dev_cache_enabled_ is true, the graph should be cached on the device
-     * memory, so device_graph_ is not nullptr. It can be set at any time at run
-     * time, so it is not a constant.
-     */
-    bool dev_cache_enabled_;
-
     /*! \brief DESystem::device_graph_ data member
      *
      * Transposed graph_ data, but on device memory (usually a GPU). It is a
@@ -139,6 +124,21 @@ private:
      * TODO: Should it be a smart pointer?
      */
     viennacl::compressed_matrix<ScalarType> *device_graph_;
+
+    /*! \brief DESystem::dev_cache_enabled_ data member
+     *
+     * If dev_cache_enabled_ is true, the graph should be cached on the device
+     * memory, so device_graph_ is not nullptr. It can be set at any time at run
+     * time, so it is not a constant.
+     */
+    bool dev_cache_enabled_;
+
+    /*! \brief DESystem::states_number_ data member
+     *
+     * Hold the number of states that the automata contains. As the automata can
+     * be cut, the states number is not a constant at all.
+     */
+    int states_number_;
 
     /*! \brief DESystem::init_state_ data member
      *
