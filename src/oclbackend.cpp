@@ -36,6 +36,7 @@ using namespace cldes::utils;
 // Initialize static data members
 OclBackend* OclBackend::instance_ = nullptr;
 viennacl::ocl::program* OclBackend::cldes_program_ = nullptr;
+viennacl::ocl::kernel* OclBackend::add_devkernel_ = nullptr;
 
 OclBackend* OclBackend::Instance() {
     if (!instance_) {
@@ -46,6 +47,8 @@ OclBackend* OclBackend::Instance() {
 
 OclBackend::OclBackend() {
     // All custom clDES OpenCL kernels
+    // TODO: put it on other file
+    // TODO: This is a dense matrix kernel
     const char* cldes_kernels_ =
         "__kernel void elementwise_add(\n"
         "          __global const float * vec1,\n"
@@ -61,4 +64,12 @@ OclBackend::OclBackend() {
     // Load kernels on device
     cldes_program_ = &viennacl::ocl::current_context().add_program(
         cldes_kernels_, "cldes_kernels_");
+}
+
+viennacl::ocl::kernel& OclBackend::AddKernel() {
+    if (add_devkernel_) {
+        add_devkernel_ = &cldes_program_->get_kernel("elementwise_add");
+    }
+
+    return *add_devkernel_;
 }
