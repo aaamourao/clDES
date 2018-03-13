@@ -49,6 +49,13 @@ public:
      */
     static viennacl::ocl::kernel& AddKernel();
 
+    /*! \brief OclBackend::Enqueuel() method
+     *
+     * Public method for executing kernels on the device. It is basically
+     * viennacl opencl backend encapsulated.
+     */
+    static void Enqueue(viennacl::ocl::kernel& aCustomKernel);
+
 protected:
     /*! \brief OclBackend constructor
      *

@@ -73,3 +73,7 @@ viennacl::ocl::kernel& OclBackend::AddKernel() {
 
     return *add_devkernel_;
 }
+
+void OclBackend::Enqueue(viennacl::ocl::kernel& aCustomKernel) {
+    viennacl::ocl::enqueue(aCustomKernel);
+}
