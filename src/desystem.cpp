@@ -83,7 +83,7 @@ std::set<int> DESystem::AccessiblePart() {
 
     // Initialize sparse result vector
     for (int i = 0; i < states_number_; ++i) {
-        bfs_host_vector(i) = 0;
+        bfs_host_vector[i] = 0;
     }
     bfs_host_vector(init_state_) = 1;
 
