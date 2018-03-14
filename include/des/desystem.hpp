@@ -47,14 +47,16 @@ namespace ublas = boost::numeric::ublas;
 
 class DESystem {
 public:
+    using GraphHostData = ublas::compressed_matrix<ScalarType>;
+    using GraphDeviceData = viennacl::compressed_matrix<ScalarType>;
+
     /*! \brief DESystem constructor
      *
      * Creates the DESystem object with N states defined by the argument
      * aStatesNumber and represented by its graph defined by argument aGraph.
      */
-    DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
-             int const &aStatesNumber, int const &aInitState,
-             std::vector<int> &aMarkedStates,
+    DESystem(GraphHostData &aGraph, int const &aStatesNumber,
+             int const &aInitState, std::vector<int> &aMarkedStates,
              bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem constructor
@@ -77,7 +79,7 @@ public:
      * Returns a copy of DESystem's private data member graph. Considering that
      * graph is a pointer, it returns the contents of graph.
      */
-    ublas::compressed_matrix<ScalarType> GetGraph() const;
+    GraphHostData GetGraph() const;
 
     /*! \brief DESystem::accessible_part() method
      *
@@ -92,8 +94,7 @@ public:
      * Override operator () for changing transinstions with a single assignment:
      * e.g. discrete_system_foo(2,1) = 3.0f;
      */
-    ublas::compressed_matrix<ScalarType>::reference operator()(int const &lin,
-                                                               int const &col);
+    GraphHostData::reference operator()(int const &lin, int const &col);
 
     /*
      * TODO:
@@ -115,7 +116,7 @@ private:
      * TODO: Explain transition scheme.
      * TODO: Should it be a smart pointer?
      */
-    ublas::compressed_matrix<ScalarType> *const graph_;
+    GraphHostData *const graph_;
 
     /*! \brief DESystem::device_graph_ data member
      *
@@ -125,7 +126,7 @@ private:
      *
      * TODO: Should it be a smart pointer?
      */
-    viennacl::compressed_matrix<ScalarType> *device_graph_;
+    GraphDeviceData *device_graph_;
 
     /*! \brief Device Cache Enabled private data member
      *

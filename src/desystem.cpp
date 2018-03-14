@@ -37,12 +37,10 @@
 
 using namespace cldes;
 
-DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
-                   int const &aStatesNumber, int const &aInitState,
-                   std::vector<int> &aMarkedStates,
+DESystem::DESystem(GraphHostData &aGraph, int const &aStatesNumber,
+                   int const &aInitState, std::vector<int> &aMarkedStates,
                    bool const &aDevCacheEnabled)
-    : graph_(new ublas::compressed_matrix<ScalarType>(aGraph)),
-      init_state_(aInitState) {
+    : graph_(new GraphHostData(aGraph)), init_state_(aInitState) {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
@@ -59,8 +57,7 @@ DESystem::DESystem(ublas::compressed_matrix<ScalarType> &aGraph,
 DESystem::DESystem(int const &aStatesNumber, int const &aInitState,
                    std::vector<int> &aMarkedStates,
                    bool const &aDevCacheEnabled)
-    : graph_(new ublas::compressed_matrix<ScalarType>(aStatesNumber,
-                                                      aStatesNumber)),
+    : graph_(new GraphHostData(aStatesNumber, aStatesNumber)),
       init_state_(aInitState) {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
@@ -84,9 +81,7 @@ DESystem::~DESystem() {
     }
 }
 
-ublas::compressed_matrix<ScalarType> DESystem::GetGraph() const {
-    return *graph_;
-}
+DESystem::GraphHostData DESystem::GetGraph() const { return *graph_; }
 
 std::set<int> DESystem::AccessiblePart() {
     // Cache graph temporally
@@ -156,10 +151,11 @@ void DESystem::CacheGraph_() {
     is_cache_outdated_ = false;
 }
 
-// TODO: Is it changing the value?
-ublas::compressed_matrix<ScalarType>::reference DESystem::operator()(
-    int const &lin, int const &col) {
-
+// TODO: Is it always changing the value?
+// So, in some situations, it may not be necessary to set
+// is_cache_outdated_ = true
+DESystem::GraphHostData::reference DESystem::operator()(int const &lin,
+                                                        int const &col) {
     is_cache_outdated_ = true;
 
     return (*graph_)(lin, col);
