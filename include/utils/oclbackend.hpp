@@ -35,6 +35,9 @@ namespace cldes::utils {
 
 class OclBackend {
 public:
+    using ViennaCLKernel = viennacl::ocl::kernel;
+    using ViennaCLProgram = viennacl::ocl::program;
+
     /*! \brief OclBackend::Instance() method
      *
      * Public method that guarantees that only one object of OclBackend is
@@ -54,7 +57,7 @@ public:
      * Public method for executing kernels on the device. It is basically
      * viennacl opencl backend encapsulated.
      */
-    static void Enqueue(viennacl::ocl::kernel& aCustomKernel);
+    static void Enqueue(ViennaCLKernel& aCustomKernel);
 
 protected:
     /*! \brief OclBackend constructor
@@ -74,13 +77,13 @@ private:
      *
      * Kernels loaded on the device.
      */
-    static viennacl::ocl::program* cldes_program_;
+    static ViennaCLProgram* cldes_program_;
 
     /*! \brief OclBackend::add_devkernel_ raw pointer
      *
      * Kernel on device memory for add operation.
      */
-    static viennacl::ocl::kernel* add_devkernel_;
+    static ViennaCLKernel* add_devkernel_;
 };
 
 }  // namespace cldes::utils

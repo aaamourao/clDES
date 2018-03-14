@@ -35,8 +35,8 @@ using namespace cldes::utils;
 
 // Initialize static data members
 OclBackend* OclBackend::instance_ = nullptr;
-viennacl::ocl::program* OclBackend::cldes_program_ = nullptr;
-viennacl::ocl::kernel* OclBackend::add_devkernel_ = nullptr;
+OclBackend::ViennaCLProgram* OclBackend::cldes_program_ = nullptr;
+OclBackend::ViennaCLKernel* OclBackend::add_devkernel_ = nullptr;
 
 OclBackend* OclBackend::Instance() {
     if (!instance_) {
@@ -66,7 +66,7 @@ OclBackend::OclBackend() {
         cldes_kernels_, "cldes_kernels_");
 }
 
-viennacl::ocl::kernel& OclBackend::AddKernel() {
+OclBackend::ViennaCLKernel& OclBackend::AddKernel() {
     if (add_devkernel_) {
         add_devkernel_ = &cldes_program_->get_kernel("elementwise_add");
     }
