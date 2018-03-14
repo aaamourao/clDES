@@ -105,23 +105,21 @@ DESystem::StatesSet DESystem::AccessiblePart() {
     viennacl::vector<ScalarType> bfs_res_vector(states_number_);
 
     // Initialize sparse result vector
-    for (auto i = 0; i < states_number_; ++i) {
-        bfs_host_vector[i] = 0;
-    }
+    bfs_host_vector.clear();
     bfs_host_vector(init_state_) = 1;
 
     // Copy initial vector to device memory
     viennacl::copy(bfs_host_vector, bfs_res_vector);
 
-    viennacl::vector<ScalarType> X(states_number_);
+    viennacl::vector<ScalarType> x(states_number_);
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
         if (i == 0) {
-            X = bfs_res_vector;
+            x = bfs_res_vector;
         }
-        auto Y = viennacl::linalg::prod(*device_graph_, X);
-        bfs_res_vector += Y;
-        X = Y;
+        auto y = viennacl::linalg::prod(*device_graph_, x);
+        bfs_res_vector += y;
+        x = y;
     }
 
     // Remove graph_ from device memory, if it is set so
