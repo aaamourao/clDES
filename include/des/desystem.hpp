@@ -37,7 +37,7 @@
 #endif
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
-#include <vector>
+#include <set>
 #include "constants.hpp"
 #include "viennacl/compressed_matrix.hpp"
 
@@ -49,14 +49,15 @@ class DESystem {
 public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
     using GraphDeviceData = viennacl::compressed_matrix<ScalarType>;
+    using StatesSet = std::set<cldes_size_t>;
 
     /*! \brief DESystem constructor
      *
      * Creates the DESystem object with N states defined by the argument
      * aStatesNumber and represented by its graph defined by argument aGraph.
      */
-    DESystem(GraphHostData &aGraph, int const &aStatesNumber,
-             int const &aInitState, std::vector<int> &aMarkedStates,
+    DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
+             cldes_size_t const &aInitState, StatesSet &aMarkedStates,
              bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem constructor
@@ -64,9 +65,8 @@ public:
      * Overloads DESystem constructor: does not require to create a
      * ublas::compressed_matrix by the class user.
      */
-    DESystem(int const &aStatesNumber, int const &aInitState,
-             std::vector<int> &aMarkedStates,
-             bool const &aDevCacheEnabled = true);
+    DESystem(cldes_size_t const &aStatesNumber, cldes_size_t const &aInitState,
+             StatesSet &aMarkedStates, bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem destructor
      *
@@ -84,17 +84,18 @@ public:
     /*! \brief DESystem::accessible_part() method
      *
      * Executes a Breadth First Search in the graph, which represents the DES,
-     * starting from its initial state. It returns a vector with all nodes
+     * starting from its initial state. It returns a set containing all nodes
      * which are accessible from the initial state.
      */
-    std::set<int> AccessiblePart();
+    StatesSet AccessiblePart();
 
     /*! \brief DESystem::operator()
      *
      * Override operator () for changing transinstions with a single assignment:
      * e.g. discrete_system_foo(2,1) = 3.0f;
      */
-    GraphHostData::reference operator()(int const &lin, int const &col);
+    GraphHostData::reference operator()(cldes_size_t const &lin,
+                                        cldes_size_t const &col);
 
     /*
      * TODO:
@@ -147,20 +148,20 @@ private:
      * Hold the number of states that the automata contains. As the automata can
      * be cut, the states number is not a constant at all.
      */
-    int states_number_;
+    cldes_size_t states_number_;
 
     /*! \brief Initial State private data member
      *
      * Hold the initial state position.
      */
-    const int init_state_;
+    cldes_size_t const init_state_;
 
     /*! \brief Marked States private data member
      *
      * Hold all marked states. Cannot be const, since the automata can be cut,
      * and some marked states may be deleted.
      */
-    std::vector<int> marked_states_;
+    StatesSet marked_states_;
 
     /*! \brief Cache Graph private method
      *

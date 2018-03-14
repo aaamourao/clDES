@@ -31,5 +31,6 @@
 namespace cldes {
 
 using ScalarType = float;
+using cldes_size_t = unsigned int;
 
 }  // namespace cldes

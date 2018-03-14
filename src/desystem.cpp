@@ -37,8 +37,9 @@
 
 using namespace cldes;
 
-DESystem::DESystem(GraphHostData &aGraph, int const &aStatesNumber,
-                   int const &aInitState, std::vector<int> &aMarkedStates,
+DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
+                   cldes_size_t const &aInitState,
+                   StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
     : graph_(new GraphHostData(aGraph)), init_state_(aInitState) {
     states_number_ = aStatesNumber;
@@ -54,8 +55,9 @@ DESystem::DESystem(GraphHostData &aGraph, int const &aStatesNumber,
     }
 }
 
-DESystem::DESystem(int const &aStatesNumber, int const &aInitState,
-                   std::vector<int> &aMarkedStates,
+DESystem::DESystem(cldes_size_t const &aStatesNumber,
+                   cldes_size_t const &aInitState,
+                   StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
     : graph_(new GraphHostData(aStatesNumber, aStatesNumber)),
       init_state_(aInitState) {
@@ -83,7 +85,7 @@ DESystem::~DESystem() {
 
 DESystem::GraphHostData DESystem::GetGraph() const { return *graph_; }
 
-std::set<int> DESystem::AccessiblePart() {
+DESystem::StatesSet DESystem::AccessiblePart() {
     // Cache graph temporally
     if (!dev_cache_enabled_) {
         CacheGraph_();
@@ -103,7 +105,7 @@ std::set<int> DESystem::AccessiblePart() {
     viennacl::vector<ScalarType> bfs_res_vector(states_number_);
 
     // Initialize sparse result vector
-    for (int i = 0; i < states_number_; ++i) {
+    for (auto i = 0; i < states_number_; ++i) {
         bfs_host_vector[i] = 0;
     }
     bfs_host_vector(init_state_) = 1;
@@ -113,7 +115,7 @@ std::set<int> DESystem::AccessiblePart() {
 
     viennacl::vector<ScalarType> X(states_number_);
     // Executes BFS
-    for (int i = 0; i < states_number_; ++i) {
+    for (auto i = 0; i < states_number_; ++i) {
         if (i == 0) {
             X = bfs_res_vector;
         }
@@ -130,8 +132,8 @@ std::set<int> DESystem::AccessiblePart() {
     // Copy result vector to host memory
     viennacl::copy(bfs_res_vector, bfs_host_vector);
 
-    std::set<int> accessible_states;
-    for (int i = 0; i < states_number_; ++i) {
+    StatesSet accessible_states;
+    for (auto i = 0; i < states_number_; ++i) {
         if (bfs_host_vector(i) != 0) {
             accessible_states.insert(i);
         }
@@ -154,8 +156,8 @@ void DESystem::CacheGraph_() {
 // TODO: Is it always changing the value?
 // So, in some situations, it may not be necessary to set
 // is_cache_outdated_ = true
-DESystem::GraphHostData::reference DESystem::operator()(int const &lin,
-                                                        int const &col) {
+DESystem::GraphHostData::reference DESystem::operator()(
+    cldes_size_t const &lin, cldes_size_t const &col) {
     is_cache_outdated_ = true;
 
     return (*graph_)(lin, col);

@@ -30,7 +30,7 @@
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <iostream>
-#include <vector>
+#include <set>
 #include "cldes.hpp"
 
 namespace ublas = boost::numeric::ublas;
@@ -38,13 +38,13 @@ namespace ublas = boost::numeric::ublas;
 int main() {
     const int n_states = 4;
 
-    std::vector<int> marked_states;
-    marked_states.push_back(0);
-    marked_states.push_back(2);
+    cldes::DESystem::StatesSet marked_states;
+    marked_states.insert(0);
+    marked_states.insert(2);
 
     const int init_state = 0;
 
-    auto sys = new cldes::DESystem(n_states, init_state, marked_states, false);
+    auto sys = new cldes::DESystem(n_states, init_state, marked_states);
 
     // Declare transitions: represented by prime numbers
     // TODO: Transitions and Events still need to be full implemented
@@ -61,18 +61,20 @@ int main() {
     (*sys)(2, 3) = a;
     (*sys)(3, 1) = a;
 
-    ublas::compressed_matrix<cldes::ScalarType> graph = sys->GetGraph();
+    auto graph = sys->GetGraph();
+
+    // std::cout << "Graph data: " << std::endl;
+    // std::cout << graph << std::endl;
 
     if (&graph != NULL) {
         std::cout << "It is a beginning..." << std::endl;
     }
 
-    std::set<int> accessible_states;
-    accessible_states = sys->AccessiblePart();
+    auto accessible_states = sys->AccessiblePart();
 
     std::cout << "Accessible part: ";
-    for (std::set<int>::iterator it = accessible_states.begin();
-         it != accessible_states.end(); ++it) {
+    for (auto it = accessible_states.begin(); it != accessible_states.end();
+         ++it) {
         std::cout << *it << " ";
     }
     std::cout << std::endl;
