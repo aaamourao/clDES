@@ -38,8 +38,7 @@
 using namespace cldes;
 
 DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
-                   cldes_size_t const &aInitState,
-                   StatesSet &aMarkedStates,
+                   cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
     : graph_(new GraphHostData(aGraph)), init_state_(aInitState) {
     states_number_ = aStatesNumber;
@@ -56,8 +55,7 @@ DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
 }
 
 DESystem::DESystem(cldes_size_t const &aStatesNumber,
-                   cldes_size_t const &aInitState,
-                   StatesSet &aMarkedStates,
+                   cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
     : graph_(new GraphHostData(aStatesNumber, aStatesNumber)),
       init_state_(aInitState) {
@@ -101,8 +99,8 @@ DESystem::StatesSet DESystem::AccessiblePart() {
     // Results sparse vector
     // TODO: When utils::Sum is implemented, change it to
     // viennacl::compressed_matrix
-    ublas::vector<ScalarType> bfs_host_vector(states_number_);
-    viennacl::vector<ScalarType> bfs_res_vector(states_number_);
+    StatesVector bfs_host_vector(states_number_);
+    StatesDeviceVector bfs_res_vector(states_number_);
 
     // Initialize sparse result vector
     bfs_host_vector.clear();
@@ -111,7 +109,7 @@ DESystem::StatesSet DESystem::AccessiblePart() {
     // Copy initial vector to device memory
     viennacl::copy(bfs_host_vector, bfs_res_vector);
 
-    viennacl::vector<ScalarType> x(states_number_);
+    StatesDeviceVector x(states_number_);
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
         if (i == 0) {
