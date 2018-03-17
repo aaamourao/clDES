@@ -50,6 +50,7 @@ public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
     using GraphDeviceData = viennacl::compressed_matrix<ScalarType>;
     using StatesSet = std::set<cldes_size_t>;
+    // TODO: Change it to viennacl::compressed_matrix
     using StatesVector = viennacl::vector<ScalarType>;
     using StatesDeviceVector = viennacl::vector<ScalarType>;
 
