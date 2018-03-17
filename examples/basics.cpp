@@ -44,7 +44,7 @@ int main() {
 
     const int init_state = 0;
 
-    cldes::DESystem sys(n_states, init_state, marked_states);
+    cldes::DESystem sys{n_states, init_state, marked_states};
 
     // Declare transitions: represented by prime numbers
     // TODO: Transitions and Events still need to be full implemented
