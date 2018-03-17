@@ -40,7 +40,7 @@ using namespace cldes;
 DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
                    cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
-    : graph_(new GraphHostData(aGraph)), init_state_(aInitState) {
+    : graph_{new GraphHostData{aGraph}}, init_state_{aInitState} {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
@@ -56,8 +56,8 @@ DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
 DESystem::DESystem(cldes_size_t const &aStatesNumber,
                    cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
-    : graph_(new GraphHostData(aStatesNumber, aStatesNumber)),
-      init_state_(aInitState) {
+    : graph_{new GraphHostData{aStatesNumber, aStatesNumber}},
+      init_state_{aInitState} {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
@@ -95,10 +95,8 @@ DESystem::StatesSet DESystem::AccessiblePart() {
      */
 
     // Results sparse vector
-    // TODO: When utils::Sum is implemented, change it to
-    // viennacl::compressed_matrix
-    StatesVector bfs_host_vector(states_number_);
-    StatesDeviceVector bfs_res_vector(states_number_);
+    StatesVector bfs_host_vector{states_number_};
+    StatesDeviceVector bfs_res_vector{states_number_};
 
     // Initialize sparse result vector
     bfs_host_vector.clear();
@@ -107,7 +105,7 @@ DESystem::StatesSet DESystem::AccessiblePart() {
     // Copy initial vector to device memory
     viennacl::copy(bfs_host_vector, bfs_res_vector);
 
-    StatesDeviceVector x(states_number_);
+    StatesDeviceVector x{states_number_};
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
         if (i == 0) {
@@ -139,8 +137,8 @@ DESystem::StatesSet DESystem::AccessiblePart() {
 void DESystem::CacheGraph_() {
     // Allocate space for device_graph_
     if (device_graph_ == nullptr) {
-        device_graph_ = new viennacl::compressed_matrix<ScalarType>(
-            states_number_, states_number_);
+        device_graph_ = new viennacl::compressed_matrix<ScalarType>{
+            states_number_, states_number_};
     }
     viennacl::copy(trans(*graph_), *device_graph_);
 
