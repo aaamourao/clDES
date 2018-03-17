@@ -45,12 +45,11 @@ DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
+    device_graph_ = nullptr;
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
         CacheGraph_();
-    } else {
-        device_graph_ = nullptr;
     }
 }
 
@@ -62,12 +61,11 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
+    device_graph_ = nullptr;
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
         CacheGraph_();
-    } else {
-        device_graph_ = nullptr;
     }
 }
 
@@ -140,8 +138,10 @@ DESystem::StatesSet DESystem::AccessiblePart() {
 
 void DESystem::CacheGraph_() {
     // Allocate space for device_graph_
-    device_graph_ = new viennacl::compressed_matrix<ScalarType>(states_number_,
-                                                                states_number_);
+    if (device_graph_ == nullptr) {
+        device_graph_ = new viennacl::compressed_matrix<ScalarType>(
+            states_number_, states_number_);
+    }
     viennacl::copy(trans(*graph_), *device_graph_);
 
     is_cache_outdated_ = false;
