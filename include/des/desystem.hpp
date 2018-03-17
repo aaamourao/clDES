@@ -59,17 +59,18 @@ public:
      * aStatesNumber and represented by its graph defined by argument the
      * ublas compressed matrix aGraph.
      */
-    DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
-             cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-             bool const &aDevCacheEnabled = true);
+    explicit DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
+                      cldes_size_t const &aInitState, StatesSet &aMarkedStates,
+                      bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem constructor with empty matrix
      *
      * Overloads DESystem constructor: does not require to create a
      * ublas::compressed_matrix by the class user.
      */
-    DESystem(cldes_size_t const &aStatesNumber, cldes_size_t const &aInitState,
-             StatesSet &aMarkedStates, bool const &aDevCacheEnabled = true);
+    explicit DESystem(cldes_size_t const &aStatesNumber,
+                      cldes_size_t const &aInitState, StatesSet &aMarkedStates,
+                      bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem destructor
      *
