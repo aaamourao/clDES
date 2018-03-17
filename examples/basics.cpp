@@ -44,7 +44,7 @@ int main() {
 
     const int init_state = 0;
 
-    auto sys = new cldes::DESystem(n_states, init_state, marked_states);
+    cldes::DESystem sys(n_states, init_state, marked_states);
 
     // Declare transitions: represented by prime numbers
     // TODO: Transitions and Events still need to be full implemented
@@ -52,16 +52,16 @@ int main() {
     const float b = 3.0f;
     const float g = 5.0f;
 
-    (*sys)(0, 0) = a;
-    (*sys)(0, 2) = g;
-    (*sys)(1, 0) = a;
-    (*sys)(1, 1) = b;
-    (*sys)(2, 1) = a * g;
-    (*sys)(2, 2) = b;
-    (*sys)(2, 3) = a;
-    (*sys)(3, 1) = a;
+    sys(0, 0) = a;
+    sys(0, 2) = g;
+    sys(1, 0) = a;
+    sys(1, 1) = b;
+    sys(2, 1) = a * g;
+    sys(2, 2) = b;
+    sys(2, 3) = a;
+    sys(3, 1) = a;
 
-    auto graph = sys->GetGraph();
+    auto graph = sys.GetGraph();
 
     // std::cout << "Graph data: " << std::endl;
     // std::cout << graph << std::endl;
@@ -70,7 +70,7 @@ int main() {
         std::cout << "It is a beginning..." << std::endl;
     }
 
-    auto accessible_states = sys->AccessiblePart();
+    auto accessible_states = sys.AccessiblePart();
 
     std::cout << "Accessible part: ";
     for (auto it = accessible_states.begin(); it != accessible_states.end();
@@ -78,8 +78,6 @@ int main() {
         std::cout << *it << " ";
     }
     std::cout << std::endl;
-
-    delete sys;
 
     return 0;
 }

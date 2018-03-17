@@ -139,11 +139,9 @@ DESystem::StatesSet DESystem::AccessiblePart() {
 }
 
 void DESystem::CacheGraph_() {
-    // If device graph is not allocated, allocate space for it
-    if (!device_graph_) {
-        device_graph_ = new viennacl::compressed_matrix<ScalarType>(
-            states_number_, states_number_);
-    }
+    // Allocate space for device_graph_
+    device_graph_ = new viennacl::compressed_matrix<ScalarType>(states_number_,
+                                                                states_number_);
     viennacl::copy(trans(*graph_), *device_graph_);
 
     is_cache_outdated_ = false;
