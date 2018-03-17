@@ -108,6 +108,13 @@ public:
      * Trim
      * ...
      */
+protected:
+    /*! \brief Default constructor disabled
+     *
+     * Declare default constructor as protected to avoid the class user of
+     * calling it.
+     */
+    DESystem();
 
 private:
     /*! \brief Graph represented by an adjascency matrix
