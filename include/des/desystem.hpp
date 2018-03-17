@@ -53,16 +53,17 @@ public:
     using StatesVector = viennacl::vector<ScalarType>;
     using StatesDeviceVector = viennacl::vector<ScalarType>;
 
-    /*! \brief DESystem constructor
+    /*! \brief DESystem constructor by copying ublas object
      *
      * Creates the DESystem object with N states defined by the argument
-     * aStatesNumber and represented by its graph defined by argument aGraph.
+     * aStatesNumber and represented by its graph defined by argument the
+     * ublas compressed matrix aGraph.
      */
     DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
              cldes_size_t const &aInitState, StatesSet &aMarkedStates,
              bool const &aDevCacheEnabled = true);
 
-    /*! \brief DESystem constructor
+    /*! \brief DESystem constructor with empty matrix
      *
      * Overloads DESystem constructor: does not require to create a
      * ublas::compressed_matrix by the class user.
@@ -76,14 +77,14 @@ public:
      */
     virtual ~DESystem();
 
-    /*! \brief DESystem::getgraph() method
+    /*! \brief Graph getter
      *
      * Returns a copy of DESystem's private data member graph. Considering that
      * graph is a pointer, it returns the contents of graph.
      */
     GraphHostData GetGraph() const;
 
-    /*! \brief DESystem::accessible_part() method
+    /*! \brief Automata accessible part operation
      *
      * Executes a Breadth First Search in the graph, which represents the DES,
      * starting from its initial state. It returns a set containing all nodes
@@ -91,7 +92,7 @@ public:
      */
     StatesSet AccessiblePart();
 
-    /*! \brief DESystem::operator()
+    /*! \brief Operator "()" for assigning values to elements
      *
      * Override operator () for changing transinstions with a single assignment:
      * e.g. discrete_system_foo(2,1) = 3.0f;
@@ -109,7 +110,7 @@ public:
      */
 
 private:
-    /*! \brief DESystem::graph_ data member
+    /*! \brief Graph represented by an adjascency matrix
      *
      * A sparse matrix who represents the automata as a graph in an adjascency
      * matrix. It is implemented as a CSR scheme. The pointer is constant, but
@@ -121,7 +122,7 @@ private:
      */
     GraphHostData *const graph_;
 
-    /*! \brief DESystem::device_graph_ data member
+    /*! \brief Graph data on device memory
      *
      * Transposed graph_ data, but on device memory (usually a GPU). It is a
      * dev_cache_enabled_ is false. It cannot be const, since it may change as
@@ -131,7 +132,7 @@ private:
      */
     GraphDeviceData *device_graph_;
 
-    /*! \brief Device Cache Enabled private data member
+    /*! \brief Keeps if caching graph data on device is enabled
      *
      * If dev_cache_enabled_ is true, the graph should be cached on the device
      * memory, so device_graph_ is not nullptr. It can be set at any time at run
@@ -139,39 +140,39 @@ private:
      */
     bool dev_cache_enabled_;
 
-    /*! \brief Is Cache Outdated private data member
+    /*! \brief Keeps track if the device graph cache is outdated
      *
      * Tracks if cache, dev_graph_, needs to be updated or not.
      */
     bool is_cache_outdated_;
 
-    /*! \brief States Number private data member
+    /*! \brief Current system's states number
      *
      * Hold the number of states that the automata contains. As the automata can
      * be cut, the states number is not a constant at all.
      */
     cldes_size_t states_number_;
 
-    /*! \brief Initial State private data member
+    /*! \brief Current system's initial state
      *
      * Hold the initial state position.
      */
     cldes_size_t const init_state_;
 
-    /*! \brief Marked States private data member
+    /*! \brief Current system's marked states
      *
      * Hold all marked states. Cannot be const, since the automata can be cut,
      * and some marked states may be deleted.
      */
     StatesSet marked_states_;
 
-    /*! \brief Cache Graph private method
+    /*! \brief Method for caching the graph
      *
      * Put graph transposed data on the device memory.
      */
     void CacheGraph_();
 
-    /*! \brief Upgrade Graph Cache private method
+    /*! \brief Method for updating the graph
      *
      * Refresh the graph data on device memory.
      */
