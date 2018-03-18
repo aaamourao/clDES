@@ -37,7 +37,8 @@
 
 using namespace cldes;
 
-DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
+DESystem::DESystem(GraphHostData const &aGraph,
+                   cldes_size_t const &aStatesNumber,
                    cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
     : graph_{new GraphHostData{aGraph}}, init_state_{aInitState} {
@@ -56,18 +57,9 @@ DESystem::DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
 DESystem::DESystem(cldes_size_t const &aStatesNumber,
                    cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
-    : graph_{new GraphHostData{aStatesNumber, aStatesNumber}},
-      init_state_{aInitState} {
-    states_number_ = aStatesNumber;
-    marked_states_ = aMarkedStates;
-    dev_cache_enabled_ = aDevCacheEnabled;
-    device_graph_ = nullptr;
-
-    // If device cache is enabled, cache it
-    if (dev_cache_enabled_) {
-        CacheGraph_();
-    }
-}
+    : DESystem::DESystem{GraphHostData{aStatesNumber, aStatesNumber},
+                         aStatesNumber, aInitState, aMarkedStates,
+                         aDevCacheEnabled} {}
 
 DESystem::~DESystem() {
     // Delete uBlas data

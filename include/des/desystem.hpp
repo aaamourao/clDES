@@ -60,7 +60,8 @@ public:
      * aStatesNumber and represented by its graph defined by argument the
      * ublas compressed matrix aGraph.
      */
-    explicit DESystem(GraphHostData &aGraph, cldes_size_t const &aStatesNumber,
+    explicit DESystem(GraphHostData const &aGraph,
+                      cldes_size_t const &aStatesNumber,
                       cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                       bool const &aDevCacheEnabled = true);
 
