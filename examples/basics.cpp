@@ -66,7 +66,7 @@ int main() {
     // std::cout << "Graph data: " << std::endl;
     // std::cout << graph << std::endl;
 
-    if (&graph != NULL) {
+    if (&graph != nullptr) {
         std::cout << "It is a beginning..." << std::endl;
     }
 
@@ -75,6 +75,37 @@ int main() {
     std::cout << "Accessible part: ";
     for (auto it = accessible_states.begin(); it != accessible_states.end();
          ++it) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    // Ublas way of initialize DESystem
+    std::cout << "Initializing DESystem with an ublas compressed matrix"
+              << std::endl;
+    ublas::compressed_matrix<float> host_graph(n_states, n_states);
+
+    host_graph(0, 0) = a;
+    host_graph(0, 2) = g;
+    host_graph(1, 0) = a;
+    host_graph(1, 1) = b;
+    host_graph(2, 1) = a * g;
+    host_graph(2, 2) = b;
+    host_graph(2, 3) = a;
+    host_graph(3, 1) = a;
+
+    cldes::DESystem ublas_sys{host_graph, n_states, init_state, marked_states};
+
+    auto ublas_graph = ublas_sys.GetGraph();
+
+    if (&ublas_graph != nullptr) {
+        std::cout << "It is a beginning..." << std::endl;
+    }
+
+    auto ublas_accessible_states = ublas_sys.AccessiblePart();
+
+    std::cout << "Accessible part: ";
+    for (auto it = ublas_accessible_states.begin();
+         it != ublas_accessible_states.end(); ++it) {
         std::cout << *it << " ";
     }
     std::cout << std::endl;
