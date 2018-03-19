@@ -191,13 +191,13 @@ private:
      *
      * Executes a breadth first search on the graph.
      */
-    StatesSet *Bfs_(cldes_size_t const &aInitialNode);
+    StatesSet Bfs_(cldes_size_t const &aInitialNode);
 
     /*! \brief Breadth First Search
      *
      * Executes a breadth first search on the graph starting from init_state_.
      */
-    StatesSet *Bfs_() { Bfs_(init_state_); };
+    StatesSet Bfs_() { return Bfs_(init_state_); };
 };
 
 }  // namespace cldes

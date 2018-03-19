@@ -90,12 +90,7 @@ DESystem::StatesSet DESystem::AccessiblePart() {
         delete device_graph_;
     }
 
-    // Avoiding memory leak
-    // Workaround due to set issue on Bfs_
-    auto ret_acc_states = StatesSet{*accessible_states};
-    delete accessible_states;
-
-    return ret_acc_states;
+    return accessible_states;
 }
 
 void DESystem::CacheGraph_() {
@@ -124,7 +119,7 @@ void DESystem::UpdateGraphCache_() {
     is_cache_outdated_ = false;
 }
 
-DESystem::StatesSet *DESystem::Bfs_(cldes_size_t const &aInitialNode) {
+DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
@@ -139,23 +134,7 @@ DESystem::StatesSet *DESystem::Bfs_(cldes_size_t const &aInitialNode) {
     StatesDeviceVector x{states_number_, 1};
     viennacl::copy(host_x, x);
 
-    /*
-     * Only Odin knows why I can't return by value here. When I do that
-     * it seems that the compiler was returning by reference, but, of course,
-     * the data were deleted, since it valid only on this scope.
-     *
-     * on this scope, gdb was poiting a 4 elements set
-     * when calling the function a corupted set
-     * $1 = std::set with 7138656 elements<error reading variable: Cannot access
-     * memory at address 0xc99000000d44e8d7>
-     *
-     * segfault
-     * 0x00007ffff7581903 in std::local_Rb_tree_increment
-     * (__x=0xc99000000d44e8c7) at
-     * ../../../../../libstdc++-v3/src/c++98/tree.cc:65
-     * 65              while (__x->_M_left != 0) )
-     */
-    auto accessed_states = new StatesSet;
+    StatesSet accessed_states;
 
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
@@ -169,7 +148,7 @@ DESystem::StatesSet *DESystem::Bfs_(cldes_size_t const &aInitialNode) {
         // to copy the vector to the host memory.
         viennacl::copy(x, host_x);
         for (auto state = host_x.begin1(); state != host_x.end1(); ++state) {
-            accessed_states->emplace(state.index1());
+            accessed_states.emplace(state.index1());
         }
     }
 
