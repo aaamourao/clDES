@@ -94,6 +94,21 @@ public:
      */
     StatesSet AccessiblePart();
 
+    /*! \brief Automata coaccessible part operation
+     *
+     * Executes a Breadth First Search in the graph, until it reaches a marked
+     * state.
+     */
+    StatesSet CoaccessiblePart(cldes_size_t &aInitialState);
+
+    /*! \brief Operator "()" for reading values from elements
+     *
+     * Override operator () for reading transinstions values:
+     * e.g. discrete_system_foo(2,1);
+     */
+    GraphHostData::const_reference operator()(cldes_size_t const &lin,
+                                              cldes_size_t const &col) const;
+
     /*! \brief Operator "()" for assigning values to elements
      *
      * Override operator () for changing transinstions with a single assignment:
@@ -106,7 +121,6 @@ public:
      * TODO:
      * getters
      * enable dev cache
-     * CoaccessiblePart
      * Trim
      * ...
      */

@@ -104,13 +104,16 @@ void DESystem::CacheGraph_() {
     is_cache_outdated_ = false;
 }
 
-// TODO: Is it always changing the value?
-// So, in some situations, it may not be necessary to set
-// is_cache_outdated_ = true
+DESystem::GraphHostData::const_reference DESystem::operator()(
+    cldes_size_t const &lin, cldes_size_t const &col) const {
+    std::cout << "oi" << std::endl;
+    return (*graph_)(lin, col);
+}
+
 DESystem::GraphHostData::reference DESystem::operator()(
     cldes_size_t const &lin, cldes_size_t const &col) {
+    std::cout << "ola" << std::endl;
     is_cache_outdated_ = true;
-
     return (*graph_)(lin, col);
 }
 
@@ -154,3 +157,5 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
 
     return accessed_states;
 }
+
+DESystem::StatesSet CoaccessiblePart(cldes_size_t &aInitialState) {}
