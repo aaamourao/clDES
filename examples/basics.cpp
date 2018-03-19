@@ -66,16 +66,18 @@ int main() {
     // std::cout << "Graph data: " << std::endl;
     // std::cout << graph << std::endl;
 
-    if (&graph != nullptr) {
-        std::cout << "It is a beginning..." << std::endl;
+    for (auto it1 = graph.begin1(); it1 != graph.end1(); ++it1) {
+        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
+            std::cout << "(" << it1.index1() << ", " << it2.index2()
+                      << ") = " << *it2 << std::endl;
+        }
     }
 
     auto accessible_states = sys.AccessiblePart();
 
     std::cout << "Accessible part: ";
-    for (auto it = accessible_states.begin(); it != accessible_states.end();
-         ++it) {
-        std::cout << *it << " ";
+    for (auto state : accessible_states) {
+        std::cout << state << " ";
     }
     std::cout << std::endl;
 
@@ -97,8 +99,11 @@ int main() {
 
     auto ublas_graph = ublas_sys.GetGraph();
 
-    if (&ublas_graph != nullptr) {
-        std::cout << "It is a beginning..." << std::endl;
+    for (auto it1 = ublas_graph.begin1(); it1 != ublas_graph.end1(); ++it1) {
+        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
+            std::cout << "(" << it1.index1() << ", " << it2.index2()
+                      << ") = " << *it2 << std::endl;
+        }
     }
 
     auto ublas_accessible_states = ublas_sys.AccessiblePart();
