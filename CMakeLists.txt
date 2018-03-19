@@ -8,6 +8,7 @@ project (clDES VERSION 0.1.0 DESCRIPTION
     "Discrete Event Systems implementation and operations")
 
 include(ExternalProject)
+set (CMAKE_CXX_STANDARD 11)
 
 # The version number
 set (clDES_VERSION_MAJOR 0)
