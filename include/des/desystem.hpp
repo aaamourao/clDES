@@ -50,9 +50,8 @@ public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
     using GraphDeviceData = viennacl::compressed_matrix<ScalarType>;
     using StatesSet = std::set<cldes_size_t>;
-    // TODO: Change it to viennacl::compressed_matrix
-    using StatesVector = viennacl::vector<ScalarType>;
-    using StatesDeviceVector = viennacl::vector<ScalarType>;
+    using StatesVector = ublas::compressed_matrix<ScalarType>;
+    using StatesDeviceVector = viennacl::compressed_matrix<ScalarType>;
 
     /*! \brief DESystem constructor by copying ublas object
      *
@@ -187,6 +186,18 @@ private:
      * Refresh the graph data on device memory.
      */
     void UpdateGraphCache_();
+
+    /*! \brief Breadth First Search
+     *
+     * Executes a breadth first search on the graph.
+     */
+    StatesSet *Bfs_(cldes_size_t const &aInitialNode);
+
+    /*! \brief Breadth First Search
+     *
+     * Executes a breadth first search on the graph starting from init_state_.
+     */
+    StatesSet *Bfs_() { Bfs_(init_state_); };
 };
 
 }  // namespace cldes

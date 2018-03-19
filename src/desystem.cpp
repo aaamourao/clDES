@@ -33,6 +33,7 @@
 #include <memory>
 #include "viennacl/linalg/prod.hpp"
 
+// TODO: delete this before commit
 #include <iostream>
 
 using namespace cldes;
@@ -81,49 +82,20 @@ DESystem::StatesSet DESystem::AccessiblePart() {
         UpdateGraphCache_();
     }
 
-    /*
-     * BFS on a Linear Algebra approach:
-     *     Y = G^T * X
-     */
-
-    // Results sparse vector
-    StatesVector bfs_host_vector{states_number_};
-    StatesDeviceVector bfs_res_vector{states_number_};
-
-    // Initialize sparse result vector
-    bfs_host_vector.clear();
-    bfs_host_vector(init_state_) = 1;
-
-    // Copy initial vector to device memory
-    viennacl::copy(bfs_host_vector, bfs_res_vector);
-
-    StatesDeviceVector x{states_number_};
-    // Executes BFS
-    for (auto i = 0; i < states_number_; ++i) {
-        if (i == 0) {
-            x = bfs_res_vector;
-        }
-        auto y = viennacl::linalg::prod(*device_graph_, x);
-        bfs_res_vector += y;
-        x = y;
-    }
+    // Executes a BFS on graph_
+    auto accessible_states = Bfs_();
 
     // Remove graph_ from device memory, if it is set so
     if (!dev_cache_enabled_) {
         delete device_graph_;
     }
 
-    // Copy result vector to host memory
-    viennacl::copy(bfs_res_vector, bfs_host_vector);
+    // Avoiding memory leak
+    // Workaround due to set issue on Bfs_
+    auto ret_acc_states = StatesSet{*accessible_states};
+    delete accessible_states;
 
-    StatesSet accessible_states;
-    for (auto i = 0; i < states_number_; ++i) {
-        if (bfs_host_vector(i) != 0) {
-            accessible_states.insert(i);
-        }
-    }
-
-    return accessible_states;
+    return ret_acc_states;
 }
 
 void DESystem::CacheGraph_() {
@@ -150,4 +122,56 @@ DESystem::GraphHostData::reference DESystem::operator()(
 void DESystem::UpdateGraphCache_() {
     viennacl::copy(trans(*graph_), *device_graph_);
     is_cache_outdated_ = false;
+}
+
+DESystem::StatesSet *DESystem::Bfs_(cldes_size_t const &aInitialNode) {
+    /*
+     * BFS on a Linear Algebra approach:
+     *     Y = G^T * X
+     */
+    StatesVector host_x{states_number_, 1};
+
+    // GPUs does not allow dynamic memory allocation. So, we have
+    // to set X on host first.
+    host_x(aInitialNode, 0) = 1;
+
+    // Copy searching node to device memory
+    StatesDeviceVector x{states_number_, 1};
+    viennacl::copy(host_x, x);
+
+    /*
+     * Only Odin knows why I can't return by value here. When I do that
+     * it seems that the compiler was returning by reference, but, of course,
+     * the data were deleted, since it valid only on this scope.
+     *
+     * on this scope, gdb was poiting a 4 elements set
+     * when calling the function a corupted set
+     * $1 = std::set with 7138656 elements<error reading variable: Cannot access
+     * memory at address 0xc99000000d44e8d7>
+     *
+     * segfault
+     * 0x00007ffff7581903 in std::local_Rb_tree_increment
+     * (__x=0xc99000000d44e8c7) at
+     * ../../../../../libstdc++-v3/src/c++98/tree.cc:65
+     * 65              while (__x->_M_left != 0) )
+     */
+    auto accessed_states = new StatesSet;
+
+    // Executes BFS
+    for (auto i = 0; i < states_number_; ++i) {
+        // Using auto bellow results in compile error
+        // on the following for statement
+        StatesDeviceVector y = viennacl::linalg::prod(*device_graph_, x);
+        x = y;
+
+        // Unfortunatelly, until now, ViennaCL does not allow iterating on
+        // compressed matrices. Until it is implemented, it is necessary
+        // to copy the vector to the host memory.
+        viennacl::copy(x, host_x);
+        for (auto state = host_x.begin1(); state != host_x.end1(); ++state) {
+            accessed_states->emplace(state.index1());
+        }
+    }
+
+    return accessed_states;
 }
