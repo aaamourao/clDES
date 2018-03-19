@@ -33,9 +33,6 @@
 #include <memory>
 #include "viennacl/linalg/prod.hpp"
 
-// TODO: delete this before commit
-#include <iostream>
-
 using namespace cldes;
 
 DESystem::DESystem(GraphHostData const &aGraph,
@@ -106,13 +103,11 @@ void DESystem::CacheGraph_() {
 
 DESystem::GraphHostData::const_reference DESystem::operator()(
     cldes_size_t const &lin, cldes_size_t const &col) const {
-    std::cout << "oi" << std::endl;
     return (*graph_)(lin, col);
 }
 
 DESystem::GraphHostData::reference DESystem::operator()(
     cldes_size_t const &lin, cldes_size_t const &col) {
-    std::cout << "ola" << std::endl;
     is_cache_outdated_ = true;
     return (*graph_)(lin, col);
 }
