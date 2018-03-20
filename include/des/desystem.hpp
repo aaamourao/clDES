@@ -45,6 +45,8 @@ namespace cldes {
 
 namespace ublas = boost::numeric::ublas;
 
+class TransitionProxy;
+
 class DESystem {
 public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
@@ -114,8 +116,8 @@ public:
      * Override operator () for changing transinstions with a single assignment:
      * e.g. discrete_system_foo(2,1) = 3.0f;
      */
-    GraphHostData::reference operator()(cldes_size_t const &lin,
-                                        cldes_size_t const &col);
+    TransitionProxy operator()(cldes_size_t const &lin,
+                               cldes_size_t const &col);
 
     /*
      * TODO:
@@ -133,6 +135,8 @@ protected:
     DESystem();
 
 private:
+    friend class TransitionProxy;
+
     /*! \brief Graph represented by an adjascency matrix
      *
      * A sparse matrix who represents the automata as a graph in an adjascency

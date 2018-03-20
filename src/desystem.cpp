@@ -32,6 +32,7 @@
 #include "des/desystem.hpp"
 #include <memory>
 #include "viennacl/linalg/prod.hpp"
+#include "des/transition_proxy.hpp"
 
 using namespace cldes;
 
@@ -106,10 +107,9 @@ DESystem::GraphHostData::const_reference DESystem::operator()(
     return (*graph_)(lin, col);
 }
 
-DESystem::GraphHostData::reference DESystem::operator()(
-    cldes_size_t const &lin, cldes_size_t const &col) {
-    is_cache_outdated_ = true;
-    return (*graph_)(lin, col);
+TransitionProxy DESystem::operator()(cldes_size_t const &lin,
+                                     cldes_size_t const &col) {
+    return TransitionProxy(this, lin, col);
 }
 
 void DESystem::UpdateGraphCache_() {

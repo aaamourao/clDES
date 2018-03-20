@@ -23,18 +23,33 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: desystem.hpp
- Description: DESystem class definition. DESystem is a graph, which is
- modeled as a Sparce Adjacency Matrix.
+ File: transition_proxy.hpp
+ Description: Proxy to an element of the graph_ data member from DESystem.
  =========================================================================
 */
 
-#ifndef CLDES_HPP
-#define CLDES_HPP
+#ifndef TRANSITION_PROXY_HPP
+#define TRANSITION_PROXY_HPP
 
-#include "des/desystem.hpp"
-#include "des/transition_proxy.hpp"
+#include "constants.hpp"
 
-class cldes::DESystem;
+namespace cldes {
 
-#endif // CLDESS_HPP
+class DESystem;
+
+class TransitionProxy {
+public:
+    TransitionProxy(DESystem *const aSysPtr, cldes_size_t const &aLin,
+                    cldes_size_t const &aCol);
+    TransitionProxy &operator=(ScalarType aTransitionValue);
+    operator ScalarType();
+
+private:
+    DESystem * sys_ptr_;
+    cldes_size_t const lin_;
+    cldes_size_t const col_;
+};
+
+}  // namespace cldes
+
+#endif  // TRANSITION_PROXY_HPP
