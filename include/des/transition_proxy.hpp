@@ -66,13 +66,14 @@ public:
      */
     operator ScalarType();
 
-private:
+protected:
     /*! \brief Disabled default constructor
      *
      * There is no use for the default constructor.
      */
     TransitionProxy();
 
+private:
     /*! \brief Raw pointer to DESystem object
      *
      * Raw pointer to the owner of the proxied element.
