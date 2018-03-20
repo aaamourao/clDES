@@ -60,6 +60,12 @@ public:
      * Creates the DESystem object with N states defined by the argument
      * aStatesNumber and represented by its graph defined by argument the
      * ublas compressed matrix aGraph.
+     *
+     * @param aGraph Ublas matrix containing the graph data
+     * @param aStatesNumber Number of states of the system
+     * @param aInitState System's initial state
+     * @param aMarkedStates System's marked states
+     * @aDevCacheEnabled Enable or disable device cache for graph data
      */
     explicit DESystem(GraphHostData const &aGraph,
                       cldes_size_t const &aStatesNumber,
@@ -70,6 +76,11 @@ public:
      *
      * Overloads DESystem constructor: does not require to create a
      * ublas::compressed_matrix by the class user.
+     *
+     * @param aStatesNumber Number of states of the system
+     * @param aInitState System's initial state
+     * @param aMarkedStates System's marked states
+     * @aDevCacheEnabled Enable or disable device cache for graph data
      */
     explicit DESystem(cldes_size_t const &aStatesNumber,
                       cldes_size_t const &aInitState, StatesSet &aMarkedStates,
@@ -107,17 +118,23 @@ public:
      *
      * Override operator () for reading transinstions values:
      * e.g. discrete_system_foo(2,1);
+     *
+     * @param aLin Element's line
+     * @param aCol Element's column
      */
-    GraphHostData::const_reference operator()(cldes_size_t const &lin,
-                                              cldes_size_t const &col) const;
+    GraphHostData::const_reference operator()(cldes_size_t const &aLin,
+                                              cldes_size_t const &aCol) const;
 
     /*! \brief Operator "()" for assigning values to elements
      *
      * Override operator () for changing transinstions with a single assignment:
      * e.g. discrete_system_foo(2,1) = 3.0f;
+     *
+     * @param aLin Element's line
+     * @param aCol Element's column
      */
-    TransitionProxy operator()(cldes_size_t const &lin,
-                               cldes_size_t const &col);
+    TransitionProxy operator()(cldes_size_t const &aLin,
+                               cldes_size_t const &aCol);
 
     /*
      * TODO:
@@ -208,6 +225,8 @@ private:
     /*! \brief Breadth First Search
      *
      * Executes a breadth first search on the graph.
+     *
+     * @param aInitialNode Where the search will start
      */
     StatesSet Bfs_(cldes_size_t const &aInitialNode);
 
