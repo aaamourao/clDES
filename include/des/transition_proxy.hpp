@@ -45,6 +45,7 @@ public:
     operator ScalarType();
 
 private:
+    TransitionProxy();
     DESystem * sys_ptr_;
     cldes_size_t const lin_;
     cldes_size_t const col_;
