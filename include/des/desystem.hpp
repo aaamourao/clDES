@@ -140,7 +140,6 @@ public:
      * TODO:
      * getters
      * enable dev cache
-     * Trim
      * ...
      */
 protected:
