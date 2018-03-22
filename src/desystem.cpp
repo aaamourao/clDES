@@ -133,6 +133,7 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
     viennacl::copy(host_x, x);
 
     StatesSet accessed_states;
+    accessed_states.emplace(aInitialNode);
 
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
@@ -147,9 +148,12 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
         // compressed matrices. Until it is implemented, it is necessary
         // to copy the vector to the host memory.
         viennacl::copy(x, host_x);
-        for (auto state = host_x.begin1(); state != host_x.end1(); ++state) {
-            if (accessed_states.emplace(state.index1()).second) {
-                accessed_new_state = true;
+        for (auto elem = host_x.begin1(); elem != host_x.end1(); ++elem) {
+            auto state = elem.index1();
+            if (host_x(state, 0)) {
+                if (accessed_states.emplace(state).second) {
+                    accessed_new_state = true;
+                }
             }
         }
 
