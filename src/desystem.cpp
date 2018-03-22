@@ -149,9 +149,8 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
         // to copy the vector to the host memory.
         viennacl::copy(x, host_x);
         for (auto elem = host_x.begin1(); elem != host_x.end1(); ++elem) {
-            auto state = elem.index1();
-            if (host_x(state, 0)) {
-                if (accessed_states.emplace(state).second) {
+            if (host_x(elem.index1(), 0)) {
+                if (accessed_states.emplace(elem.index1()).second) {
                     accessed_new_state = true;
                 }
             }
