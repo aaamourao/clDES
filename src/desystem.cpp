@@ -141,12 +141,21 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
         StatesDeviceVector y = viennacl::linalg::prod(*device_graph_, x);
         x = y;
 
+        bool accessed_new_state = false;
+
         // Unfortunatelly, until now, ViennaCL does not allow iterating on
         // compressed matrices. Until it is implemented, it is necessary
         // to copy the vector to the host memory.
         viennacl::copy(x, host_x);
         for (auto state = host_x.begin1(); state != host_x.end1(); ++state) {
-            accessed_states.emplace(state.index1());
+            if (accessed_states.emplace(state.index1()).second) {
+                accessed_new_state = true;
+            }
+        }
+
+        // If all accessed states were previously "colored", stop searching.
+        if (!accessed_new_state) {
+            break;
         }
     }
 
