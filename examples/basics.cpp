@@ -86,13 +86,13 @@ int main() {
               << std::endl;
     ublas::compressed_matrix<float> host_graph(n_states, n_states);
 
+    // This graph has no transition from the 3rd state to th 4th one.
     host_graph(0, 0) = a;
     host_graph(0, 2) = g;
     host_graph(1, 0) = a;
     host_graph(1, 1) = b;
     host_graph(2, 1) = a * g;
     host_graph(2, 2) = b;
-    host_graph(2, 3) = a;
     host_graph(3, 1) = a;
 
     cldes::DESystem ublas_sys{host_graph, n_states, init_state, marked_states};
@@ -109,9 +109,8 @@ int main() {
     auto ublas_accessible_states = ublas_sys.AccessiblePart();
 
     std::cout << "Accessible part: ";
-    for (auto it = ublas_accessible_states.begin();
-         it != ublas_accessible_states.end(); ++it) {
-        std::cout << *it << " ";
+    for (auto state : ublas_accessible_states) {
+        std::cout << state << " ";
     }
     std::cout << std::endl;
 
