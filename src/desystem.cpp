@@ -157,7 +157,6 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
                 }
             }
         }
-
         // If all accessed states were previously "colored", stop searching.
         if (!accessed_new_state) {
             break;
@@ -168,7 +167,6 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
 }
 
 DESystem::StatesSet DESystem::CoaccessiblePart() {
-    // TODO: We do not need to test if a marked state is a coaccessible state
     // Cache graph temporally
     if (!dev_cache_enabled_) {
         CacheGraph_();
@@ -180,20 +178,32 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-    StatesVector host_x{states_number_, states_number_};
+
+    // There is no need of search if a marked state is coaccessible
+    StatesVector host_x{states_number_, states_number_ - marked_states_.size()};
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
+    auto passed_marked_states = 0;
+    std::vector<cldes_size_t> states_map;
     for (auto i = 0; i < states_number_; ++i) {
-        host_x(i, i) = 1;
+        bool const is_marked = marked_states_.find(i) != marked_states_.end();
+        if (is_marked) {
+            ++passed_marked_states;
+        } else {
+            host_x(i, i - passed_marked_states) = 1;
+            // Maping state i in (i - passed_maked_states)
+            states_map.push_back(i);
+        }
     }
 
     // Copy searching node to device memory
-    StatesDeviceVector x{states_number_, states_number_};
+    StatesDeviceVector x{states_number_,
+                         states_number_ - marked_states_.size()};
     viennacl::copy(host_x, x);
 
     StatesSet accessed_states[states_number_];
-    StatesSet coaccessible_states;;
+    StatesSet coaccessible_states = marked_states_;
 
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
@@ -211,7 +221,7 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
         viennacl::copy(x, host_x);
         for (auto lin = host_x.begin1(); lin != host_x.end1(); ++lin) {
             for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
-                auto state = elem.index2();
+                auto state = states_map[elem.index2()];
                 auto accessed_state = lin.index1();
                 if (accessed_states[state].emplace(accessed_state).second) {
                     accessed_new_state[state] = true;
@@ -226,10 +236,8 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
                 }
             }
         }
-
         // If all accessed states were previously "colored", stop searching.
-        if (std::all_of(accessed_new_state.begin(),
-                        accessed_new_state.end(),
+        if (std::all_of(accessed_new_state.begin(), accessed_new_state.end(),
                         [](bool i) { return !i; })) {
             break;
         }
