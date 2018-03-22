@@ -112,7 +112,7 @@ public:
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart(cldes_size_t &aInitialState);
+    StatesSet CoaccessiblePart();
 
     /*! \brief Operator "()" for reading values from elements
      *
