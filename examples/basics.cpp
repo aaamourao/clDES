@@ -59,7 +59,6 @@ int main() {
     sys(2, 1) = a * g;
     sys(2, 2) = b;
     sys(2, 3) = a;
-    sys(3, 1) = a;
 
     auto graph = sys.GetGraph();
 
@@ -81,6 +80,14 @@ int main() {
     }
     std::cout << std::endl;
 
+    auto coaccessible_states = sys.CoaccessiblePart();
+
+    std::cout << "Coaccessible part: ";
+    for (auto state : coaccessible_states) {
+        std::cout << state << " ";
+    }
+    std::cout << std::endl;
+
     // Ublas way of initialize DESystem
     std::cout << "Initializing DESystem with an ublas compressed matrix"
               << std::endl;
@@ -89,11 +96,11 @@ int main() {
     // This graph has no transition from the 3rd state to th 4th one.
     host_graph(0, 0) = a;
     host_graph(0, 2) = g;
-    host_graph(1, 0) = a;
     host_graph(1, 1) = b;
     host_graph(2, 1) = a * g;
     host_graph(2, 2) = b;
     host_graph(3, 1) = a;
+    host_graph(3, 2) = a;
 
     cldes::DESystem ublas_sys{host_graph, n_states, init_state, marked_states};
 
@@ -110,6 +117,14 @@ int main() {
 
     std::cout << "Accessible part: ";
     for (auto state : ublas_accessible_states) {
+        std::cout << state << " ";
+    }
+    std::cout << std::endl;
+
+    auto ublas_coaccessible_states = ublas_sys.CoaccessiblePart();
+
+    std::cout << "Coaccessible part: ";
+    for (auto state : ublas_coaccessible_states) {
         std::cout << state << " ";
     }
     std::cout << std::endl;
