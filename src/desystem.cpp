@@ -30,7 +30,8 @@
 */
 
 #include "des/desystem.hpp"
-#include <memory>
+#include <algorithm>
+#include <vector>
 #include "des/transition_proxy.hpp"
 #include "viennacl/linalg/prod.hpp"
 
@@ -144,6 +145,7 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
 
         bool accessed_new_state = false;
 
+        // ITERATE ONLY OVER NON ZERO ELEMENTS
         // Unfortunatelly, until now, ViennaCL does not allow iterating on
         // compressed matrices. Until it is implemented, it is necessary
         // to copy the vector to the host memory.
@@ -165,4 +167,78 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
     return accessed_states;
 }
 
-DESystem::StatesSet CoaccessiblePart(cldes_size_t &aInitialState) {}
+DESystem::StatesSet DESystem::CoaccessiblePart() {
+    // TODO: We do not need to test if a marked state is a coaccessible state
+    // Cache graph temporally
+    if (!dev_cache_enabled_) {
+        CacheGraph_();
+    } else if (is_cache_outdated_) {
+        UpdateGraphCache_();
+    }
+
+    /*
+     * BFS on a Linear Algebra approach:
+     *     Y = G^T * X
+     */
+    StatesVector host_x{states_number_, states_number_};
+
+    // GPUs does not allow dynamic memory allocation. So, we have
+    // to set X on host first.
+    for (auto i = 0; i < states_number_; ++i) {
+        host_x(i, i) = 1;
+    }
+
+    // Copy searching node to device memory
+    StatesDeviceVector x{states_number_, states_number_};
+    viennacl::copy(host_x, x);
+
+    StatesSet accessed_states[states_number_];
+    StatesSet coaccessible_states;;
+
+    // Executes BFS
+    for (auto i = 0; i < states_number_; ++i) {
+        // Using auto bellow results in compile error
+        // on the following for statement
+        StatesDeviceVector y = viennacl::linalg::prod(*device_graph_, x);
+        x = y;
+
+        std::vector<bool> accessed_new_state{states_number_, false};
+
+        // ITERATE ONLY OVER NON ZERO ELEMENTS
+        // Unfortunatelly, until now, ViennaCL does not allow iterating on
+        // compressed matrices. Until it is implemented, it is necessary
+        // to copy the vector to the host memory.
+        viennacl::copy(x, host_x);
+        for (auto lin = host_x.begin1(); lin != host_x.end1(); ++lin) {
+            for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
+                auto state = elem.index2();
+                auto accessed_state = lin.index1();
+                if (accessed_states[state].emplace(accessed_state).second) {
+                    accessed_new_state[state] = true;
+
+                    bool const is_marked =
+                        marked_states_.find(accessed_state) !=
+                        marked_states_.end();
+
+                    if (is_marked) {
+                        coaccessible_states.emplace(state);
+                    }
+                }
+            }
+        }
+
+        // If all accessed states were previously "colored", stop searching.
+        if (std::all_of(accessed_new_state.begin(),
+                        accessed_new_state.end(),
+                        [](bool i) { return !i; })) {
+            break;
+        }
+    }
+
+    // Remove graph_ from device memory, if it is set so
+    if (!dev_cache_enabled_) {
+        delete device_graph_;
+    }
+
+    return coaccessible_states;
+}
