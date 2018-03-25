@@ -228,6 +228,8 @@ private:
      * @param aInitialNode Where the search will start
      */
     StatesSet Bfs_(cldes_size_t const &aInitialNode);
+    StatesSet Bfs_(StatesSet const &aInitialNodes);
+    StatesSet BfsCalc_();
 
     /*! \brief Breadth First Search
      *

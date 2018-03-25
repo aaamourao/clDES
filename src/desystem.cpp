@@ -31,6 +31,7 @@
 
 #include "des/desystem.hpp"
 #include <algorithm>
+#include <boost/iterator/counting_iterator.hpp>
 #include <vector>
 #include "des/transition_proxy.hpp"
 #include "viennacl/linalg/prod.hpp"
@@ -166,40 +167,27 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
     return accessed_states;
 }
 
-DESystem::StatesSet DESystem::CoaccessiblePart() {
-    // Cache graph temporally
-    if (!dev_cache_enabled_) {
-        CacheGraph_();
-    } else if (is_cache_outdated_) {
-        UpdateGraphCache_();
-    }
+DESystem::StatesSet DESystem::BfsCalc_() {}
 
+DESystem::StatesSet DESystem::Bfs_(DESystem::StatesSet const &aInitialNodes) {
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-
     // There is no need of search if a marked state is coaccessible
-    StatesVector host_x{states_number_, states_number_ - marked_states_.size()};
+    StatesVector host_x{states_number_, aInitialNodes.size()};
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
-    auto passed_marked_states = 0;
     std::vector<cldes_size_t> states_map;
-    for (auto i = 0; i < states_number_; ++i) {
-        bool const is_marked = marked_states_.find(i) != marked_states_.end();
-        if (is_marked) {
-            ++passed_marked_states;
-        } else {
-            host_x(i, i - passed_marked_states) = 1;
-            // Maping state i in (i - passed_maked_states)
-            states_map.push_back(i);
-        }
+    for (auto state : aInitialNodes) {
+        host_x(state, states_map.size()) = 1;
+        // Maping state i in (i - passed_maked_states)
+        states_map.push_back(state);
     }
 
     // Copy searching node to device memory
-    StatesDeviceVector x{states_number_,
-                         states_number_ - marked_states_.size()};
+    StatesDeviceVector x{states_number_, aInitialNodes.size()};
     viennacl::copy(host_x, x);
 
     StatesSet accessed_states[states_number_];
@@ -242,6 +230,31 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
             break;
         }
     }
+    return coaccessible_states;
+}
+
+DESystem::StatesSet DESystem::CoaccessiblePart() {
+    // Cache graph temporally
+    if (!dev_cache_enabled_) {
+        CacheGraph_();
+    } else if (is_cache_outdated_) {
+        UpdateGraphCache_();
+    }
+
+    StatesSet searching_nodes;
+
+    // Initialize initial_nodes with all states, but marked states
+    {
+        StatesSet all_nodes(
+            boost::counting_iterator<cldes_size_t>(0),
+            boost::counting_iterator<cldes_size_t>(states_number_));
+        std::set_difference(
+            all_nodes.begin(), all_nodes.end(), marked_states_.begin(),
+            marked_states_.end(),
+            std::inserter(searching_nodes, searching_nodes.begin()));
+    }
+
+    auto coaccessible_states = Bfs_(searching_nodes);
 
     // Remove graph_ from device memory, if it is set so
     if (!dev_cache_enabled_) {
