@@ -182,7 +182,8 @@ DESystem::StatesSet DESystem::Bfs_(DESystem::StatesSet const &aInitialNodes) {
     std::vector<cldes_size_t> states_map;
     for (auto state : aInitialNodes) {
         host_x(state, states_map.size()) = 1;
-        // Maping state i in (i - passed_maked_states)
+        // Maping each search from each initial node to their correspondent
+        // vector on the matrix
         states_map.push_back(state);
     }
 
