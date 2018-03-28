@@ -229,7 +229,8 @@ private:
      */
     StatesSet Bfs_(cldes_size_t const &aInitialNode);
     StatesSet *Bfs_(StatesSet const &aInitialNodes,
-                    std::function<void(cldes_size_t, cldes_size_t)> aBfsVisit);
+                    std::function<void(cldes_size_t const &,
+                                       cldes_size_t const &)> const &aBfsVisit);
     StatesSet BfsCalc_();
 
     /*! \brief Breadth First Search
@@ -240,5 +241,4 @@ private:
 };
 
 }  // namespace cldes
-
 #endif  // DESYSTEM_HPP

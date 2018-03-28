@@ -172,7 +172,8 @@ DESystem::StatesSet DESystem::BfsCalc_() {}
 
 DESystem::StatesSet *DESystem::Bfs_(
     DESystem::StatesSet const &aInitialNodes,
-    std::function<void(cldes_size_t, cldes_size_t)> aBfsVisit) {
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit) {
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
@@ -259,14 +260,14 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
 
     StatesSet coaccessible_states = marked_states_;
     Bfs_(searching_nodes,
-         [this, &coaccessible_states](cldes_size_t aInitialState,
-                                      cldes_size_t aAccessedState) {
+         [this, &coaccessible_states](cldes_size_t const &aInitialState,
+                                      cldes_size_t const &aAccessedState) {
              bool const is_marked = this->marked_states_.find(aAccessedState) !=
                                     this->marked_states_.end();
              if (is_marked) {
                  coaccessible_states.emplace(aInitialState);
              }
-             // TODO: If all states are marked, the search should is done
+             // TODO: If all states are marked, the search is done
          });
 
     // Remove graph_ from device memory, if it is set so
