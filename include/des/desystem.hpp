@@ -234,7 +234,7 @@ private:
     /*! \brief Breadth First Search
      *
      * Executes a breadth first search on the graph starting from N nodes
-     * node.
+     * in aInitialNodes.
      *
      * @param aInitialNodes Set of nodes where the searches will start
      */
