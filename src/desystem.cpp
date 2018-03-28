@@ -120,7 +120,9 @@ void DESystem::UpdateGraphCache_() {
     is_cache_outdated_ = false;
 }
 
-DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
+DESystem::StatesSet DESystem::Bfs_(
+    cldes_size_t const &aInitialNode,
+    std::function<void(cldes_size_t const &)> const &aBfsVisit) {
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
@@ -156,6 +158,9 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
             if (host_x(elem.index1(), 0)) {
                 if (accessed_states.emplace(elem.index1()).second) {
                     accessed_new_state = true;
+                    if (aBfsVisit) {
+                        aBfsVisit(elem.index1());
+                    }
                 }
             }
         }
@@ -220,7 +225,9 @@ DESystem::StatesSet *DESystem::Bfs_(
                         .emplace(accessed_state)
                         .second) {
                     accessed_new_state[initial_state] = true;
-                    aBfsVisit(initial_state, accessed_state);
+                    if (aBfsVisit) {
+                        aBfsVisit(initial_state, accessed_state);
+                    }
                 }
             }
         }
