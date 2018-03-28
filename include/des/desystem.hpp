@@ -228,10 +228,8 @@ private:
      * @param aInitialNode Where the search will start
      */
     StatesSet Bfs_(cldes_size_t const &aInitialNode);
-    StatesSet Bfs_(
-        StatesSet const &aInitialNodes,
-        std::function<StatesSet(StatesSet, cldes_size_t, cldes_size_t)>
-            aBfsVisit);
+    StatesSet *Bfs_(StatesSet const &aInitialNodes,
+                    std::function<void(cldes_size_t, cldes_size_t)> aBfsVisit);
     StatesSet BfsCalc_();
 
     /*! \brief Breadth First Search

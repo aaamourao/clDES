@@ -170,9 +170,9 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
 
 DESystem::StatesSet DESystem::BfsCalc_() {}
 
-DESystem::StatesSet DESystem::Bfs_(
+DESystem::StatesSet *DESystem::Bfs_(
     DESystem::StatesSet const &aInitialNodes,
-    std::function<StatesSet(StatesSet, cldes_size_t, cldes_size_t)> aBfsVisit) {
+    std::function<void(cldes_size_t, cldes_size_t)> aBfsVisit) {
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
@@ -195,7 +195,6 @@ DESystem::StatesSet DESystem::Bfs_(
     viennacl::copy(host_x, x);
 
     StatesSet accessed_states[states_number_];
-    StatesSet coaccessible_states = marked_states_;
 
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
@@ -214,12 +213,13 @@ DESystem::StatesSet DESystem::Bfs_(
         // ITERATE ONLY OVER NON ZERO ELEMENTS
         for (auto lin = host_x.begin1(); lin != host_x.end1(); ++lin) {
             for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
-                auto state = states_map[elem.index2()];
+                auto initial_state = states_map[elem.index2()];
                 auto accessed_state = lin.index1();
-                if (accessed_states[state].emplace(accessed_state).second) {
-                    accessed_new_state[state] = true;
-                    coaccessible_states =
-                        aBfsVisit(coaccessible_states, state, accessed_state);
+                if (accessed_states[initial_state]
+                        .emplace(accessed_state)
+                        .second) {
+                    accessed_new_state[initial_state] = true;
+                    aBfsVisit(initial_state, accessed_state);
                 }
             }
         }
@@ -233,7 +233,7 @@ DESystem::StatesSet DESystem::Bfs_(
             break;
         }
     }
-    return coaccessible_states;
+    return accessed_states;
 }
 
 DESystem::StatesSet DESystem::CoaccessiblePart() {
@@ -257,16 +257,17 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
             std::inserter(searching_nodes, searching_nodes.begin()));
     }
 
-    auto coaccessible_states = Bfs_(
-        searching_nodes, [=](StatesSet aCoaccessibleStates, cldes_size_t aState,
-                             cldes_size_t aAccessedState) {
-            bool const is_marked =
-                marked_states_.find(aAccessedState) != marked_states_.end();
-            if (is_marked) {
-                aCoaccessibleStates.emplace(aState);
-            }
-            return aCoaccessibleStates;
-        });
+    StatesSet coaccessible_states = marked_states_;
+    Bfs_(searching_nodes,
+         [this, &coaccessible_states](cldes_size_t aInitialState,
+                                      cldes_size_t aAccessedState) {
+             bool const is_marked = this->marked_states_.find(aAccessedState) !=
+                                    this->marked_states_.end();
+             if (is_marked) {
+                 coaccessible_states.emplace(aInitialState);
+             }
+             // TODO: If all states are marked, the search should is done
+         });
 
     // Remove graph_ from device memory, if it is set so
     if (!dev_cache_enabled_) {
