@@ -32,6 +32,7 @@
 #include "des/desystem.hpp"
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
+#include <functional>
 #include <vector>
 #include "des/transition_proxy.hpp"
 #include "viennacl/linalg/prod.hpp"
@@ -169,7 +170,9 @@ DESystem::StatesSet DESystem::Bfs_(cldes_size_t const &aInitialNode) {
 
 DESystem::StatesSet DESystem::BfsCalc_() {}
 
-DESystem::StatesSet DESystem::Bfs_(DESystem::StatesSet const &aInitialNodes) {
+DESystem::StatesSet DESystem::Bfs_(
+    DESystem::StatesSet const &aInitialNodes,
+    std::function<StatesSet(StatesSet, cldes_size_t, cldes_size_t)> aBfsVisit) {
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
@@ -203,28 +206,27 @@ DESystem::StatesSet DESystem::Bfs_(DESystem::StatesSet const &aInitialNodes) {
 
         std::vector<bool> accessed_new_state{states_number_, false};
 
-        // ITERATE ONLY OVER NON ZERO ELEMENTS
         // Unfortunatelly, until now, ViennaCL does not allow iterating on
         // compressed matrices. Until it is implemented, it is necessary
         // to copy the vector to the host memory.
         viennacl::copy(x, host_x);
+
+        // ITERATE ONLY OVER NON ZERO ELEMENTS
         for (auto lin = host_x.begin1(); lin != host_x.end1(); ++lin) {
             for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
                 auto state = states_map[elem.index2()];
                 auto accessed_state = lin.index1();
                 if (accessed_states[state].emplace(accessed_state).second) {
                     accessed_new_state[state] = true;
-
-                    bool const is_marked =
-                        marked_states_.find(accessed_state) !=
-                        marked_states_.end();
-
-                    if (is_marked) {
-                        coaccessible_states.emplace(state);
-                    }
+                    coaccessible_states =
+                        aBfsVisit(coaccessible_states, state, accessed_state);
                 }
             }
         }
+
+        // TODO: If some search did not accessed a new state, it does not need
+        // to be in the BFS Matrix
+
         // If all accessed states were previously "colored", stop searching.
         if (std::all_of(accessed_new_state.begin(), accessed_new_state.end(),
                         [](bool i) { return !i; })) {
@@ -255,7 +257,16 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
             std::inserter(searching_nodes, searching_nodes.begin()));
     }
 
-    auto coaccessible_states = Bfs_(searching_nodes);
+    auto coaccessible_states = Bfs_(
+        searching_nodes, [=](StatesSet aCoaccessibleStates, cldes_size_t aState,
+                             cldes_size_t aAccessedState) {
+            bool const is_marked =
+                marked_states_.find(aAccessedState) != marked_states_.end();
+            if (is_marked) {
+                aCoaccessibleStates.emplace(aState);
+            }
+            return aCoaccessibleStates;
+        });
 
     // Remove graph_ from device memory, if it is set so
     if (!dev_cache_enabled_) {
