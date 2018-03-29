@@ -173,8 +173,6 @@ DESystem::StatesSet DESystem::Bfs_(
     return accessed_states;
 }
 
-DESystem::StatesSet DESystem::BfsCalc_() {}
-
 DESystem::StatesSet *DESystem::Bfs_(
     DESystem::StatesSet const &aInitialNodes,
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
@@ -196,11 +194,17 @@ DESystem::StatesSet *DESystem::Bfs_(
         states_map.push_back(state);
     }
 
-    // Copy searching node to device memory
-    StatesDeviceVector x{states_number_, aInitialNodes.size()};
-    viennacl::copy(host_x, x);
+    return BfsCalc_(host_x, aBfsVisit, states_map);
+}
 
-    StatesSet accessed_states[states_number_];
+template <typename T>
+DESystem::StatesSet *DESystem::BfsCalc_(StatesVector &aHostX, T &aBfsVisit,
+                                        std::vector<cldes_size_t> aStatesMap) {
+    // Copy search vector to device memory
+    StatesDeviceVector x{states_number_, aHostX.size2()};
+    viennacl::copy(aHostX, x);
+
+    auto accessed_states = new StatesSet[aHostX.size2()];
 
     // Executes BFS
     for (auto i = 0; i < states_number_; ++i) {
@@ -209,24 +213,25 @@ DESystem::StatesSet *DESystem::Bfs_(
         StatesDeviceVector y = viennacl::linalg::prod(*device_graph_, x);
         x = y;
 
-        std::vector<bool> accessed_new_state{states_number_, false};
+        std::vector<bool> accessed_new_state{aHostX.size2(), false};
 
         // Unfortunatelly, until now, ViennaCL does not allow iterating on
         // compressed matrices. Until it is implemented, it is necessary
         // to copy the vector to the host memory.
-        viennacl::copy(x, host_x);
+        viennacl::copy(x, aHostX);
 
         // ITERATE ONLY OVER NON ZERO ELEMENTS
-        for (auto lin = host_x.begin1(); lin != host_x.end1(); ++lin) {
+        for (auto lin = aHostX.begin1(); lin != aHostX.end1(); ++lin) {
             for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
-                auto initial_state = states_map[elem.index2()];
+                auto unmapped_initial_state = elem.index2();
                 auto accessed_state = lin.index1();
-                if (accessed_states[initial_state]
+                if (accessed_states[unmapped_initial_state]
                         .emplace(accessed_state)
                         .second) {
-                    accessed_new_state[initial_state] = true;
+                    accessed_new_state[unmapped_initial_state] = true;
                     if (aBfsVisit) {
-                        aBfsVisit(initial_state, accessed_state);
+                        aBfsVisit(aStatesMap[unmapped_initial_state],
+                                  accessed_state);
                     }
                 }
             }
@@ -241,6 +246,7 @@ DESystem::StatesSet *DESystem::Bfs_(
             break;
         }
     }
+
     return accessed_states;
 }
 

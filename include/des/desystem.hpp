@@ -241,7 +241,9 @@ private:
     StatesSet *Bfs_(StatesSet const &aInitialNodes,
                     std::function<void(cldes_size_t const &,
                                        cldes_size_t const &)> const &aBfsVisit);
-    StatesSet BfsCalc_();
+    template <typename T>
+    StatesSet *BfsCalc_(StatesVector &aHostX, T &aBfsVisit,
+                        std::vector<cldes_size_t> aStatesMap);
 
     /*! \brief Breadth First Search
      *
