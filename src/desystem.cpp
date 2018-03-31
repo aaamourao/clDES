@@ -242,16 +242,18 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
     }
 
     StatesSet coaccessible_states = marked_states_;
-    Bfs_(searching_nodes,
-         [this, &coaccessible_states](cldes_size_t const &aInitialState,
-                                      cldes_size_t const &aAccessedState) {
-             bool const is_marked = this->marked_states_.find(aAccessedState) !=
-                                    this->marked_states_.end();
-             if (is_marked) {
-                 coaccessible_states.emplace(aInitialState);
-             }
-             // TODO: If all states are marked, the search is done
-         });
+    auto paccessed_states = Bfs_(
+        searching_nodes,
+        [this, &coaccessible_states](cldes_size_t const &aInitialState,
+                                     cldes_size_t const &aAccessedState) {
+            bool const is_marked = this->marked_states_.find(aAccessedState) !=
+                                   this->marked_states_.end();
+            if (is_marked) {
+                coaccessible_states.emplace(aInitialState);
+            }
+            // TODO: If all states are marked, the search is done
+        });
+    delete[] paccessed_states;
 
     return coaccessible_states;
 }
