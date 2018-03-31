@@ -75,16 +75,6 @@ DESystem::~DESystem() {
 
 DESystem::GraphHostData DESystem::GetGraph() const { return *graph_; }
 
-DESystem::StatesSet DESystem::AccessiblePart() {
-    // Executes a BFS on graph_
-    auto paccessible_states = Bfs_();
-
-    auto accessible_states = *paccessible_states;
-    delete[] paccessible_states;
-
-    return accessible_states;
-}
-
 void DESystem::CacheGraph_() {
     // Allocate space for device_graph_
     if (device_graph_ == nullptr) {
@@ -111,25 +101,9 @@ void DESystem::UpdateGraphCache_() {
     is_cache_outdated_ = false;
 }
 
+template <class StatesType>
 DESystem::StatesSet *DESystem::Bfs_(
-    cldes_size_t const &aInitialNode,
-    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-        &aBfsVisit) {
-    /*
-     * BFS on a Linear Algebra approach:
-     *     Y = G^T * X
-     */
-    StatesVector host_x{states_number_, 1};
-
-    // GPUs does not allow dynamic memory allocation. So, we have
-    // to set X on host first.
-    host_x(aInitialNode, 0) = 1;
-
-    return BfsCalc_(host_x, aBfsVisit, nullptr);
-}
-
-DESystem::StatesSet *DESystem::Bfs_(
-    DESystem::StatesSet const &aInitialNodes,
+    StatesType const &aInitialNodes,
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit) {
     /*
@@ -152,6 +126,26 @@ DESystem::StatesSet *DESystem::Bfs_(
 
     return BfsCalc_(host_x, aBfsVisit, &states_map);
 }
+
+template <>
+DESystem::StatesSet *DESystem::Bfs_<cldes_size_t>(
+    cldes_size_t const &aInitialNode,
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit) {
+    /*
+     * BFS on a Linear Algebra approach:
+     *     Y = G^T * X
+     */
+    StatesVector host_x{states_number_, 1};
+
+    // GPUs does not allow dynamic memory allocation. So, we have
+    // to set X on host first.
+    host_x(aInitialNode, 0) = 1;
+
+    return BfsCalc_(host_x, aBfsVisit, nullptr);
+}
+
+DESystem::StatesSet *DESystem::Bfs_() { return Bfs_(init_state_, nullptr); };
 
 DESystem::StatesSet *DESystem::BfsCalc_(
     StatesVector &aHostX,
@@ -222,6 +216,16 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     }
 
     return accessed_states;
+}
+
+DESystem::StatesSet DESystem::AccessiblePart() {
+    // Executes a BFS on graph_
+    auto paccessible_states = Bfs_();
+
+    auto accessible_states = *paccessible_states;
+    delete[] paccessible_states;
+
+    return accessible_states;
 }
 
 DESystem::StatesSet DESystem::CoaccessiblePart() {

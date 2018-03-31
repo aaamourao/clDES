@@ -221,38 +221,36 @@ private:
      */
     void UpdateGraphCache_();
 
-    /*! \brief Breadth First Search
-     *
-     * Executes a breadth first search on the graph starting from one single
-     * node.
-     *
-     * @param aInitialNode Where the search will start
-     */
-    StatesSet *Bfs_(cldes_size_t const &aInitialNode,
-                    std::function<void(cldes_size_t const &,
-                                       cldes_size_t const &)> const &aBfsVisit);
-
-    /*! \brief Breadth First Search
+    /*! \brief Setup BFS and return accessed states array
      *
      * Executes a breadth first search on the graph starting from N nodes
      * in aInitialNodes.
      *
      * @param aInitialNodes Set of nodes where the searches will start
      */
-    StatesSet *Bfs_(StatesSet const &aInitialNodes,
+    template <class StatesType>
+    StatesSet *Bfs_(StatesType const &aInitialNodes,
                     std::function<void(cldes_size_t const &,
                                        cldes_size_t const &)> const &aBfsVisit);
+
+    /*! \brief Calculates Bfs and returns accessed states array
+     *
+     * Executes a breadth first search on the graph starting from one single
+     * node.
+     *
+     * @param aInitialNode Where the search will start
+     */
     StatesSet *BfsCalc_(
         StatesVector &aHostX,
         std::function<void(cldes_size_t const &, cldes_size_t const &)> const
             &aBfsVisit,
         std::vector<cldes_size_t> const *const aStatesMap);
 
-    /*! \brief Breadth First Search
+    /*! \brief Return a pointer to accessed states from the initial state
      *
      * Executes a breadth first search on the graph starting from init_state_.
      */
-    StatesSet *Bfs_() { return Bfs_(init_state_, nullptr); };
+    StatesSet *Bfs_();
 };
 
 }  // namespace cldes
