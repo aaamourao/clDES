@@ -84,12 +84,15 @@ DESystem::StatesSet DESystem::AccessiblePart() {
     }
 
     // Executes a BFS on graph_
-    auto accessible_states = Bfs_();
+    auto paccessible_states = Bfs_();
 
     // Remove graph_ from device memory, if it is set so
     if (!dev_cache_enabled_) {
         delete device_graph_;
     }
+
+    auto accessible_states = *paccessible_states;
+    delete[] paccessible_states;
 
     return accessible_states;
 }
@@ -120,9 +123,10 @@ void DESystem::UpdateGraphCache_() {
     is_cache_outdated_ = false;
 }
 
-DESystem::StatesSet DESystem::Bfs_(
+DESystem::StatesSet *DESystem::Bfs_(
     cldes_size_t const &aInitialNode,
-    std::function<void(cldes_size_t const &)> const &aBfsVisit) {
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit) {
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
@@ -133,43 +137,7 @@ DESystem::StatesSet DESystem::Bfs_(
     // to set X on host first.
     host_x(aInitialNode, 0) = 1;
 
-    // Copy searching node to device memory
-    StatesDeviceVector x{states_number_, 1};
-    viennacl::copy(host_x, x);
-
-    StatesSet accessed_states;
-    accessed_states.emplace(aInitialNode);
-
-    // Executes BFS
-    for (auto i = 0; i < states_number_; ++i) {
-        // Using auto bellow results in compile error
-        // on the following for statement
-        StatesDeviceVector y = viennacl::linalg::prod(*device_graph_, x);
-        x = y;
-
-        bool accessed_new_state = false;
-
-        // ITERATE ONLY OVER NON ZERO ELEMENTS
-        // Unfortunatelly, until now, ViennaCL does not allow iterating on
-        // compressed matrices. Until it is implemented, it is necessary
-        // to copy the vector to the host memory.
-        viennacl::copy(x, host_x);
-        for (auto elem = host_x.begin1(); elem != host_x.end1(); ++elem) {
-            if (host_x(elem.index1(), 0)) {
-                if (accessed_states.emplace(elem.index1()).second) {
-                    accessed_new_state = true;
-                    if (aBfsVisit) {
-                        aBfsVisit(elem.index1());
-                    }
-                }
-            }
-        }
-        // If all accessed states were previously "colored", stop searching.
-        if (!accessed_new_state) {
-            break;
-        }
-    }
-    return accessed_states;
+    return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
 DESystem::StatesSet *DESystem::Bfs_(

@@ -228,8 +228,9 @@ private:
      *
      * @param aInitialNode Where the search will start
      */
-    StatesSet Bfs_(cldes_size_t const &aInitialNode,
-                   std::function<void(cldes_size_t const &)> const &aBfsVisit);
+    StatesSet *Bfs_(cldes_size_t const &aInitialNode,
+                    std::function<void(cldes_size_t const &,
+                                       cldes_size_t const &)> const &aBfsVisit);
 
     /*! \brief Breadth First Search
      *
@@ -251,7 +252,7 @@ private:
      *
      * Executes a breadth first search on the graph starting from init_state_.
      */
-    StatesSet Bfs_() { return Bfs_(init_state_, nullptr); };
+    StatesSet *Bfs_() { return Bfs_(init_state_, nullptr); };
 };
 
 }  // namespace cldes
