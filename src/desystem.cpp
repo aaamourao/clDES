@@ -169,7 +169,6 @@ DESystem::StatesSet DESystem::Bfs_(
             break;
         }
     }
-
     return accessed_states;
 }
 
@@ -186,6 +185,7 @@ DESystem::StatesSet *DESystem::Bfs_(
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
+    // TODO: It could be an array
     std::vector<cldes_size_t> states_map;
     for (auto state : aInitialNodes) {
         host_x(state, states_map.size()) = 1;
@@ -194,12 +194,14 @@ DESystem::StatesSet *DESystem::Bfs_(
         states_map.push_back(state);
     }
 
-    return BfsCalc_(host_x, aBfsVisit, states_map);
+    return BfsCalc_(host_x, aBfsVisit, &states_map);
 }
 
-template <typename T>
-DESystem::StatesSet *DESystem::BfsCalc_(StatesVector &aHostX, T &aBfsVisit,
-                                        std::vector<cldes_size_t> aStatesMap) {
+DESystem::StatesSet *DESystem::BfsCalc_(
+    StatesVector &aHostX,
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit,
+    std::vector<cldes_size_t> const *const aStatesMap) {
     // Copy search vector to device memory
     StatesDeviceVector x{states_number_, aHostX.size2()};
     viennacl::copy(aHostX, x);
@@ -230,8 +232,12 @@ DESystem::StatesSet *DESystem::BfsCalc_(StatesVector &aHostX, T &aBfsVisit,
                         .second) {
                     accessed_new_state[unmapped_initial_state] = true;
                     if (aBfsVisit) {
-                        aBfsVisit(aStatesMap[unmapped_initial_state],
-                                  accessed_state);
+                        if (aStatesMap) {
+                            aBfsVisit((*aStatesMap)[unmapped_initial_state],
+                                      accessed_state);
+                        } else {
+                            aBfsVisit(unmapped_initial_state, accessed_state);
+                        }
                     }
                 }
             }
