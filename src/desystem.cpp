@@ -76,20 +76,8 @@ DESystem::~DESystem() {
 DESystem::GraphHostData DESystem::GetGraph() const { return *graph_; }
 
 DESystem::StatesSet DESystem::AccessiblePart() {
-    // Cache graph temporally
-    if (!dev_cache_enabled_) {
-        CacheGraph_();
-    } else if (is_cache_outdated_) {
-        UpdateGraphCache_();
-    }
-
     // Executes a BFS on graph_
     auto paccessible_states = Bfs_();
-
-    // Remove graph_ from device memory, if it is set so
-    if (!dev_cache_enabled_) {
-        delete device_graph_;
-    }
 
     auto accessible_states = *paccessible_states;
     delete[] paccessible_states;
@@ -170,6 +158,13 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit,
     std::vector<cldes_size_t> const *const aStatesMap) {
+    // Cache graph temporally
+    if (!dev_cache_enabled_) {
+        CacheGraph_();
+    } else if (is_cache_outdated_) {
+        UpdateGraphCache_();
+    }
+
     // Copy search vector to device memory
     StatesDeviceVector x{states_number_, aHostX.size2()};
     viennacl::copy(aHostX, x);
@@ -221,19 +216,16 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         }
     }
 
+    // Remove graph_ from device memory, if it is set so
+    if (!dev_cache_enabled_) {
+        delete device_graph_;
+    }
+
     return accessed_states;
 }
 
 DESystem::StatesSet DESystem::CoaccessiblePart() {
-    // Cache graph temporally
-    if (!dev_cache_enabled_) {
-        CacheGraph_();
-    } else if (is_cache_outdated_) {
-        UpdateGraphCache_();
-    }
-
     StatesSet searching_nodes;
-
     // Initialize initial_nodes with all states, but marked states
     {
         StatesSet all_nodes(
@@ -256,11 +248,6 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
              }
              // TODO: If all states are marked, the search is done
          });
-
-    // Remove graph_ from device memory, if it is set so
-    if (!dev_cache_enabled_) {
-        delete device_graph_;
-    }
 
     return coaccessible_states;
 }
