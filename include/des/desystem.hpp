@@ -99,7 +99,7 @@ public:
      */
     GraphHostData GetGraph() const;
 
-    /*! \brief Automata accessible part operation
+    /*! \brief Returns state set containing the accessible part of automa
      *
      * Executes a Breadth First Search in the graph, which represents the DES,
      * starting from its initial state. It returns a set containing all nodes
@@ -107,7 +107,7 @@ public:
      */
     StatesSet AccessiblePart();
 
-    /*! \brief Automata coaccessible part operation
+    /*! \brief Returns state set containing the coaccessible part of automata
      *
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
