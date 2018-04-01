@@ -101,7 +101,7 @@ void DESystem::UpdateGraphCache_() {
     is_cache_outdated_ = false;
 }
 
-template <class StatesType>
+template <typename StatesType>
 DESystem::StatesSet *DESystem::Bfs_(
     StatesType const &aInitialNodes,
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
