@@ -114,7 +114,15 @@ public:
      */
     StatesSet CoaccessiblePart();
 
-    /*! \brief Operator "()" for reading values from elements
+    /*! \brief Returns DES which is the Trim part of this
+     *
+     * Cut the non-accessible part of current system and then cut the
+     * non-coaccessible part of the last result. The final resultant system
+     * is called a trim system.
+     */
+    DESystem Trim();
+
+    /*! \brief Returns value of the specified transition
      *
      * Override operator () for reading transinstions values:
      * e.g. discrete_system_foo(2,1);
@@ -125,7 +133,7 @@ public:
     GraphHostData::const_reference operator()(cldes_size_t const &aLin,
                                               cldes_size_t const &aCol) const;
 
-    /*! \brief Operator "()" for assigning values to elements
+    /*! \brief Returns value of the specified transition
      *
      * Override operator () for changing transinstions with a single assignment:
      * e.g. discrete_system_foo(2,1) = 3.0f;
