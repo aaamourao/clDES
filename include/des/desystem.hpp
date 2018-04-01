@@ -86,6 +86,8 @@ public:
                       cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                       bool const &aDevCacheEnabled = true);
 
+    DESystem(DESystem const &aSys);
+
     /*! \brief DESystem destructor
      *
      * Delete dinamically allocated data: graph and device_graph.
@@ -113,6 +115,13 @@ public:
      * state.
      */
     StatesSet CoaccessiblePart();
+
+    /*! \brief Returns States Set which is the Trim part of the system
+     *
+     * Gets the intersection between the accessible part and the coaccessible
+     * part.
+     */
+    StatesSet TrimStates();
 
     /*! \brief Returns DES which is the Trim part of this
      *

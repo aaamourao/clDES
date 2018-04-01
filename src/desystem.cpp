@@ -37,6 +37,8 @@
 #include "des/transition_proxy.hpp"
 #include "viennacl/linalg/prod.hpp"
 
+#include <iostream>
+
 using namespace cldes;
 
 DESystem::DESystem(GraphHostData const &aGraph,
@@ -52,7 +54,7 @@ DESystem::DESystem(GraphHostData const &aGraph,
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
-        CacheGraph_();
+        this->CacheGraph_();
     }
 }
 
@@ -62,6 +64,20 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
     : DESystem::DESystem{GraphHostData{aStatesNumber, aStatesNumber},
                          aStatesNumber, aInitState, aMarkedStates,
                          aDevCacheEnabled} {}
+
+DESystem::DESystem(DESystem const &aSys)
+    : graph_{new GraphHostData{*(aSys.graph_)}}, init_state_{aSys.init_state_} {
+    states_number_ = aSys.states_number_;
+    marked_states_ = aSys.marked_states_;
+    dev_cache_enabled_ = aSys.dev_cache_enabled_;
+    is_cache_outdated_ = aSys.is_cache_outdated_;
+
+    if (device_graph_) {
+        device_graph_ = new GraphDeviceData{*(aSys.device_graph_)};
+    } else {
+        device_graph_ = nullptr;
+    }
+}
 
 DESystem::~DESystem() {
     // Delete uBlas data
@@ -154,9 +170,9 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     std::vector<cldes_size_t> const *const aStatesMap) {
     // Cache graph temporally
     if (!dev_cache_enabled_) {
-        CacheGraph_();
+        this->CacheGraph_();
     } else if (is_cache_outdated_) {
-        UpdateGraphCache_();
+        this->UpdateGraphCache_();
     }
 
     // Copy search vector to device memory
@@ -256,4 +272,23 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
     delete[] paccessed_states;
 
     return coaccessible_states;
+}
+
+DESystem::DESystem DESystem::TrimStates() {
+    auto accpart = this->AccessiblePart();
+    auto coaccpart = this->CoaccessiblePart();
+
+    StatesSet trimstates;
+    std::set_intersection(accpart.begin(), accpart.end(), coaccpart.begin(),
+                          coaccpart.end(),
+                          std::inserter(trimstates, trimstates.begin()));
+
+    return trimstates;
+}
+
+DESystem DESystem::Trim() {
+    auto trimstates = this->TrimStates();
+
+    DESystem trim_system{*this};
+    return trim_system;
 }
