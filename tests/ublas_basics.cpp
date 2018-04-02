@@ -23,11 +23,13 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: tests/basics.cpp
- Description: Exemplify the basic usage of the library.
+ File: tests/ublas_basics.cpp
+ Description: Exemplify the basic usage of the library by initializing
+ the discrete-event systems with ublas matrices.
  =========================================================================
 */
 
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -62,8 +64,10 @@ void ProcessResult(T &aOpResult, StringType const aHeader,
     TestResult(result.str(), expected.str());
 }
 
+namespace ublas = boost::numeric::ublas;
+
 int main() {
-    std::cout << "Creating DES" << std::endl;
+    std::cout << "Creating DES with ublas matrix" << std::endl;
     const int n_states = 4;
 
     cldes::DESystem::StatesSet marked_states;
@@ -72,21 +76,22 @@ int main() {
 
     const int init_state = 0;
 
-    cldes::DESystem sys{n_states, init_state, marked_states};
+    ublas::compressed_matrix<float> adjmtr(n_states, n_states);
 
     // Declare transitions: represented by prime numbers
     const float a = 2.0f;
     const float b = 3.0f;
     const float g = 5.0f;
 
-    sys(0, 0) = a;
-    sys(0, 2) = g;
-    sys(1, 0) = a;
-    sys(1, 1) = b;
-    sys(2, 1) = a * g;
-    sys(2, 2) = b;
-    sys(2, 3) = a;
+    adjmtr(0, 0) = a;
+    adjmtr(0, 2) = g;
+    adjmtr(1, 0) = a;
+    adjmtr(1, 1) = b;
+    adjmtr(2, 1) = a * g;
+    adjmtr(2, 2) = b;
+    adjmtr(2, 3) = a;
 
+    cldes::DESystem sys{adjmtr, n_states, init_state, marked_states};
     auto graph = sys.GetGraph();
 
     // std::cout << "Graph data: " << std::endl;
@@ -109,37 +114,38 @@ int main() {
 
     sys.Trim();
 
-    std::cout << "Creating new system" << std::endl;
-
-    cldes::DESystem new_sys{n_states, init_state, marked_states};
+    std::cout << "Creating new system with ublas matrix" << std::endl;
+    ublas::compressed_matrix<float> host_graph(n_states, n_states);
 
     // This graph has no transition from the 3rd state to th 4th one.
-    new_sys(0, 0) = a;
-    new_sys(0, 2) = g;
-    new_sys(1, 1) = b;
-    new_sys(2, 1) = a * g;
-    new_sys(2, 2) = b;
-    new_sys(3, 1) = a;
-    new_sys(3, 2) = a;
+    host_graph(0, 0) = a;
+    host_graph(0, 2) = g;
+    host_graph(1, 1) = b;
+    host_graph(2, 1) = a * g;
+    host_graph(2, 2) = b;
+    host_graph(3, 1) = a;
+    host_graph(3, 2) = a;
 
-    auto new_graph = new_sys.GetGraph();
+    cldes::DESystem ublas_sys{host_graph, n_states, init_state, marked_states};
 
-    for (auto it1 = new_graph.begin1(); it1 != new_graph.end1(); ++it1) {
+    auto ublas_graph = ublas_sys.GetGraph();
+
+    for (auto it1 = ublas_graph.begin1(); it1 != ublas_graph.end1(); ++it1) {
         for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
             std::cout << "(" << it1.index1() << ", " << it2.index2()
                       << ") = " << *it2 << std::endl;
         }
     }
 
-    auto new_accessible_states = new_sys.AccessiblePart();
+    auto ublas_accessible_states = ublas_sys.AccessiblePart();
 
-    ProcessResult(new_accessible_states, "Accessible part", "0 1 2");
+    ProcessResult(ublas_accessible_states, "Accessible part", "0 1 2");
 
-    auto new_coaccessible_states = new_sys.CoaccessiblePart();
+    auto ublas_coaccessible_states = ublas_sys.CoaccessiblePart();
 
-    ProcessResult(new_coaccessible_states, "Coaccessible part", "0 2 3");
+    ProcessResult(ublas_coaccessible_states, "Coaccessible part", "0 2 3");
 
-    new_sys.Trim();
+    ublas_sys.Trim();
 
     return 0;
 }
