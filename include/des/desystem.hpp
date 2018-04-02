@@ -128,8 +128,10 @@ public:
      * Cut the non-accessible part of current system and then cut the
      * non-coaccessible part of the last result. The final resultant system
      * is called a trim system.
+     *
+     * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    DESystem Trim();
+    DESystem Trim(bool const &aDevCacheEnabled = true);
 
     /*! \brief Returns value of the specified transition
      *

@@ -32,12 +32,11 @@
 #include "des/desystem.hpp"
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
+#include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <functional>
 #include <vector>
 #include "des/transition_proxy.hpp"
 #include "viennacl/linalg/prod.hpp"
-
-#include <iostream>
 
 using namespace cldes;
 
@@ -274,7 +273,7 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
     return coaccessible_states;
 }
 
-DESystem::DESystem DESystem::TrimStates() {
+DESystem::StatesSet DESystem::TrimStates() {
     auto accpart = this->AccessiblePart();
     auto coaccpart = this->CoaccessiblePart();
 
@@ -286,9 +285,40 @@ DESystem::DESystem DESystem::TrimStates() {
     return trimstates;
 }
 
-DESystem DESystem::Trim() {
+DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
     auto trimstates = this->TrimStates();
 
-    DESystem trim_system{*this};
+    if (trimstates.size() == graph_->size1()) {
+        return *this;
+    }
+
+    // First remove rows of non-trim states
+    GraphHostData sliced_graph{trimstates.size(), states_number_};
+    auto i = 0;
+    for (auto state : trimstates) {
+        ublas::matrix_row<GraphHostData> graphrow(*graph_, state);
+        ublas::matrix_row<GraphHostData> slicedrow(sliced_graph, i);
+        slicedrow.swap(graphrow);
+        ++i;
+    }
+
+    // Now remove the non-trim columns
+    GraphHostData trim_graph{trimstates.size(), trimstates.size()};
+    i = 0;
+    for (auto state : trimstates) {
+        ublas::matrix_column<GraphHostData> slicedcol(sliced_graph, state);
+        ublas::matrix_column<GraphHostData> trimcol(trim_graph, i);
+        trimcol.swap(slicedcol);
+        ++i;
+    }
+
+    StatesSet trim_marked_states;
+    std::set_intersection(
+        marked_states_.begin(), marked_states_.end(), trimstates.begin(),
+        trimstates.end(),
+        std::inserter(trim_marked_states, trim_marked_states.begin()));
+
+    DESystem trim_system{trim_graph, trimstates.size(), init_state_,
+                         trim_marked_states, aDevCacheEnabled};
     return trim_system;
 }
