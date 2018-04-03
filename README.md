@@ -8,9 +8,10 @@ Synthesizer** parallel algorithm is also available.
 
 ## Available operations
 
-* Accessible Part
+* Accessible part
 * Coaccessible part
 * Trim
+* Automata synchronization: parallel composition
 * Controller Synthesis
 
 ## Compiling
