@@ -16,13 +16,17 @@ Synthesizer** parallel algorithm is also available.
 
 ## Compiling
 
-It is necessary to make sure that CMake is installed, such as **GNU** C/C++
+It is necessary to make sure that **CMake** is installed, such as **GNU** C/C++
 developer tools.
 
 ### Build project
 
 You gonna need have system support to OpenCL version `>= 1.2`, and Boost
-Library version `>= 1.64`. After checking that, compile the project:
+Library version `>= 1.64`. So far, you should install it manually. In a near
+future **CMake** will install it locally if it is not previously installed in
+the system.
+
+After checking that, compile the project:
 
 ```bash
 $ cd  <clDES_root>
@@ -41,4 +45,14 @@ $ cd  <clDES_root>
 $ mkdir build; cd build
 $ cmake -DCMAKE_BUILD_TYPE=Debug ..
 $ make
+```
+
+## Run tests
+
+After inserting code, or if you just want to test the library, run the tests
+using **CTest**:
+
+```
+$ cd <clDES_root>/build
+$ make test
 ```
