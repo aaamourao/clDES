@@ -34,33 +34,7 @@
 #include <string>
 #include "cldes.hpp"
 
-template <typename T, typename StringType>
-std::ostringstream ReadResult(T const &aOpResult, StringType const aHeader) {
-    std::ostringstream result;
-
-    result << aHeader << ": ";
-    for (auto state : aOpResult) {
-        result << state << " ";
-    }
-    result << std::endl;
-
-    return result;
-}
-
-template <typename StringType>
-void TestResult(StringType const &aResult, StringType const aExpected) {
-    std::cout << aResult;
-    assert(aResult.find(aExpected) != std::string::npos);
-}
-
-template <typename T, typename StringType>
-void ProcessResult(T &aOpResult, StringType const aHeader,
-                   StringType const aExpected) {
-    auto result = ReadResult(aOpResult, aHeader);
-    std::ostringstream expected;
-    expected << aHeader << ": " << aExpected;
-    TestResult(result.str(), expected.str());
-}
+#include "testlib.hpp"
 
 int main() {
     std::cout << "Creating DES" << std::endl;
@@ -88,26 +62,24 @@ int main() {
     sys(2, 3) = a;
 
     auto graph = sys.GetGraph();
+    PrintGraph(graph, "Sys");
 
     // std::cout << "Graph data: " << std::endl;
     // std::cout << graph << std::endl;
 
-    for (auto it1 = graph.begin1(); it1 != graph.end1(); ++it1) {
-        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
-            std::cout << "(" << it1.index1() << ", " << it2.index2()
-                      << ") = " << *it2 << std::endl;
-        }
-    }
 
     auto accessible_states = sys.AccessiblePart();
-
     ProcessResult(accessible_states, "Accessible part", "0 1 2 3");
 
     auto coaccessible_states = sys.CoaccessiblePart();
-
     ProcessResult(coaccessible_states, "Coaccessible part", "0 1 2");
 
-    sys.Trim();
+    auto trimstates = sys.TrimStates();
+    ProcessResult(trimstates, "Trim states", "0 1 2");
+
+    auto trimsys = sys.Trim();
+    auto trimgraph = trimsys.GetGraph();
+    PrintGraph(trimgraph, "Trim(Sys)");
 
     std::cout << "Creating new system" << std::endl;
 
@@ -123,23 +95,20 @@ int main() {
     new_sys(3, 2) = a;
 
     auto new_graph = new_sys.GetGraph();
-
-    for (auto it1 = new_graph.begin1(); it1 != new_graph.end1(); ++it1) {
-        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
-            std::cout << "(" << it1.index1() << ", " << it2.index2()
-                      << ") = " << *it2 << std::endl;
-        }
-    }
+    PrintGraph(new_graph, "New Sys");
 
     auto new_accessible_states = new_sys.AccessiblePart();
-
     ProcessResult(new_accessible_states, "Accessible part", "0 1 2");
 
     auto new_coaccessible_states = new_sys.CoaccessiblePart();
-
     ProcessResult(new_coaccessible_states, "Coaccessible part", "0 2 3");
 
-    new_sys.Trim();
+    auto new_trimstates = new_sys.TrimStates();
+    ProcessResult(new_trimstates, "Trim states", "0 2");
+
+    auto new_trimsys = new_sys.Trim();
+    auto new_trimgraph = new_trimsys.GetGraph();
+    PrintGraph(new_trimgraph, "Trim(New Sys)");
 
     return 0;
 }
