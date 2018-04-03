@@ -47,9 +47,9 @@ $ cmake -DCMAKE_BUILD_TYPE=Debug ..
 $ make
 ```
 
-## Run tests
+## Running tests
 
-After inserting code, or if you just want to test the library, run the tests
+After inserting code, or if you just want to test the library, execute the tests
 using **CTest**:
 
 ```
