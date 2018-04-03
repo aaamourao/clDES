@@ -294,22 +294,22 @@ DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
 
     // First remove rows of non-trim states
     GraphHostData sliced_graph{trimstates.size(), states_number_};
-    auto i = 0;
+    auto mapped_state = 0;
     for (auto state : trimstates) {
         ublas::matrix_row<GraphHostData> graphrow(*graph_, state);
-        ublas::matrix_row<GraphHostData> slicedrow(sliced_graph, i);
+        ublas::matrix_row<GraphHostData> slicedrow(sliced_graph, mapped_state);
         slicedrow.swap(graphrow);
-        ++i;
+        ++mapped_state;
     }
 
     // Now remove the non-trim columns
     GraphHostData trim_graph{trimstates.size(), trimstates.size()};
-    i = 0;
+    mapped_state = 0;
     for (auto state : trimstates) {
         ublas::matrix_column<GraphHostData> slicedcol(sliced_graph, state);
-        ublas::matrix_column<GraphHostData> trimcol(trim_graph, i);
+        ublas::matrix_column<GraphHostData> trimcol(trim_graph, mapped_state);
         trimcol.swap(slicedcol);
-        ++i;
+        ++mapped_state;
     }
 
     StatesSet trim_marked_states;
