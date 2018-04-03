@@ -2,9 +2,9 @@
 
 ## Introduction
 
-C++11/OpenCL library for **Automata** as a **Discrete-Event Systems** view
-and its operations on a **parallel approach** . A **Discrete Controller
-Synthesizer** parallel algorithm is also available.
+C++11/OpenCL library for **Discrete-Event Systems** modeled as **Automata**
+and their operations on a **parallel programming approach** . A
+**Discrete Controller Synthesizer** parallel algorithm is also available.
 
 ## Implementation
 
