@@ -1,5 +1,5 @@
 # Set output dir
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/tests)
 
 # Add executables
 add_executable(basics ./basics.cpp)

@@ -56,5 +56,5 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
 
 enable_testing()
 
-add_test(basics bin/basics)
-add_test(ublas_basics bin/ublas_basics)
+add_test(basics bin/tests/basics)
+add_test(ublas_basics bin/tests/ublas_basics)
