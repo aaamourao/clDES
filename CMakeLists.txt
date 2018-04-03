@@ -53,3 +53,8 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 # Add subdirectories
 add_subdirectory("${PROJECT_SOURCE_DIR}/src")
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
+
+enable_testing()
+
+add_test(basics bin/basics)
+add_test(ublas_basics bin/ublas_basics)
