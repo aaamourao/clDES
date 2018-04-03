@@ -23,7 +23,7 @@ developer tools.
 
 You gonna need have system support to OpenCL version `>= 1.2`, and Boost
 Library version `>= 1.64`. So far, you should install it manually. In a near
-future **CMake** will install it locally if it is not previously installed in
+future, **CMake** will install it locally if it is not previously installed in
 the system.
 
 After checking that, compile the project:
