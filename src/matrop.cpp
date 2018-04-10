@@ -29,10 +29,10 @@
  =========================================================================
 */
 
-#include "utils/matrop.hpp"
-#include "utils/oclbackend.hpp"
+#include "backend/matrop.hpp"
+#include "backend/oclbackend.hpp"
 
-using namespace cldes::utils;
+using namespace cldes::backend;
 
 viennacl::compressed_matrix<ScalarType> Sum(
     viennacl::compressed_matrix<ScalarType> &aMatrix1,

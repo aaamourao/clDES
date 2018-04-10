@@ -39,7 +39,7 @@
 #include "constants.hpp"
 #include "viennacl/compressed_matrix.hpp"
 
-namespace cldes::utils {
+namespace cldes::backend {
 
 using ScalarType = cldes::ScalarType;
 

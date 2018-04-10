@@ -31,7 +31,7 @@
 
 #include "viennacl/ocl/backend.hpp"
 
-namespace cldes::utils {
+namespace cldes::backend {
 
 class OclBackend {
 public:

@@ -29,9 +29,9 @@
  =========================================================================
 */
 
-#include "utils/oclbackend.hpp"
+#include "backend/oclbackend.hpp"
 
-using namespace cldes::utils;
+using namespace cldes::backend;
 
 // Initialize static data members
 OclBackend* OclBackend::instance_ = nullptr;
