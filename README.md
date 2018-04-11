@@ -51,8 +51,8 @@ $ make
 
 ### Dev build
 
-If you wanna contribute **clDES**, you may want to compile with debug flags
-setting **CMake**'s flag `BUILD_TYPE` to `Debug`:
+If you wanna contribute to **clDES**, you may want a debug build by setting 
+**CMake**'s flag `BUILD_TYPE` to `Debug`:
 
 ```bash
 $ cd  <clDES_root>
