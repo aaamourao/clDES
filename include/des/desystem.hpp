@@ -54,6 +54,8 @@ public:
     using StatesSet = std::set<cldes_size_t>;
     using StatesVector = ublas::compressed_matrix<ScalarType>;
     using StatesDeviceVector = viennacl::compressed_matrix<ScalarType>;
+    using StatesDenseVector = ublas::vector<ScalarType>;
+    using StatesDeviceDenseVector = viennacl::vector<ScalarType>;
 
     /*! \brief DESystem constructor by copying ublas object
      *
@@ -243,7 +245,7 @@ private:
     /*! \brief Setup BFS and return accessed states array
      *
      * Executes a breadth first search on the graph starting from N nodes
-     * in aInitialNodes.
+     * in aInitialNodes. The algorithm is based on SpGEMM.
      *
      * @param aInitialNodes Set of nodes where the searches will start
      */
@@ -252,10 +254,22 @@ private:
                     std::function<void(cldes_size_t const &,
                                        cldes_size_t const &)> const &aBfsVisit);
 
+    /*! \brief Setup BFS using dense vector and return accessed states array
+     *
+     * Executes a breadth first search on the graph starting from the node
+     * aInitialNode. The algorithm is based on SpMV.
+     *
+     * @param aInitialNode Node where the searches will start
+     */
+    StatesSet *BfsSpMV_(
+        cldes_size_t const &aInitialNode,
+        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+            &aBfsVisit);
+
     /*! \brief Calculates Bfs and returns accessed states array
      *
      * Executes a breadth first search on the graph starting from one single
-     * node.
+     * node. The algorithm is based on SpGEMM.
      *
      * @param aInitialNode Where the search will start
      */
@@ -264,6 +278,19 @@ private:
         std::function<void(cldes_size_t const &, cldes_size_t const &)> const
             &aBfsVisit,
         std::vector<cldes_size_t> const *const aStatesMap);
+
+    /*! \brief Calculates Bfs using dense vector and returns accessed states
+     * array
+     *
+     * Executes a breadth first search on the graph starting from one single
+     * node. The algorithm is based on SpMV.
+     *
+     * @param aInitialNode Where the search will start
+     */
+    StatesSet *BfsCalcSpMV_(
+        StatesDenseVector &aHostX,
+        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+            &aBfsVisit);
 
     /*! \brief Return a pointer to accessed states from the initial state
      *

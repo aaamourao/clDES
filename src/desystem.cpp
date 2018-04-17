@@ -180,10 +180,11 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     auto accessed_states = new StatesSet[aHostX.size2()];
 
     // Executes BFS
+    StatesDeviceVector y;
     for (auto i = 0; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        StatesDeviceVector y = viennacl::linalg::prod(*device_graph_, x);
+        y = viennacl::linalg::prod(*device_graph_, x);
         x = y;
 
         bool accessed_new_state[aHostX.size2()] = {false};
@@ -194,7 +195,6 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         viennacl::copy(x, aHostX);
 
         // ITERATE ONLY OVER NON ZERO ELEMENTS
-        // TODO: Use FUNCTIONAL FILTERING here
         for (auto lin = aHostX.begin1(); lin != aHostX.end1(); ++lin) {
             for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
                 auto unmapped_initial_state = elem.index2();
@@ -222,6 +222,86 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         if (std::all_of(accessed_new_state,
                         accessed_new_state + sizeof(accessed_new_state),
                         [](bool i) { return !i; })) {
+            break;
+        }
+    }
+
+    // Remove graph_ from device memory, if it is set so
+    if (!dev_cache_enabled_) {
+        delete device_graph_;
+    }
+
+    return accessed_states;
+}
+
+DESystem::StatesSet *DESystem::BfsSpMV_(
+    cldes_size_t const &aInitialNode,
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit) {
+    /*
+     * BFS on a Linear Algebra approach:
+     *     Y = G^T * X
+     */
+    StatesDenseVector host_x{states_number_};
+
+    // GPUs does not allow dynamic memory allocation. So, we have
+    // to set X on host first.
+    host_x.clear();
+    host_x[aInitialNode] = static_cast<ScalarType>(1);
+
+    return BfsCalcSpMV_(host_x, aBfsVisit);
+}
+
+DESystem::StatesSet *DESystem::BfsCalcSpMV_(
+    StatesDenseVector &aHostX,
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit) {
+    // Cache graph temporally
+    if (!dev_cache_enabled_) {
+        this->CacheGraph_();
+    } else if (is_cache_outdated_) {
+        this->UpdateGraphCache_();
+    }
+
+    // Copy search vector to device memory
+    StatesDeviceDenseVector x{states_number_};
+    viennacl::copy(aHostX, x);
+
+    auto accessed_states = new StatesSet;
+
+    // Executes BFS
+    StatesDeviceDenseVector y;
+    for (auto i = 0; i < states_number_; ++i) {
+        // Using auto bellow results in compile error
+        // on the following for statement
+        y = viennacl::linalg::prod(*device_graph_, x);
+        x = y;
+
+        bool accessed_new_state = false;
+
+        // Unfortunatelly, until now, ViennaCL does not allow iterating on
+        // compressed matrices. Until it is implemented, it is necessary
+        // to copy the vector to the host memory.
+        viennacl::copy(x, aHostX);
+
+        for (auto vert = aHostX.begin(); vert != aHostX.end(); ++vert) {
+            // TODO: Use FUNCTIONAL FILTERING here
+            if(*vert) {
+                auto accessed_state = vert.index();
+                if (accessed_states->emplace(accessed_state).second) {
+                    accessed_new_state = true;
+                    if (aBfsVisit) {
+                        aBfsVisit(0, accessed_state);
+                    }
+                }
+            }
+        }
+
+        // TODO: If some search did not accessed a new state, it does not need
+        // to be in the BFS Matrix
+
+        // If all accessed states were previously "colored", stop searching.
+        if (!accessed_new_state) {
             break;
         }
     }
