@@ -130,7 +130,6 @@ DESystem::StatesSet *DESystem::Bfs_(
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
-    // TODO: It could be an array
     std::vector<cldes_size_t> states_map;
     for (auto state : aInitialNodes) {
         host_x(state, states_map.size()) = 1;
@@ -187,7 +186,7 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         StatesDeviceVector y = viennacl::linalg::prod(*device_graph_, x);
         x = y;
 
-        std::vector<bool> accessed_new_state{aHostX.size2(), false};
+        bool accessed_new_state[aHostX.size2()] = {false};
 
         // Unfortunatelly, until now, ViennaCL does not allow iterating on
         // compressed matrices. Until it is implemented, it is necessary
@@ -195,6 +194,7 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         viennacl::copy(x, aHostX);
 
         // ITERATE ONLY OVER NON ZERO ELEMENTS
+        // TODO: Use FUNCTIONAL FILTERING here
         for (auto lin = aHostX.begin1(); lin != aHostX.end1(); ++lin) {
             for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
                 auto unmapped_initial_state = elem.index2();
@@ -219,7 +219,8 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         // to be in the BFS Matrix
 
         // If all accessed states were previously "colored", stop searching.
-        if (std::all_of(accessed_new_state.begin(), accessed_new_state.end(),
+        if (std::all_of(accessed_new_state,
+                        accessed_new_state + sizeof(accessed_new_state),
                         [](bool i) { return !i; })) {
             break;
         }
