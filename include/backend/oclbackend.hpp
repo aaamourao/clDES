@@ -86,4 +86,4 @@ private:
     static ViennaCLKernel* add_devkernel_;
 };
 
-}  // namespace cldes::utils
+}  // namespace cldes::backend
