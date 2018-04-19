@@ -9,6 +9,7 @@ set(libclDESSrcs
     transition_proxy.cpp
     oclbackend.cpp
     matrop.cpp
+    operations.cpp
 )
 
 # Library public headers

@@ -45,7 +45,25 @@ namespace cldes {
 
 namespace ublas = boost::numeric::ublas;
 
+/*
+ * Forward declarion of DESystem's friends class TransitionProxy. A transition
+ * is an element of the adjascency matrix which implements the des graph.
+ */
 class TransitionProxy;
+
+/*
+ * Forward declarion of DESystem class necessary for the forward declaration of
+ * the DESystem's friend function op::Synchronize
+ */
+class DESystem;
+
+/*
+ * Forward declarion of DESystem's friend function Synchronize which implements
+ * the parallel composition between two DES.
+ */
+namespace op {
+cldes::DESystem Synchronize(DESystem const &aSys0, DESystem const &aSys1);
+}
 
 class DESystem {
 public:
@@ -173,6 +191,8 @@ protected:
 
 private:
     friend class TransitionProxy;
+    friend DESystem op::Synchronize(DESystem const &aSys0,
+                                    DESystem const &aSys1);
 
     /*! \brief Graph represented by an adjascency matrix
      *
