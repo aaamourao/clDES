@@ -45,3 +45,6 @@ debug/*
 # http://www.vim.org/
 *.swp
 *.orig
+
+# YCM CMake DB
+compile_commands.json
