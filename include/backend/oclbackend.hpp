@@ -31,7 +31,8 @@
 
 #include "viennacl/ocl/backend.hpp"
 
-namespace cldes::backend {
+namespace cldes {
+namespace backend {
 
 class OclBackend {
 public:
@@ -86,4 +87,5 @@ private:
     static ViennaCLKernel* add_devkernel_;
 };
 
-}  // namespace cldes::backend
+}  // namespace backend
+}  // namespace cldes

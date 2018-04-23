@@ -28,21 +28,16 @@
  =========================================================================
 */
 
-/*
- * =========================================================================
- * clDES: an OpenCL library for Discrete Event Systems computing
- * Developed by Adriano @madc0ww Mourao [https://github.com/madc0ww]
- *
- * =========================================================================
- */
-
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
 #include "viennacl/compressed_matrix.hpp"
 
-namespace cldes::op {
+namespace cldes {
+namespace op {
 
 cldes::DESystem Synchronize(DESystem const &aSys0, DESystem const &aSys1);
 
+}  // namespace op
+}  // namespace cldes
 #endif  // DESYSTEM_HPP
