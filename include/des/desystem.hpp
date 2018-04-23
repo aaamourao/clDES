@@ -175,6 +175,11 @@ public:
     TransitionProxy operator()(cldes_size_t const &aLin,
                                cldes_size_t const &aCol);
 
+    /*! \brief Returns number of states of the system
+     *
+     * Returns states_value_ by value.
+     */
+    cldes_size_t size() const { return states_number_; }
     /*
      * TODO:
      * getters
