@@ -30,6 +30,7 @@
 */
 
 #include "backend/oclbackend.hpp"
+#include "backend/kernels.hpp"
 
 using namespace cldes::backend;
 
@@ -47,23 +48,9 @@ OclBackend* OclBackend::Instance() {
 
 OclBackend::OclBackend() {
     // All custom clDES OpenCL kernels
-    // TODO: put it on other file
-    // TODO: This is a dense matrix kernel
-    const char* cldes_kernels_ =
-        "__kernel void elementwise_add(\n"
-        "          __global const float * vec1,\n"
-        "          __global const float * vec2, \n"
-        "          __global float * result,\n"
-        "          unsigned int size) \n"
-        "{ \n"
-        "  for (unsigned int i = get_global_id(0); i < size; i += "
-        "      get_global_size(0))\n"
-        "    result[i] = vec1[i] + vec2[i];\n"
-        "};\n";
-
     // Load kernels on device
     cldes_program_ = &viennacl::ocl::current_context().add_program(
-        cldes_kernels_, "cldes_kernels_");
+        cldes_kernels, "cldes_kernels");
 }
 
 OclBackend::ViennaCLKernel& OclBackend::AddKernel() {
