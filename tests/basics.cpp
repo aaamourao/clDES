@@ -38,20 +38,20 @@
 
 int main() {
     std::cout << "Creating DES" << std::endl;
-    const int n_states = 4;
+    int const n_states = 4;
 
     cldes::DESystem::StatesSet marked_states;
     marked_states.insert(0);
     marked_states.insert(2);
 
-    const int init_state = 0;
+    int const init_state = 0;
 
     cldes::DESystem sys{n_states, init_state, marked_states};
 
     // Declare transitions: represented by prime numbers
-    const float a = 2.0f;
-    const float b = 3.0f;
-    const float g = 5.0f;
+    float const a = 2.0f;
+    float const b = 3.0f;
+    float const g = 5.0f;
 
     sys(0, 0) = a;
     sys(0, 2) = g;

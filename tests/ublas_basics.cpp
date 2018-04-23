@@ -42,20 +42,20 @@ namespace ublas = boost::numeric::ublas;
 
 int main() {
     std::cout << "Creating DES with ublas matrix" << std::endl;
-    const int n_states = 4;
+    int const n_states = 4;
 
     cldes::DESystem::StatesSet marked_states;
     marked_states.insert(0);
     marked_states.insert(2);
 
-    const int init_state = 0;
+    int const init_state = 0;
 
     ublas::compressed_matrix<float> adjmtr(n_states, n_states);
 
     // Declare transitions: represented by prime numbers
-    const float a = 2.0f;
-    const float b = 3.0f;
-    const float g = 5.0f;
+    float const a = 2.0f;
+    float const b = 3.0f;
+    float const g = 5.0f;
 
     adjmtr(0, 0) = a;
     adjmtr(0, 2) = g;
