@@ -30,7 +30,7 @@ Follow the instructions bellow to build the project.
 
 ### Requirements
 
-It is necessary to make sure that **CMake** is installed, such as **GNU** C/C++
+It is necessary to make sure that **CMake** is installed, such as **LLVM Clang** C/C++
 developer tools.
 
 System support to **OpenCL** version `>= 1.2` and **Boost** Library version `>= 1.64`
@@ -51,7 +51,7 @@ $ make
 
 ### Dev build
 
-If you wanna contribute to **clDES**, you may want a debug build by setting 
+If you wanna contribute to **clDES**, you may want a debug build by setting
 **CMake**'s flag `BUILD_TYPE` to `Debug`:
 
 ```bash

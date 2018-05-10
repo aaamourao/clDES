@@ -35,6 +35,8 @@
 #include "des/desystem.hpp"
 #include "des/transition_proxy.hpp"
 
-class cldes::DESystem;
+namespace cldes {
+class DESystem;
+}
 
 #endif // CLDESS_HPP

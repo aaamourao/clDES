@@ -173,11 +173,12 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         this->UpdateGraphCache_();
     }
 
+    auto n_initial_nodes = aHostX.size2();
     // Copy search vector to device memory
-    StatesDeviceVector x{states_number_, aHostX.size2()};
+    StatesDeviceVector x{states_number_, n_initial_nodes};
     viennacl::copy(aHostX, x);
 
-    auto accessed_states = new StatesSet[aHostX.size2()];
+    auto accessed_states = new StatesSet[n_initial_nodes];
 
     // Executes BFS
     StatesDeviceVector y;
@@ -187,7 +188,7 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         y = viennacl::linalg::prod(*device_graph_, x);
         x = y;
 
-        bool accessed_new_state[aHostX.size2()] = {false};
+        std::vector<bool> accessed_new_state(n_initial_nodes, false);
 
         // Unfortunatelly, until now, ViennaCL does not allow iterating on
         // compressed matrices. Until it is implemented, it is necessary
@@ -219,8 +220,7 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         // to be in the BFS Matrix
 
         // If all accessed states were previously "colored", stop searching.
-        if (std::all_of(accessed_new_state,
-                        accessed_new_state + sizeof(accessed_new_state),
+        if (std::all_of(accessed_new_state.begin(), accessed_new_state.end(),
                         [](bool i) { return !i; })) {
             break;
         }
@@ -286,7 +286,7 @@ DESystem::StatesSet *DESystem::BfsCalcSpMV_(
 
         for (auto vert = aHostX.begin(); vert != aHostX.end(); ++vert) {
             // TODO: Use FUNCTIONAL FILTERING here
-            if(*vert) {
+            if (*vert) {
                 auto accessed_state = vert.index();
                 if (accessed_states->emplace(accessed_state).second) {
                     accessed_new_state = true;
