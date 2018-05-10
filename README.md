@@ -43,6 +43,8 @@ the system.
 After checking if all requirements are satisfied, compile the project:
 
 ```bash
+$ export CC=/usr/bin/clang
+$ export CXX=/usr/bin/clang++
 $ cd  <clDES_root>
 $ mkdir build; cd build
 $ cmake ..
@@ -55,6 +57,8 @@ If you wanna contribute to **clDES**, you may want a debug build by setting
 **CMake**'s flag `BUILD_TYPE` to `Debug`:
 
 ```bash
+$ export CC=/usr/bin/clang
+$ export CXX=/usr/bin/clang++
 $ cd  <clDES_root>
 $ mkdir build; cd build
 $ cmake -DCMAKE_BUILD_TYPE=Debug ..
