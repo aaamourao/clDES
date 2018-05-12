@@ -30,7 +30,7 @@
 */
 
 #include "backend/oclbackend.hpp"
-#include "backend/kernels.hpp"
+#include <fstream>
 
 using namespace cldes::backend;
 
@@ -47,10 +47,17 @@ OclBackend* OclBackend::Instance() {
 }
 
 OclBackend::OclBackend() {
-    // All custom clDES OpenCL kernels
-    // Load kernels on device
+    // Read kernels from file
+    std::ifstream source_file_name("include/backend/kernels.cl");
+
+    std::string source_file(
+            std::istreambuf_iterator<char>(source_file_name),
+            (std::istreambuf_iterator<char>())
+    );
+
+    // Load all custom cldes kernels on device
     cldes_program_ = &viennacl::ocl::current_context().add_program(
-        cldes_kernels, "cldes_kernels");
+        source_file, "cldes_kernels");
 }
 
 OclBackend::ViennaCLKernel& OclBackend::AddKernel() {
