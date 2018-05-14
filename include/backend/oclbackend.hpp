@@ -31,6 +31,10 @@
 
 #include "viennacl/ocl/backend.hpp"
 
+namespace cl {
+class CommandQueue;
+}
+
 namespace cldes {
 namespace backend {
 
@@ -38,27 +42,52 @@ class OclBackend {
 public:
     using ViennaCLKernel = viennacl::ocl::kernel;
     using ViennaCLProgram = viennacl::ocl::program;
+    using CLQueue = cl_command_queue;
+    using ViennaCLMemHandle = viennacl::ocl::handle<cl_mem>;
 
-    /*! \brief OclBackend::Instance() method
+    /*! \brief Instantiate clDES OpenCL backend and returns unique object
      *
      * Public method that guarantees that only one object of OclBackend is
      * created. Returns a raw pointer to a unique OclBackend.
      */
     static OclBackend* Instance();
 
-    /*! \brief OclBackend::AddKernel() method
+    /*! \brief Return opencl kernel handle
      *
      * Public method that returns the kernel for ADD operation between two
      * sparse matrices.
+     *
+     * @param aKernelName String containing kernel name
      */
-    static viennacl::ocl::kernel& AddKernel();
+    static ViennaCLKernel& GetKernel(std::string aKernelName);
 
-    /*! \brief OclBackend::Enqueuel() method
+    /*! \brief Execute kernel on device
      *
      * Public method for executing kernels on the device. It is basically
      * viennacl opencl backend encapsulated.
+     *
+     * @param k OpenCL Kernel
      */
-    static void Enqueue(ViennaCLKernel& aCustomKernel);
+    static void Enqueue(viennacl::ocl::kernel const& k);
+
+    /*! \brief Return device buffer's handle
+     *
+     * Create buffer on device memory and returns its handle.
+     *
+     * @param aFlags OpenCL flags
+     * @param aSize Buffer Size
+     * @param aPtr OpenCL Buffer's initial values (optional)
+     */
+    static ViennaCLMemHandle CreateBuffer(cl_mem_flags aFlags,
+                                          unsigned int aSize,
+                                          void* aPtr = nullptr);
+
+    /*! \brief Read buffer and return success code
+     *
+     *
+     * @param k OpenCL Kernel
+     */
+    static CLQueue CommandQueue();
 
 protected:
     /*! \brief OclBackend constructor
@@ -80,11 +109,10 @@ private:
      */
     static ViennaCLProgram* cldes_program_;
 
-    /*! \brief OclBackend::add_devkernel_ raw pointer
+    /*!
      *
-     * Kernel on device memory for add operation.
      */
-    static ViennaCLKernel* add_devkernel_;
+    static CLQueue queue_;
 };
 
 }  // namespace backend

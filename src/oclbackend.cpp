@@ -30,14 +30,16 @@
 */
 
 #include "backend/oclbackend.hpp"
+#include <CL/cl.hpp>
 #include <fstream>
+#include <string>
 
 using namespace cldes::backend;
 
 // Initialize static data members
 OclBackend* OclBackend::instance_ = nullptr;
 OclBackend::ViennaCLProgram* OclBackend::cldes_program_ = nullptr;
-OclBackend::ViennaCLKernel* OclBackend::add_devkernel_ = nullptr;
+OclBackend::CLQueue OclBackend::queue_ = nullptr;
 
 OclBackend* OclBackend::Instance() {
     if (!instance_) {
@@ -48,26 +50,30 @@ OclBackend* OclBackend::Instance() {
 
 OclBackend::OclBackend() {
     // Read kernels from file
-    std::ifstream source_file_name("include/backend/kernels.cl");
+    std::ifstream source_file_name("kernels.cl");
 
-    std::string source_file(
-            std::istreambuf_iterator<char>(source_file_name),
-            (std::istreambuf_iterator<char>())
-    );
+    std::string source_file(std::istreambuf_iterator<char>(source_file_name),
+                            (std::istreambuf_iterator<char>()));
 
     // Load all custom cldes kernels on device
     cldes_program_ = &viennacl::ocl::current_context().add_program(
         source_file, "cldes_kernels");
 }
 
-OclBackend::ViennaCLKernel& OclBackend::AddKernel() {
-    if (add_devkernel_) {
-        add_devkernel_ = &cldes_program_->get_kernel("elementwise_add");
-    }
-
-    return *add_devkernel_;
+OclBackend::ViennaCLMemHandle OclBackend::CreateBuffer(cl_mem_flags aFlags,
+                                                       unsigned int aSize,
+                                                       void* aPtr) {
+    return viennacl::ocl::current_context().create_memory(CL_MEM_WRITE_ONLY,
+                                                          aSize, aPtr);
 }
 
-void OclBackend::Enqueue(viennacl::ocl::kernel& aCustomKernel) {
-    viennacl::ocl::enqueue(aCustomKernel);
+OclBackend::ViennaCLKernel& OclBackend::GetKernel(std::string aKernelName) {
+    return cldes_program_->get_kernel(aKernelName);
 }
+
+void OclBackend::Enqueue(viennacl::ocl::kernel const& k) {
+    viennacl::ocl::enqueue(k);
+    queue_ = viennacl::ocl::get_queue().handle().get();
+}
+
+OclBackend::CLQueue OclBackend::CommandQueue() { return queue_; }

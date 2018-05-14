@@ -23,30 +23,24 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: include/backend/kernels.hpp
+ File: include/backend/kernels.cl
  Description: OpenCL kernels for the custom clDES operations.
  =========================================================================
 */
 
-namespace cldes::backend {
+typedef struct StatesTuple {
+    unsigned int x0;
+    unsigned int x1;
+} StatesTuple;
 
-char const* const cldes_kernels =
-    "__kernel void elementwise_add(\n"
-    "          __global const unsigned int * A_row_indices,\n"
-    "          __global const unsigned int * A_col_indices, \n"
-    "          __global const unsigned float * A_elements, \n"
-    "          unsigned int * A_size, \n"
-    "          __global const unsigned int * B_row_indices,\n"
-    "          __global const unsigned int * B_col_indices, \n"
-    "          __global const unsigned float * B_elements, \n"
-    "          unsigned int * B_size) \n"
-    "{ \n"
+__kernel void Synchronize_Stage1(__global StatesTuple* aCTuples,
+                                 unsigned int aBNumberStates) {
     // Workitems gets its index within index space
-    "  int const ix = get_global_id(0); \n"
-    "  int const iy = get_global_id(1); \n"
-    "  for (unsigned int i = get_global_id(0); i < size; i += "
-    "      get_global_size(0))\n"
-    "    result[i] = vec1[i] + vec2[i];\n"
-    "};\n";
+    int ix0 = get_global_id(0);
+    int ix1 = get_global_id(1);
 
-}
+    unsigned int index = ix1 * aBNumberStates + ix0;
+
+    aCTuples[index].x0 = ix0;
+    aCTuples[index].x1 = ix1;
+};

@@ -30,6 +30,7 @@
 */
 
 #include "cldes.hpp"
+#include "operations/operations.hpp"
 
 int main() {
     // Declare transitions: represented by prime numbers
@@ -67,6 +68,15 @@ int main() {
     g2(0, 1) = a;
     g2(1, 0) = b;
     g2(1, 1) = a;
+
+    auto stage1 = cldes::op::SynchronizeStage1(g1, g2);
+
+    for (int i = 0; i < nstatesG1*nstatesG2; ++i) {
+        std::cout << "(" << stage1[i].x0 << ", " << stage1[i].x1 << ")"
+                  << std::endl;
+    }
+
+    std::cout << "Finishing test" << std::endl;
 
     return 0;
 }

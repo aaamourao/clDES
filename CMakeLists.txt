@@ -58,3 +58,4 @@ enable_testing()
 
 add_test(basics bin/tests/basics)
 add_test(ublas_basics bin/tests/ublas_basics)
+add_test(sync bin/tests/sync)

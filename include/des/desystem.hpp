@@ -57,13 +57,17 @@ class TransitionProxy;
  */
 class DESystem;
 
+namespace op {
 /*
  * Forward declarion of DESystem's friend function Synchronize which implements
  * the parallel composition between two DES.
  */
-namespace op {
 cldes::DESystem Synchronize(DESystem const &aSys0, DESystem const &aSys1);
-}
+
+struct StatesTuple;
+
+StatesTuple *SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+}  // namespace op
 
 class DESystem {
 public:
@@ -74,6 +78,7 @@ public:
     using StatesDeviceVector = viennacl::compressed_matrix<ScalarType>;
     using StatesDenseVector = ublas::vector<ScalarType>;
     using StatesDeviceDenseVector = viennacl::vector<ScalarType>;
+    using EventsSet = std::set<cldes_size_t>;
 
     /*! \brief DESystem constructor by copying ublas object
      *
@@ -198,6 +203,8 @@ private:
     friend class TransitionProxy;
     friend DESystem op::Synchronize(DESystem const &aSys0,
                                     DESystem const &aSys1);
+    friend op::StatesTuple *op::SynchronizeStage1(DESystem const &aSys0,
+                                                      DESystem const &aSys1);
 
     /*! \brief Graph represented by an adjascency matrix
      *
@@ -254,6 +261,12 @@ private:
      * and some marked states may be deleted.
      */
     StatesSet marked_states_;
+
+    /*! \brief System's events
+     *
+     * A std::set containing all the events that matter for the current system.
+     */
+    EventsSet events_;
 
     /*! \brief Method for caching the graph
      *

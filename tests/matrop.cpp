@@ -23,38 +23,31 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: operations.hpp
- Description: Declaration of operation functions.
+ File: examples/matrop.cpp
+ Description: Exemplify how to use custom opencl matrix operations
+ available on clDES.
  =========================================================================
 */
 
-#ifndef OPERATIONS_HPP
-#define OPERATIONS_HPP
+#include <iostream>
+#include "backend/matrop.hpp"
+#include "viennacl/vector.hpp"
 
-#include <CL/cl.hpp>
-#include "constants.hpp"
+int main() {
+    int vector_size = 100;
+    viennacl::vector<float> vec1(vector_size);
+    viennacl::vector<float> vec2(vector_size);
 
-namespace cldes {
+    for (auto i = 0; i < vector_size; ++i) {
+        vec1[i] = i;
+        vec2[i] = i*2;
+    }
 
-class DESystem;
+    viennacl::result = cldes::backend::Sum(vec1, vec2);
 
-namespace op {
+    std::cout << "vec1 = " << vec1 << std::endl;
+    std::cout << "vec2 = " << vec2 << std::endl;
+    std::cout << "vec1 + vec2 = " << result << std::endl;
 
-typedef struct StatesTuple {
-    cl_uint x0;
-    cl_uint x1;
-} StatesTuple;
-
-cldes::ScalarType GetTransitions(cldes::DESystem const &aSys);
-
-cldes::ScalarType GetPrivateTransitions(cldes::DESystem const &aSysTarget,
-                                        cldes::DESystem const &aSys);
-cldes::DESystem Synchronize(cldes::DESystem const &aSys0,
-                            cldes::DESystem const &aSys1);
-
-StatesTuple *SynchronizeStage1(cldes::DESystem const &aSys0,
-                               cldes::DESystem const &aSys1);
-
-}  // namespace op
-}  // namespace cldes
-#endif  // DESYSTEM_HPP
+    return 0;
+}
