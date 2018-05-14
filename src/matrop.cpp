@@ -38,7 +38,7 @@ viennacl::compressed_matrix<ScalarType> Sum(
     viennacl::compressed_matrix<ScalarType> &aMatrix1,
     viennacl::compressed_matrix<ScalarType> &aMatrix2) {
     auto oclbackend = OclBackend::Instance();
-    auto &my_kernel_mul = oclbackend->AddKernel();
+    auto &my_kernel_mul = oclbackend->GetKernel("Synchronize_Stage1");
 
     viennacl::compressed_matrix<ScalarType> result_sum(aMatrix1.size1(),
                                                        aMatrix1.size2());
