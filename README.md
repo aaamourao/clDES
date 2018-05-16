@@ -2,7 +2,7 @@
 
 ## Introduction
 
-C++11/OpenCL library for **Discrete-Event Systems** modeled as **Automata**
+C++11/*OpenCL 1.2* library for **Discrete-Event Systems** modeled as **Automata**
 and their operations on a **parallel programming approach** . A
 **Discrete Controller Synthesizer** parallel algorithm is also available.
 
@@ -11,8 +11,8 @@ and their operations on a **parallel programming approach** . A
 **clDES** uses a graph based model to represent discrete-event systems,
 which are implemented with adjacency sparse matrices. It has a
 [ViennaCL](http://viennacl.sourceforge.net/) back-end for multiplying
-sparse matrices on GPU and a custom **OpenCL** kernel for the parallel
-composition operation.
+sparse matrices on GPU and customs **OpenCL** kernels for operations
+such as the parallel composition.
 
 ### Available operations
 
