@@ -48,6 +48,10 @@ are required. So far, you should install it manually. In a near
 future, **CMake** will install it locally if it was not previously installed in
 the system.
 
+> It is always necessary to set `CLDES_INCLUDE_PATH` to run **clDES** applications
+> which execute operations that use custom *OpenCL* kernels, such as
+> `cldes::op::Syncronization()`.
+
 ### Build project
 
 After checking if all requirements are satisfied, compile the project:
@@ -85,7 +89,3 @@ $ export CLDES_INCLUDE_PATH=<clDES_root>/include
 $ cd <clDES_root>/build
 $ make test
 ```
-
-> It is always necessary to set `CLDES_INCLUDE_PATH` to run **clDES** applications
-> which execute operations that use custom *OpenCL* kernels, such as
-> `cldes::op::Syncronization()`.
