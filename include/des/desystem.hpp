@@ -62,7 +62,7 @@ namespace op {
  * Forward declarion of DESystem's friend function Synchronize which implements
  * the parallel composition between two DES.
  */
-cldes::DESystem Synchronize(DESystem const &aSys0, DESystem const &aSys1);
+cldes::DESystem Synchronize(DESystem &aSys0, DESystem &aSys1);
 
 struct StatesTable;
 
@@ -213,8 +213,7 @@ protected:
 
 private:
     friend class TransitionProxy;
-    friend DESystem op::Synchronize(DESystem const &aSys0,
-                                    DESystem const &aSys1);
+    friend DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1);
     friend op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
                                                   DESystem const &aSys1);
     friend DESystem op::SynchronizeStage2(op::StatesTable const *aTable,

@@ -83,8 +83,7 @@ float CalcEventsInt_(EventsSetType const &aEvents) {
 
 float CalcGCD_(float aG0, float aG1);
 
-cldes::DESystem Synchronize(cldes::DESystem const &aSys0,
-                            cldes::DESystem const &aSys1);
+cldes::DESystem Synchronize(cldes::DESystem &aSys0, cldes::DESystem &aSys1);
 
 StatesTable *SynchronizeStage1(cldes::DESystem const &aSys0,
                                cldes::DESystem const &aSys1);
