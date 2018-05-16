@@ -31,7 +31,9 @@
 
 #include "backend/oclbackend.hpp"
 #include <CL/cl.hpp>
+#include <cstdlib>  // std::getenv()
 #include <fstream>
+#include <sstream>
 #include <string>
 
 using namespace cldes::backend;
@@ -50,7 +52,9 @@ OclBackend::OclBackend() {
     context_ = viennacl::ocl::current_context();
 
     // Read kernels from file
-    std::ifstream source_file_name("kernels.cl");
+    std::ostringstream kernel_file;
+    kernel_file << std::getenv("CLDES_INCLUDE_PATH") << "/backend/kernels.cl";
+    std::ifstream source_file_name(kernel_file.str());
 
     std::string source_file(std::istreambuf_iterator<char>(source_file_name),
                             (std::istreambuf_iterator<char>()));
@@ -59,9 +63,7 @@ OclBackend::OclBackend() {
     cldes_program_ = context_.add_program(source_file, "cldes_kernels");
 }
 
-OclBackend::ViennaCLContext OclBackend::GetContext() {
-    return context_;
-}
+OclBackend::ViennaCLContext OclBackend::GetContext() { return context_; }
 
 OclBackend::ViennaCLKernel& OclBackend::GetKernel(std::string aKernelName) {
     return cldes_program_.get_kernel(aKernelName);
