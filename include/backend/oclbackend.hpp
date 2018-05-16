@@ -43,7 +43,7 @@ public:
     using ViennaCLKernel = viennacl::ocl::kernel;
     using ViennaCLProgram = viennacl::ocl::program;
     using CLQueue = cl_command_queue;
-    using ViennaCLMemHandle = viennacl::ocl::handle<cl_mem>;
+    using ViennaCLContext = viennacl::ocl::context;
 
     /*! \brief Instantiate clDES OpenCL backend and returns unique object
      *
@@ -59,7 +59,7 @@ public:
      *
      * @param aKernelName String containing kernel name
      */
-    static ViennaCLKernel& GetKernel(std::string aKernelName);
+    ViennaCLKernel& GetKernel(std::string aKernelName);
 
     /*! \brief Execute kernel on device
      *
@@ -68,26 +68,20 @@ public:
      *
      * @param k OpenCL Kernel
      */
-    static void Enqueue(viennacl::ocl::kernel const& k);
+    void Enqueue(viennacl::ocl::kernel const& k);
 
-    /*! \brief Return device buffer's handle
+    /*! \brief Return device OpenCL context
      *
-     * Create buffer on device memory and returns its handle.
-     *
-     * @param aFlags OpenCL flags
-     * @param aSize Buffer Size
-     * @param aPtr OpenCL Buffer's initial values (optional)
+     * Returns the current context created by the ViennaCL backend
      */
-    static ViennaCLMemHandle CreateBuffer(cl_mem_flags aFlags,
-                                          unsigned int aSize,
-                                          void* aPtr = nullptr);
+    ViennaCLContext GetContext();
 
     /*! \brief Read buffer and return success code
      *
      *
      * @param k OpenCL Kernel
      */
-    static CLQueue CommandQueue();
+    CLQueue CommandQueue();
 
 protected:
     /*! \brief OclBackend constructor
@@ -107,12 +101,17 @@ private:
      *
      * Kernels loaded on the device.
      */
-    static ViennaCLProgram* cldes_program_;
+    ViennaCLProgram cldes_program_;
 
     /*!
      *
      */
-    static CLQueue queue_;
+    CLQueue queue_;
+
+    /*!
+     *
+     */
+    ViennaCLContext context_;
 };
 
 }  // namespace backend

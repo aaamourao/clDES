@@ -31,6 +31,7 @@
 
 #include "cldes.hpp"
 #include "operations/operations.hpp"
+#include "testlib.hpp"
 
 int main() {
     // Declare transitions: represented by prime numbers
@@ -45,8 +46,14 @@ int main() {
     markedstatesG1.insert(0);
     markedstatesG1.insert(2);
 
+    cldes::DESystem::EventsSet eventsG1;
+    eventsG1.insert(a);
+    eventsG1.insert(b);
+    eventsG1.insert(g);
+
     int const initstateG1 = 0;
     cldes::DESystem g1{nstatesG1, initstateG1, markedstatesG1};
+    g1.InsertEvents(eventsG1);
 
     g1(0, 0) = a;
     g1(0, 2) = g;
@@ -61,8 +68,13 @@ int main() {
     cldes::DESystem::StatesSet markedstatesG2;
     markedstatesG1.insert(1);
 
+    cldes::DESystem::EventsSet eventsG2;
+    eventsG2.insert(a);
+    eventsG2.insert(b);
+
     int const initstateG2 = 0;
     cldes::DESystem g2{nstatesG2, initstateG2, markedstatesG2};
+    g2.InsertEvents(eventsG2);
 
     g2(0, 0) = b;
     g2(0, 1) = a;
@@ -71,10 +83,15 @@ int main() {
 
     auto stage1 = cldes::op::SynchronizeStage1(g1, g2);
 
-    for (int i = 0; i < nstatesG1*nstatesG2; ++i) {
-        std::cout << "(" << stage1[i].x0 << ", " << stage1[i].x1 << ")"
-                  << std::endl;
+    for (int i = 0; i < nstatesG1 * nstatesG2; ++i) {
+        std::cout << "(" << stage1->table[i].x0 << ", " << stage1->table[i].x1
+                  << ")" << std::endl;
     }
+
+    auto sync_sys = cldes::op::SynchronizeStage2(stage1, g1, g2);
+
+    auto sync_graph = sync_sys.GetGraph();
+    PrintGraph(sync_graph, "Sync graph");
 
     std::cout << "Finishing test" << std::endl;
 

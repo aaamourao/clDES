@@ -64,9 +64,13 @@ namespace op {
  */
 cldes::DESystem Synchronize(DESystem const &aSys0, DESystem const &aSys1);
 
-struct StatesTuple;
+struct StatesTable;
 
-StatesTuple *SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+StatesTable *SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+
+cldes::DESystem SynchronizeStage2(StatesTable const *aTable,
+                                  cldes::DESystem &aSys0,
+                                  cldes::DESystem &aSys1);
 }  // namespace op
 
 class DESystem {
@@ -78,7 +82,7 @@ public:
     using StatesDeviceVector = viennacl::compressed_matrix<ScalarType>;
     using StatesDenseVector = ublas::vector<ScalarType>;
     using StatesDeviceDenseVector = viennacl::vector<ScalarType>;
-    using EventsSet = std::set<cldes_size_t>;
+    using EventsSet = std::set<ScalarType>;
 
     /*! \brief DESystem constructor by copying ublas object
      *
@@ -184,7 +188,15 @@ public:
      *
      * Returns states_value_ by value.
      */
-    cldes_size_t size() const { return states_number_; }
+    cldes_size_t Size() const { return states_number_; }
+
+    /*! \brief Set events_
+     *
+     * Set the member events_ with a set containing all events that are present
+     * on the current system.
+     */
+    void InsertEvents(EventsSet const &aEvents);
+
     /*
      * TODO:
      * getters
@@ -203,8 +215,10 @@ private:
     friend class TransitionProxy;
     friend DESystem op::Synchronize(DESystem const &aSys0,
                                     DESystem const &aSys1);
-    friend op::StatesTuple *op::SynchronizeStage1(DESystem const &aSys0,
-                                                      DESystem const &aSys1);
+    friend op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
+                                                  DESystem const &aSys1);
+    friend DESystem op::SynchronizeStage2(op::StatesTable const *aTable,
+                                          DESystem &aSys0, DESystem &aSys1);
 
     /*! \brief Graph represented by an adjascency matrix
      *

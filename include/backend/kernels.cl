@@ -33,14 +33,103 @@ typedef struct StatesTuple {
     unsigned int x1;
 } StatesTuple;
 
-__kernel void Synchronize_Stage1(__global StatesTuple* aCTuples,
-                                 unsigned int aBNumberStates) {
+float gcd(float a, float b) {
+    if (a == 0 || b == 0) {
+        return 1.0f;
+    }
+    float mod;
+    while (b != 0) {
+        mod = fmod(a, b);
+        a = b;
+        b = mod;
+    }
+    return a;
+}
+
+__kernel void Synchronize_Stage1(__global StatesTuple *aSyncTuples,
+                                 unsigned int aG0NumberStates) {
     // Workitems gets its index within index space
     int ix0 = get_global_id(0);
     int ix1 = get_global_id(1);
 
-    unsigned int index = ix1 * aBNumberStates + ix0;
+    unsigned int index = ix1 * aG0NumberStates + ix0;
 
-    aCTuples[index].x0 = ix0;
-    aCTuples[index].x1 = ix1;
+    aSyncTuples[index].x0 = ix0;
+    aSyncTuples[index].x1 = ix1;
 };
+
+__kernel void Synchronize_Stage2(__global StatesTuple *aTable,
+                                 __global const unsigned int *aG0RowIndices,
+                                 __global const unsigned int *aG0ColIndices,
+                                 __global const float *aG0Elements,
+                                 unsigned int aG0Size, float aG0Private,
+                                 __global const unsigned int *aG1RowIndices,
+                                 __global const unsigned int *aG1ColIndices,
+                                 __global const float *aG1Elements,
+                                 float aG1Private, __global float *aSync,
+                                 unsigned int aPad) {
+    int row = get_global_id(0);
+    StatesTuple state = aTable[row];
+
+    unsigned int g0_row_start = aG0RowIndices[state.x0];
+    unsigned int g0_row_stop = aG0RowIndices[state.x0 + 1];
+
+    unsigned int g1_row_start = aG1RowIndices[state.x1];
+    unsigned int g1_row_stop = aG1RowIndices[state.x1 + 1];
+
+    for (unsigned int i = g0_row_start; i < g0_row_stop; ++i) {
+        float g0_elem = aG0Elements[i];
+        if (aG0Private > 1.0f) {
+            float g0_gcd_priv = gcd(aG0Private, g0_elem);
+            if (g0_gcd_priv > 1.0f) {
+                if (aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
+                          row] > 1.0f) {
+                    aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
+                          row] *= g0_gcd_priv;
+                } else {
+                    aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
+                          row] = g0_gcd_priv;
+                }
+                aG0Private = aG0Private / g0_gcd_priv;
+                g0_elem = g0_elem / g0_gcd_priv;
+            }
+        }
+        if (g0_elem > 1.0f) {
+            for (unsigned int j = g1_row_start; j < g1_row_stop; ++j) {
+                float g1_elem = aG1Elements[j];
+                if (aG1Private > 1.0f) {
+                    float g1_gcd_priv = gcd(aG1Private, g1_elem);
+                    if (g1_gcd_priv > 1.0f) {
+                        if (aSync[(aG1ColIndices[j] * aG0Size + state.x0) *
+                                      aPad +
+                                  row] > 1.0f) {
+                            aSync[(aG1ColIndices[j] * aG0Size + state.x0) *
+                                      aPad +
+                                  row] *= g1_gcd_priv;
+                        } else {
+                            aSync[(aG1ColIndices[j] * aG0Size + state.x0) *
+                                      aPad +
+                                  row] = g1_gcd_priv;
+                        }
+                        aG1Private = aG1Private / g1_gcd_priv;
+                        g1_elem = g1_elem / g1_gcd_priv;
+                    }
+                }
+                float sync_gcd = gcd(g0_elem, g1_elem);
+                if (sync_gcd > 1.0f) {
+                    if (aSync[(aG1ColIndices[j] * aG0Size + aG0ColIndices[i]) *
+                                  aPad +
+                              row] > 1.0f) {
+                        aSync[(aG1ColIndices[j] * aG0Size + aG0ColIndices[i]) *
+                                  aPad +
+                              row] *= sync_gcd;
+                    } else {
+                        aSync[(aG1ColIndices[j] * aG0Size + aG0ColIndices[i]) *
+                                  aPad +
+                              row] = sync_gcd;
+                    }
+                }
+            }
+        }
+    }
+}

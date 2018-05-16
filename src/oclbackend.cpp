@@ -38,8 +38,6 @@ using namespace cldes::backend;
 
 // Initialize static data members
 OclBackend* OclBackend::instance_ = nullptr;
-OclBackend::ViennaCLProgram* OclBackend::cldes_program_ = nullptr;
-OclBackend::CLQueue OclBackend::queue_ = nullptr;
 
 OclBackend* OclBackend::Instance() {
     if (!instance_) {
@@ -49,6 +47,8 @@ OclBackend* OclBackend::Instance() {
 }
 
 OclBackend::OclBackend() {
+    context_ = viennacl::ocl::current_context();
+
     // Read kernels from file
     std::ifstream source_file_name("kernels.cl");
 
@@ -56,19 +56,15 @@ OclBackend::OclBackend() {
                             (std::istreambuf_iterator<char>()));
 
     // Load all custom cldes kernels on device
-    cldes_program_ = &viennacl::ocl::current_context().add_program(
-        source_file, "cldes_kernels");
+    cldes_program_ = context_.add_program(source_file, "cldes_kernels");
 }
 
-OclBackend::ViennaCLMemHandle OclBackend::CreateBuffer(cl_mem_flags aFlags,
-                                                       unsigned int aSize,
-                                                       void* aPtr) {
-    return viennacl::ocl::current_context().create_memory(CL_MEM_WRITE_ONLY,
-                                                          aSize, aPtr);
+OclBackend::ViennaCLContext OclBackend::GetContext() {
+    return context_;
 }
 
 OclBackend::ViennaCLKernel& OclBackend::GetKernel(std::string aKernelName) {
-    return cldes_program_->get_kernel(aKernelName);
+    return cldes_program_.get_kernel(aKernelName);
 }
 
 void OclBackend::Enqueue(viennacl::ocl::kernel const& k) {

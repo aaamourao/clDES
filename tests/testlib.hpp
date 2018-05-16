@@ -59,10 +59,15 @@ void ProcessResult(T &aOpResult, StringType const aHeader,
 template <typename GraphType, typename StringType>
 void PrintGraph(GraphType aGraph, StringType aGraphName) {
     std::cout << aGraphName << std::endl;
+    auto last_row = 0;
     for (auto it1 = aGraph.begin1(); it1 != aGraph.end1(); ++it1) {
         for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
-            std::cout << "(" << it1.index1() << ", " << it2.index2()
-                      << ") = " << *it2 << std::endl;
+            if (last_row != it1.index1()) {
+                ++last_row;
+                std::cout << std::endl;
+            }
+            std::cout << *it2 << " ";
         }
     }
+    std::cout << std::endl;
 }

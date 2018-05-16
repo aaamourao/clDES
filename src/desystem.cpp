@@ -403,3 +403,8 @@ DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
                          trim_marked_states, aDevCacheEnabled};
     return trim_system;
 }
+
+
+void DESystem::InsertEvents(DESystem::EventsSet const &aEvents) {
+    events_ = EventsSet(aEvents);
+}
