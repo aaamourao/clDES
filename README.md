@@ -22,7 +22,7 @@ Automata operation | Implementation | Status
 -------------------|----------------|--------
 Accessible part | `cldes::DESystem::AccessiblePart()` | **Implemented**
 Coaccessible part | `cldes::DESystem::CoaccessiblePart()` | **Implemented**
-Trim | `DESystem::Trim()` | **Implemented**
+Trim | `cldes::DESystem::Trim()` | **Implemented**
 Synchronization: parallel composition | `cldes::op::Synchronize()` | **Implemented**
 Virtual parallel composition | `cldes::op::SynchronizeStage1()` | **Implemented**
 Real parallel composition | `cldes::op::SynchronizeStage2()` | **Implemented**
