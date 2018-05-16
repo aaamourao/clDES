@@ -28,6 +28,8 @@
  =========================================================================
 */
 
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+
 template <typename T, typename StringType>
 std::ostringstream ReadResult(T const &aOpResult, StringType const aHeader) {
     std::ostringstream result;
@@ -41,23 +43,43 @@ std::ostringstream ReadResult(T const &aOpResult, StringType const aHeader) {
     return result;
 }
 
+using ublas_matrix = boost::numeric::ublas::compressed_matrix<float>;
+
 template <typename StringType>
-void TestResult(StringType const &aResult, StringType const aExpected) {
-    std::cout << aResult;
+std::ostringstream ReadResult(ublas_matrix const &aOpResult,
+                              StringType const aHeader) {
+    std::ostringstream result;
+
+    auto last_row = 0;
+    for (auto it1 = aOpResult.begin1(); it1 != aOpResult.end1(); ++it1) {
+        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
+            if (last_row != it1.index1()) {
+                ++last_row;
+                result << std::endl;
+            }
+            result << *it2 << " ";
+        }
+    }
+    result << std::endl;
+
+    return result;
+}
+
+template <typename StringType>
+void TestResult(StringType const &aResult, StringType const &aExpected) {
     assert(aResult.find(aExpected) != std::string::npos);
 }
 
 template <typename T, typename StringType>
-void ProcessResult(T &aOpResult, StringType const aHeader,
+void ProcessResult(T const &aOpResult, StringType const aHeader,
                    StringType const aExpected) {
     auto result = ReadResult(aOpResult, aHeader);
     std::ostringstream expected;
-    expected << aHeader << ": " << aExpected;
     TestResult(result.str(), expected.str());
 }
 
 template <typename GraphType, typename StringType>
-void PrintGraph(GraphType aGraph, StringType aGraphName) {
+void PrintGraph(GraphType const &aGraph, StringType const &aGraphName) {
     std::cout << aGraphName << std::endl;
     auto last_row = 0;
     for (auto it1 = aGraph.begin1(); it1 != aGraph.end1(); ++it1) {

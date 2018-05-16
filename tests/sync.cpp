@@ -29,6 +29,7 @@
  =========================================================================
 */
 
+#include <string>
 #include "cldes.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
@@ -90,8 +91,17 @@ int main() {
 
     auto sync_sys = cldes::op::SynchronizeStage2(stage1, g1, g2);
 
-    auto sync_graph = sync_sys.GetGraph();
-    PrintGraph(sync_graph, "Sync graph");
+    std::ostringstream expected_result;
+    PrintGraph(sync_sys.GetGraph(), "Sync graph");
+
+    expected_result << "0 0 5 2 0 0" << std::endl;
+    expected_result << "0 3 0 2 0 0" << std::endl;
+    expected_result << "0 5 3 0 2 0" << std::endl;
+    expected_result << "0 0 0 2 0 5" << std::endl;
+    expected_result << "0 3 0 2 0 0" << std::endl;
+    expected_result << "0 0 3 0 10 0" << std::endl;
+    ProcessResult(sync_sys.GetGraph(), "Sync graph",
+                  expected_result.str().c_str());
 
     std::cout << "Finishing test" << std::endl;
 
