@@ -18,11 +18,24 @@ composition operation.
 
 The following operations are going to be available on **clDES-1.0.0**:
 
-* Accessible part
-* Coaccessible part
-* Trim
-* Automata synchronization: parallel composition (*in progress*)
-* Controller Synthesis (*will be implemented soon*)
+Automata operation | Implementation | Status
+-------------------|----------------|--------
+* Accessible part | `cldes::DESystem::AccessiblePart()` | **Implemented**
+* Coaccessible part | `cldes::DESystem::CoaccessiblePart()` | **Implemented**
+* Trim | `DESystem::Trim()` | **Implemented**
+* Synchronization: parallel composition | `cldes::op::Synchronize()` |
+  **Implemented**
+* Virtual parallel composition | `cldes::op::SynchronizeStage1()` |
+  **Implemented**
+* Real parallel composition | `cldes::op::SynchronizeStage2()` |
+  **Implemented**
+* Controller Synthesis | `cldes::op::ControllerSynth()` | **in progress**
+
+The following operations are going to be available on **clDES-1.1.0**:
+
+Implementation of graphs representing **DES** as **tensors** instead of
+matrices: an even more efficiente parallel algorithm for
+`cldes::op::Synchronize` will be possible.
 
 ## Compiling
 
