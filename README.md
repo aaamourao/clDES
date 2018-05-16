@@ -77,6 +77,17 @@ $ make
 
 ## Running tests
 
+You will need to copy the `*.cl` files from the test directory into the directory where you will run the tests from:
+
+```bash
+$ cp <clDES_root>/include/backend/kernels.cl <clDES_root>/build/
+$ cp <clDES_root>/include/backend/kernels.cl <clDES_root>/build/bin/tests/
+```
+
+On the **clDES** releases, the kernels are going to be loaded from strings
+defined on the code. However, on developer versions, such as the version
+available now, this step will always be necessary.
+
 After inserting code, or if you just want to test the library, execute the tests
 using **CTest**:
 
