@@ -35,7 +35,9 @@
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <functional>
 #include <vector>
+#include "backend/oclbackend.hpp"
 #include "des/transition_proxy.hpp"
+#include "operations/operations.hpp"
 #include "viennacl/linalg/prod.hpp"
 
 using namespace cldes;
@@ -173,12 +175,30 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         this->UpdateGraphCache_();
     }
 
-    auto n_initial_nodes = aHostX.size2();
+    cl_uint n_initial_nodes = aHostX.size2();
+
     // Copy search vector to device memory
     StatesDeviceVector x{states_number_, n_initial_nodes};
     viennacl::copy(aHostX, x);
 
-    auto accessed_states = new StatesSet[n_initial_nodes];
+    // Custom kernel setup for adding accessed states
+    auto oclbackend = backend::OclBackend::Instance();
+
+    auto colored_states_dev = oclbackend->GetContext().create_memory(
+        CL_MEM_READ_WRITE, n_initial_nodes * states_number_ * sizeof(cl_uint),
+        nullptr);
+
+    cl_uint colored_states_ctr[n_initial_nodes];
+    std::fill_n(colored_states_ctr, n_initial_nodes, 0);
+    auto colored_states_ctr_dev = oclbackend->GetContext().create_memory(
+        CL_MEM_READ_WRITE, n_initial_nodes * sizeof(cl_uint),
+        colored_states_ctr);
+
+    cl_uint n_accessed_states = 0;
+    auto n_accessed_states_dev = oclbackend->GetContext().create_memory(
+        CL_MEM_READ_WRITE, sizeof(cl_uint), &n_accessed_states);
+
+    auto addacckernel = oclbackend->GetKernel("AddAccessedStates");
 
     // Executes BFS
     StatesDeviceVector y;
@@ -188,42 +208,42 @@ DESystem::StatesSet *DESystem::BfsCalc_(
         y = viennacl::linalg::prod(*device_graph_, x);
         x = y;
 
-        std::vector<bool> accessed_new_state(n_initial_nodes, false);
+        // Set Work groups size
+        op::SetWorkGroups_(&addacckernel, x.nnz(), 1, 1, 1);
 
-        // Unfortunatelly, until now, ViennaCL does not allow iterating on
-        // compressed matrices. Until it is implemented, it is necessary
-        // to copy the vector to the host memory.
-        viennacl::copy(x, aHostX);
-
-        // ITERATE ONLY OVER NON ZERO ELEMENTS
-        for (auto lin = aHostX.begin1(); lin != aHostX.end1(); ++lin) {
-            for (auto elem = lin.begin(); elem != lin.end(); ++elem) {
-                auto unmapped_initial_state = elem.index2();
-                auto accessed_state = lin.index1();
-                if (accessed_states[unmapped_initial_state]
-                        .emplace(accessed_state)
-                        .second) {
-                    accessed_new_state[unmapped_initial_state] = true;
-                    if (aBfsVisit) {
-                        if (aStatesMap) {
-                            aBfsVisit((*aStatesMap)[unmapped_initial_state],
-                                      accessed_state);
-                        } else {
-                            aBfsVisit(unmapped_initial_state, accessed_state);
-                        }
-                    }
-                }
-            }
-        }
-
-        // TODO: If some search did not accessed a new state, it does not need
-        // to be in the BFS Matrix
+        // Execute kernel on the device
+        oclbackend->Enqueue(addacckernel(
+            x.handle1().opencl_handle(), x.handle2().opencl_handle(),
+            colored_states_dev, colored_states_ctr_dev, n_accessed_states_dev,
+            n_initial_nodes));
 
         // If all accessed states were previously "colored", stop searching.
-        if (std::all_of(accessed_new_state.begin(), accessed_new_state.end(),
-                        [](bool i) { return !i; })) {
+        cl_uint previous_n_acc_states = n_accessed_states;
+        clEnqueueReadBuffer(oclbackend->CommandQueue(), n_accessed_states_dev,
+                            CL_TRUE, 0, sizeof(cl_uint), &n_accessed_states, 0,
+                            NULL, NULL);
+        if (previous_n_acc_states == n_accessed_states) {
             break;
         }
+    }
+    // Read result from buffers on the device memory
+    clEnqueueReadBuffer(oclbackend->CommandQueue(), colored_states_ctr_dev,
+                        CL_TRUE, 0, n_initial_nodes * sizeof(cl_uint),
+                        colored_states_ctr, 0, NULL, NULL);
+
+    cl_uint colored_states[n_initial_nodes * states_number_];
+    clEnqueueReadBuffer(oclbackend->CommandQueue(), colored_states_dev, CL_TRUE,
+                        0, states_number_ * sizeof(cl_uint), colored_states, 0,
+                        NULL, NULL);
+
+    // Add results to a std::set vector
+    auto accessed_states = new StatesSet[n_initial_nodes];
+
+    for (auto i = 0; i < n_initial_nodes; ++i) {
+        std::copy(
+            colored_states + i * n_initial_nodes,
+            colored_states + i * n_initial_nodes + states_number_,
+            std::inserter(accessed_states[i], accessed_states[i].begin()));
     }
 
     // Remove graph_ from device memory, if it is set so
@@ -403,7 +423,6 @@ DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
                          trim_marked_states, aDevCacheEnabled};
     return trim_system;
 }
-
 
 void DESystem::InsertEvents(DESystem::EventsSet const &aEvents) {
     events_ = EventsSet(aEvents);

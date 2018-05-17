@@ -62,7 +62,6 @@ int main() {
     sys(2, 3) = a;
 
     auto graph = sys.GetGraph();
-    PrintGraph(graph, "Sys");
 
     // std::cout << "Graph data: " << std::endl;
     // std::cout << graph << std::endl;
@@ -70,7 +69,7 @@ int main() {
 
     auto accessible_states = sys.AccessiblePart();
     ProcessResult(accessible_states, "Accessible part", "0 1 2 3");
-
+/*
     auto coaccessible_states = sys.CoaccessiblePart();
     ProcessResult(coaccessible_states, "Coaccessible part", "0 1 2");
 
@@ -79,8 +78,7 @@ int main() {
 
     auto trimsys = sys.Trim();
     auto trimgraph = trimsys.GetGraph();
-    PrintGraph(trimgraph, "Trim(Sys)");
-
+*/
     std::cout << "Creating new system" << std::endl;
 
     cldes::DESystem new_sys{n_states, init_state, marked_states};
@@ -99,7 +97,7 @@ int main() {
 
     auto new_accessible_states = new_sys.AccessiblePart();
     ProcessResult(new_accessible_states, "Accessible part", "0 1 2");
-
+/*
     auto new_coaccessible_states = new_sys.CoaccessiblePart();
     ProcessResult(new_coaccessible_states, "Coaccessible part", "0 2 3");
 
@@ -109,6 +107,6 @@ int main() {
     auto new_trimsys = new_sys.Trim();
     auto new_trimgraph = new_trimsys.GetGraph();
     PrintGraph(new_trimgraph, "Trim(New Sys)");
-
+*/
     return 0;
 }

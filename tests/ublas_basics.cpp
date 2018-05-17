@@ -80,14 +80,14 @@ int main() {
 
     auto accessible_states = sys.AccessiblePart();
     ProcessResult(accessible_states, "Accessible part", "0 1 2 3");
-
+/*
     auto coaccessible_states = sys.CoaccessiblePart();
     ProcessResult(coaccessible_states, "Coaccessible part", "0 1 2");
 
     auto trimsys = sys.Trim();
     auto trimgraph = trimsys.GetGraph();
     PrintGraph(trimgraph, "Trim(Sys)");
-
+*/
     std::cout << "Creating new system with ublas matrix" << std::endl;
     ublas::compressed_matrix<float> host_graph(n_states, n_states);
 
@@ -113,13 +113,13 @@ int main() {
 
     auto ublas_accessible_states = ublas_sys.AccessiblePart();
     ProcessResult(ublas_accessible_states, "Accessible part", "0 1 2");
-
+/*
     auto ublas_coaccessible_states = ublas_sys.CoaccessiblePart();
     ProcessResult(ublas_coaccessible_states, "Coaccessible part", "0 2 3");
 
     auto ublas_trimsys = ublas_sys.Trim();
     auto ublas_trimgraph = ublas_trimsys.GetGraph();
     PrintGraph(ublas_trimgraph, "Trim(New Sys)");
-
+*/
     return 0;
 }

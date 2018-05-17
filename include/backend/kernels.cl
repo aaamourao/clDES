@@ -133,3 +133,53 @@ __kernel void Synchronize_Stage2(__global StatesTuple *aTable,
         }
     }
 }
+
+__kernel void AddAccessedStates(__global const unsigned int *aRowIndices,
+                                __global const unsigned int *aColIndices,
+                                volatile __global unsigned int *aVector,
+                                volatile __global unsigned int *aVSize,
+                                volatile __global unsigned int *aNAccessed,
+                                unsigned int aNSearches) {
+    unsigned int search_id = aColIndices[get_global_id(0)];
+
+    unsigned int row = 0;
+    while (aRowIndices[row] < get_global_id(0) + 1) {
+        ++row;
+    }
+    unsigned int accessed_state = row - 1;
+
+    /*
+     * A node cannot be accessed more than one time per iteration on a single
+     * search: We can search on the vector aVector[search_id] even if other
+     * thread has already inserted an element
+     */
+    unsigned int instant_vec_size = aVSize[search_id];
+    bool already_inserted = false;
+    for (unsigned int i = 0; i < instant_vec_size; ++i) {
+        if (accessed_state == aVector[search_id * aNSearches + i]) {
+            already_inserted = true;
+            break;
+        }
+    }
+
+    if (already_inserted == false) {
+        // TODO: aVSize é um vetor: testando condicao especial search_id = 0
+        unsigned int insert_id = atomic_inc(aVSize);
+        atomic_inc(aNAccessed);
+        aVector[search_id * aNSearches + insert_id] = accessed_state;
+    }
+}
+
+/*
+__kernel void SetIntersection(__global const unsigned int *aG0RowIndices,
+                              __global const unsigned int *aG0ColIndices,
+                              __global const float *aG0Elements,
+                              __global unsigned int *vector,
+                              __global unsigned int *vsize) {
+    if (*vsize == 0) {
+        // TODO: Insert matrix elements in vector
+    } else {
+        // TODO: Check if element is in vector, insert if it is not
+    }
+}
+*/

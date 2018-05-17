@@ -74,6 +74,7 @@ template <typename T, typename StringType>
 void ProcessResult(T const &aOpResult, StringType const aHeader,
                    StringType const aExpected) {
     auto result = ReadResult(aOpResult, aHeader);
+    std::cout << result.str();
     std::ostringstream expected;
     TestResult(result.str(), expected.str());
 }

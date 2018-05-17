@@ -29,6 +29,8 @@
  =========================================================================
 */
 
+#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
+
 #include "backend/oclbackend.hpp"
 #include <CL/cl.hpp>
 #include <cstdlib>  // std::getenv()
