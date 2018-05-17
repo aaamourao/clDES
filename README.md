@@ -59,6 +59,7 @@ After checking if all requirements are satisfied, compile the project:
 ```bash
 $ export CC=/usr/bin/clang
 $ export CXX=/usr/bin/clang++
+$ export CLDES_INCLUDE_PATH=<clDES_root>/include/
 $ cd  <clDES_root>
 $ mkdir build; cd build
 $ cmake ..
@@ -73,6 +74,7 @@ If you wanna contribute to **clDES**, you may want a debug build by setting
 ```bash
 $ export CC=/usr/bin/clang
 $ export CXX=/usr/bin/clang++
+$ export CLDES_INCLUDE_PATH=<clDES_root>/include/
 $ cd  <clDES_root>
 $ mkdir build; cd build
 $ cmake -DCMAKE_BUILD_TYPE=Debug ..
@@ -85,7 +87,6 @@ After inserting code, or if you just want to test the library, execute the tests
 using **CTest**:
 
 ```
-$ export CLDES_INCLUDE_PATH=<clDES_root>/include
 $ cd <clDES_root>/build
 $ make test
 ```
