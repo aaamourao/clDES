@@ -36,13 +36,14 @@
 #include <string>
 #include "cldes.hpp"
 
+#include "viennacl/coordinate_matrix.hpp"
 #include "testlib.hpp"
 
 namespace ublas = boost::numeric::ublas;
 
 int main() {
-    std::cout << "Creating DES with ublas matrix" << std::endl;
-    int const n_states = 4;
+  //  std::cout << "Creating DES with ublas matrix" << std::endl;
+    int const n_states = 8;
 
     cldes::DESystem::StatesSet marked_states;
     marked_states.insert(0);
@@ -70,16 +71,16 @@ int main() {
 
     // std::cout << "Graph data: " << std::endl;
     // std::cout << graph << std::endl;
-
+/*
     for (auto it1 = graph.begin1(); it1 != graph.end1(); ++it1) {
         for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
             std::cout << "(" << it1.index1() << ", " << it2.index2()
                       << ") = " << *it2 << std::endl;
         }
     }
-
+*/
     auto accessible_states = sys.AccessiblePart();
-    ProcessResult(accessible_states, "Accessible part", "0 1 2 3");
+    ProcessResult(accessible_states, "< Accessible part", "0 1 2 3 >");
 /*
     auto coaccessible_states = sys.CoaccessiblePart();
     ProcessResult(coaccessible_states, "Coaccessible part", "0 1 2");
@@ -88,7 +89,7 @@ int main() {
     auto trimgraph = trimsys.GetGraph();
     PrintGraph(trimgraph, "Trim(Sys)");
 */
-    std::cout << "Creating new system with ublas matrix" << std::endl;
+    //std::cout << "Creating new system with ublas matrix" << std::endl;
     ublas::compressed_matrix<float> host_graph(n_states, n_states);
 
     // This graph has no transition from the 3rd state to th 4th one.
@@ -104,15 +105,16 @@ int main() {
 
     auto ublas_graph = ublas_sys.GetGraph();
 
+    /*
     for (auto it1 = ublas_graph.begin1(); it1 != ublas_graph.end1(); ++it1) {
         for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
             std::cout << "(" << it1.index1() << ", " << it2.index2()
                       << ") = " << *it2 << std::endl;
         }
     }
-
+*/
     auto ublas_accessible_states = ublas_sys.AccessiblePart();
-    ProcessResult(ublas_accessible_states, "Accessible part", "0 1 2");
+    ProcessResult(ublas_accessible_states, "< Accessible part", "0 1 2 >");
 /*
     auto ublas_coaccessible_states = ublas_sys.CoaccessiblePart();
     ProcessResult(ublas_coaccessible_states, "Coaccessible part", "0 2 3");
@@ -121,5 +123,5 @@ int main() {
     auto ublas_trimgraph = ublas_trimsys.GetGraph();
     PrintGraph(ublas_trimgraph, "Trim(New Sys)");
 */
-    return 0;
+   return 0;
 }

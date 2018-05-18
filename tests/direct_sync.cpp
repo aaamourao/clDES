@@ -30,12 +30,14 @@
 */
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <chrono>
 #include <string>
 #include "cldes.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
 namespace ublas = boost::numeric::ublas;
+using namespace std::chrono;
 
 int main() {
     // Declare transitions: represented by prime numbers
@@ -91,18 +93,22 @@ int main() {
     cldes::DESystem g2{adjmtrg2, nstatesG2, initstateG2, markedstatesG2};
     g2.InsertEvents(eventsG2);
 
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto sync_sys = cldes::op::Synchronize(g1, g2);
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+    auto duration = duration_cast<milliseconds>(t2 - t1).count();
+    std::cout << "Synchronize time: " << duration << std::endl;
 
     std::ostringstream expected_result;
-    PrintGraph(sync_sys.GetGraph(), "Sync graph");
 
-    expected_result << "0 0 5 2 0 0" << std::endl;
-    expected_result << "0 3 0 2 0 0" << std::endl;
-    expected_result << "0 5 3 0 2 0" << std::endl;
-    expected_result << "0 0 0 2 0 5" << std::endl;
-    expected_result << "0 3 0 2 0 0" << std::endl;
-    expected_result << "0 0 3 0 10 0" << std::endl;
-    ProcessResult(sync_sys.GetGraph(), "Sync graph",
+    expected_result << "0 0 5 2 0 0 " << std::endl;
+    expected_result << "0 3 0 2 0 0 " << std::endl;
+    expected_result << "0 5 3 0 2 0 " << std::endl;
+    expected_result << "0 0 0 2 0 5 " << std::endl;
+    expected_result << "0 3 0 2 0 0 " << std::endl;
+    expected_result << "0 0 3 0 10 0 >";
+    ProcessResult(sync_sys.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());
 
     std::cout << "Finishing test" << std::endl;

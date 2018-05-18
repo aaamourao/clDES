@@ -31,25 +31,26 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
 template <typename T, typename StringType>
-std::ostringstream ReadResult(T const &aOpResult, StringType const aHeader) {
+std::string ReadResult(T const &aOpResult, StringType const aHeader) {
     std::ostringstream result;
 
     result << aHeader << ": ";
     for (auto state : aOpResult) {
         result << state << " ";
     }
-    result << std::endl;
+    result << ">" << std::endl;
 
-    return result;
+    return result.str();
 }
 
 using ublas_matrix = boost::numeric::ublas::compressed_matrix<float>;
 
 template <typename StringType>
-std::ostringstream ReadResult(ublas_matrix const &aOpResult,
-                              StringType const aHeader) {
+std::string ReadResult(ublas_matrix const &aOpResult,
+                       StringType const aHeader) {
     std::ostringstream result;
 
+    result << aHeader << ":" << std::endl;
     auto last_row = 0;
     for (auto it1 = aOpResult.begin1(); it1 != aOpResult.end1(); ++it1) {
         for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
@@ -60,9 +61,9 @@ std::ostringstream ReadResult(ublas_matrix const &aOpResult,
             result << *it2 << " ";
         }
     }
-    result << std::endl;
+    result << ">" << std::endl;
 
-    return result;
+    return result.str();
 }
 
 template <typename StringType>
@@ -74,9 +75,9 @@ template <typename T, typename StringType>
 void ProcessResult(T const &aOpResult, StringType const aHeader,
                    StringType const aExpected) {
     auto result = ReadResult(aOpResult, aHeader);
-    std::cout << result.str();
-    std::ostringstream expected;
-    TestResult(result.str(), expected.str());
+    std::cout << "Result:   " << result;
+    std::cout << "Expected: " << aHeader << ": " << aExpected << std::endl;
+    TestResult(result, std::string(aExpected));
 }
 
 template <typename GraphType, typename StringType>
