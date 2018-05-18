@@ -150,7 +150,7 @@ DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
     auto syncstage2kernel = oclbackend->GetKernel("Synchronize_Stage2");
 
     // Set Work groups size
-    SetWorkGroups_(&syncstage2kernel, table_size, 1, 1, 1);
+    SetWorkGroups_(&syncstage2kernel, table_size, aSys0.events_.size(), 1, 1);
 
     auto asys0_events = CalcEventsInt_(aSys0.events_);
     auto asys1_events = CalcEventsInt_(aSys1.events_);
@@ -242,7 +242,7 @@ DESystem op::SynchronizeStage2(op::StatesTable const *aTable, DESystem &aSys0,
     auto syncstage2kernel = oclbackend->GetKernel("Synchronize_Stage2");
 
     // Set Work groups size
-    SetWorkGroups_(&syncstage2kernel, aTable->tsize, 1, 1, 1);
+    SetWorkGroups_(&syncstage2kernel, aTable->tsize, aSys0.events_.size(), 1, 1);
 
     auto asys0_events = CalcEventsInt_(aSys0.events_);
     auto asys1_events = CalcEventsInt_(aSys1.events_);

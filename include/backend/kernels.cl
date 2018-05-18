@@ -74,9 +74,67 @@ __kernel void Synchronize_Stage2(__global StatesTuple *aTable,
     unsigned int g0_row_start = aG0RowIndices[state.x0];
     unsigned int g0_row_stop = aG0RowIndices[state.x0 + 1];
 
-    unsigned int g1_row_start = aG1RowIndices[state.x1];
-    unsigned int g1_row_stop = aG1RowIndices[state.x1 + 1];
+    if (get_global_id(1) < g0_row_stop - g0_row_start){
+        unsigned int i = g0_row_start + get_global_id(1);
 
+        unsigned int g1_row_start = aG1RowIndices[state.x1];
+        unsigned int g1_row_stop = aG1RowIndices[state.x1 + 1];
+
+        float g0_elem = aG0Elements[i];
+        if (aG0Private > 1.0f) {
+            float g0_gcd_priv = gcd(aG0Private, g0_elem);
+            if (g0_gcd_priv > 1.0f) {
+                if (aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
+                          row] > 1.0f) {
+                    aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
+                          row] *= g0_gcd_priv;
+                } else {
+                    aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
+                          row] = g0_gcd_priv;
+                }
+                aG0Private = aG0Private / g0_gcd_priv;
+                g0_elem = g0_elem / g0_gcd_priv;
+            }
+        }
+        if (g0_elem > 1.0f) {
+            for (unsigned int j = g1_row_start; j < g1_row_stop; ++j) {
+                float g1_elem = aG1Elements[j];
+                if (aG1Private > 1.0f) {
+                    float g1_gcd_priv = gcd(aG1Private, g1_elem);
+                    if (g1_gcd_priv > 1.0f) {
+                        if (aSync[(aG1ColIndices[j] * aG0Size + state.x0) *
+                                      aPad +
+                                  row] > 1.0f) {
+                            aSync[(aG1ColIndices[j] * aG0Size + state.x0) *
+                                      aPad +
+                                  row] *= g1_gcd_priv;
+                        } else {
+                            aSync[(aG1ColIndices[j] * aG0Size + state.x0) *
+                                      aPad +
+                                  row] = g1_gcd_priv;
+                        }
+                        aG1Private = aG1Private / g1_gcd_priv;
+                        g1_elem = g1_elem / g1_gcd_priv;
+                    }
+                }
+                float sync_gcd = gcd(g0_elem, g1_elem);
+                if (sync_gcd > 1.0f) {
+                    if (aSync[(aG1ColIndices[j] * aG0Size + aG0ColIndices[i]) *
+                                  aPad +
+                              row] > 1.0f) {
+                        aSync[(aG1ColIndices[j] * aG0Size + aG0ColIndices[i]) *
+                                  aPad +
+                              row] *= sync_gcd;
+                    } else {
+                        aSync[(aG1ColIndices[j] * aG0Size + aG0ColIndices[i]) *
+                                  aPad +
+                              row] = sync_gcd;
+                    }
+                }
+            }
+        }
+    }
+/*
     for (unsigned int i = g0_row_start; i < g0_row_stop; ++i) {
         float g0_elem = aG0Elements[i];
         if (aG0Private > 1.0f) {
@@ -132,8 +190,10 @@ __kernel void Synchronize_Stage2(__global StatesTuple *aTable,
             }
         }
     }
+    */
 }
 
+/*
 __kernel void AddAccessedStates(__global const unsigned int *aRowIndices,
                                 __global const unsigned int *aColIndices,
                                 volatile __global unsigned int *aVector,
@@ -148,11 +208,13 @@ __kernel void AddAccessedStates(__global const unsigned int *aRowIndices,
     }
     unsigned int accessed_state = row - 1;
 
-    /*
-     * A node cannot be accessed more than one time per iteration on a single
-     * search: We can search on the vector aVector[search_id] even if other
-     * thread has already inserted an element
-     */
+    if (aVector[search_id * aNSearches + accessed_state] == 0) {
+        aVector[search_id * aNSearches + accessed_state] = 1;
+        atomic_inc(aNAccessed);
+    }
+}
+
+__kernel void FilterAccessedStates() {
     unsigned int instant_vec_size = aVSize[search_id];
     bool already_inserted = false;
     for (unsigned int i = 0; i < instant_vec_size; ++i) {
@@ -163,13 +225,12 @@ __kernel void AddAccessedStates(__global const unsigned int *aRowIndices,
     }
 
     if (already_inserted == false) {
-        // TODO: aVSize é um vetor: testando condicao especial search_id = 0
-        unsigned int insert_id = atomic_inc(aVSize);
         atomic_inc(aNAccessed);
-        aVector[search_id * aNSearches + insert_id] = accessed_state;
+        aVector[search_id * aNSearches + atomic_inc(&aVSize[search_id])] =
+            accessed_state;
     }
 }
-
+*/
 /*
 __kernel void SetIntersection(__global const unsigned int *aG0RowIndices,
                               __global const unsigned int *aG0ColIndices,
