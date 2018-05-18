@@ -28,9 +28,11 @@
  =========================================================================
 */
 
+#include <CL/cl.hpp>
+
 namespace cldes {
 
 using ScalarType = float;
-using cldes_size_t = unsigned int;
+using cldes_size_t = cl_uint;
 
 }  // namespace cldes
