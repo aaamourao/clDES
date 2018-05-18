@@ -168,89 +168,41 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit,
     std::vector<cldes_size_t> const *const aStatesMap) {
-    // Cache graph temporally
-    if (!dev_cache_enabled_) {
-        this->CacheGraph_();
-    } else if (is_cache_outdated_) {
-        this->UpdateGraphCache_();
-    }
-
     cl_uint n_initial_nodes = aHostX.size2();
 
     // Copy search vector to device memory
-    StatesDeviceVector x{states_number_, n_initial_nodes};
+    StatesDeviceVector x;
     viennacl::copy(aHostX, x);
 
-    // Custom kernel setup for adding accessed states
-    auto oclbackend = backend::OclBackend::Instance();
-
-    auto colored_states_dev = oclbackend->GetContext().create_memory(
-        CL_MEM_READ_WRITE, n_initial_nodes * states_number_ * sizeof(cl_uint),
-        nullptr);
-
-    cl_uint colored_states_ctr[n_initial_nodes];
-    std::fill_n(colored_states_ctr, n_initial_nodes, 0);
-    auto colored_states_ctr_dev = oclbackend->GetContext().create_memory(
-        CL_MEM_READ_WRITE, n_initial_nodes * sizeof(cl_uint),
-        colored_states_ctr);
-
-    cl_uint n_accessed_states = 0;
-    auto n_accessed_states_dev = oclbackend->GetContext().create_memory(
-        CL_MEM_READ_WRITE, sizeof(cl_uint), &n_accessed_states);
-
-    auto addacckernel = oclbackend->GetKernel("AddAccessedStates");
+    GraphDeviceData dev_graph;
+    viennacl::copy(trans(*graph_ + ublas::identity_matrix<ScalarType>(
+                                       states_number_, states_number_)),
+                   dev_graph);
 
     // Executes BFS
     StatesDeviceVector y;
+    auto n_accessed_states = 0;
     for (auto i = 0; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        y = viennacl::linalg::prod(*device_graph_, x);
-        x = y;
+        y = viennacl::linalg::prod(dev_graph, x);
 
-        // Set Work groups size
-        op::SetWorkGroups_(&addacckernel, x.nnz(), 1, 1, 1);
-
-        // Execute kernel on the device
-        oclbackend->Enqueue(addacckernel(
-            x.handle1().opencl_handle(), x.handle2().opencl_handle(),
-            colored_states_dev, colored_states_ctr_dev, n_accessed_states_dev,
-            n_initial_nodes));
-
-        // If all accessed states were previously "colored", stop searching.
-        cl_uint previous_n_acc_states = n_accessed_states;
-        clEnqueueReadBuffer(oclbackend->CommandQueue(), n_accessed_states_dev,
-                            CL_TRUE, 0, sizeof(cl_uint), &n_accessed_states, 0,
-                            NULL, NULL);
-        if (previous_n_acc_states == n_accessed_states) {
+        if (n_accessed_states == y.nnz()) {
             break;
+        } else {
+            n_accessed_states = y.nnz();
         }
+
+        x = y;
     }
-    // Read result from buffers on the device memory
-    clEnqueueReadBuffer(oclbackend->CommandQueue(), colored_states_ctr_dev,
-                        CL_TRUE, 0, n_initial_nodes * sizeof(cl_uint),
-                        colored_states_ctr, 0, NULL, NULL);
-
-    cl_uint colored_states[n_initial_nodes * states_number_];
-    clEnqueueReadBuffer(oclbackend->CommandQueue(), colored_states_dev, CL_TRUE,
-                        0, states_number_ * sizeof(cl_uint), colored_states, 0,
-                        NULL, NULL);
-
+    viennacl::copy(y, aHostX);
     // Add results to a std::set vector
     auto accessed_states = new StatesSet[n_initial_nodes];
-
-    for (auto i = 0; i < n_initial_nodes; ++i) {
-        std::copy(
-            colored_states + i * n_initial_nodes,
-            colored_states + i * n_initial_nodes + states_number_,
-            std::inserter(accessed_states[i], accessed_states[i].begin()));
+    for (auto node = aHostX.begin1(); node != aHostX.end1(); ++node) {
+        for (auto elem = node.begin(); elem != node.end(); ++elem) {
+            accessed_states[elem.index2()].emplace(node.index1());
+        }
     }
-
-    // Remove graph_ from device memory, if it is set so
-    if (!dev_cache_enabled_) {
-        delete device_graph_;
-    }
-
     return accessed_states;
 }
 
