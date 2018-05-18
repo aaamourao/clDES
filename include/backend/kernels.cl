@@ -81,7 +81,7 @@ __kernel void Synchronize_Stage2(__global StatesTuple *aTable,
         unsigned int g1_row_stop = aG1RowIndices[state.x1 + 1];
 
         float g0_elem = aG0Elements[i];
-        if (aG0Private > 1.0f) {
+        if (aG0Private > 1.0f && g0_elem > 1.0f) {
             float g0_gcd_priv = gcd(aG0Private, g0_elem);
             if (g0_gcd_priv > 1.0f) {
                 if (aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
@@ -92,7 +92,9 @@ __kernel void Synchronize_Stage2(__global StatesTuple *aTable,
                     aSync[(state.x1 * aG0Size + aG0ColIndices[i]) * aPad +
                           row] = g0_gcd_priv;
                 }
-                aG0Private = aG0Private / g0_gcd_priv;
+                // TODO: uncomment next line when aG0Private get in the local
+                // mem
+                //aG0Private = aG0Private / g0_gcd_priv;
                 g0_elem = g0_elem / g0_gcd_priv;
             }
         }
