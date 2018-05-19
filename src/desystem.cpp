@@ -173,7 +173,17 @@ DESystem::StatesSet *DESystem::BfsCalc_(
 
         aHostX = y;
     }
+
     // Add results to a std::set vector
+    if (aBfsVisit) {
+        for (auto node = y.begin1(); node != y.end1(); ++node) {
+            for (auto elem = node.begin(); elem != node.end(); ++elem) {
+                aBfsVisit((*aStatesMap)[elem.index2()], node.index1());
+            }
+        }
+        return nullptr;
+    }
+
     auto accessed_states = new StatesSet[n_initial_nodes];
     for (auto node = y.begin1(); node != y.end1(); ++node) {
         for (auto elem = node.begin(); elem != node.end(); ++elem) {
@@ -224,8 +234,38 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
 }
 
 DESystem::StatesSet DESystem::TrimStates() {
-    auto accpart = this->AccessiblePart();
-    auto coaccpart = this->CoaccessiblePart();
+    StatesSet searching_nodes;
+    // Initialize initial_nodes with all states, but marked states
+    {
+        StatesSet all_nodes(
+            boost::counting_iterator<cldes_size_t>(0),
+            boost::counting_iterator<cldes_size_t>(states_number_));
+        std::set_difference(
+            all_nodes.begin(), all_nodes.end(), marked_states_.begin(),
+            marked_states_.end(),
+            std::inserter(searching_nodes, searching_nodes.begin()));
+    }
+    // Guarantee that init_state_ is a searching node: it can be marked
+    searching_nodes.emplace(init_state_);
+
+    StatesSet accpart;
+    StatesSet coaccpart = marked_states_;
+    auto paccessed_states = Bfs_(
+        searching_nodes,
+        [this, &accpart, &coaccpart](cldes_size_t const &aInitialState,
+                                     cldes_size_t const &aAccessedState) {
+            if (aInitialState == this->init_state_) {
+                accpart.emplace(aAccessedState);
+            }
+
+            bool const is_marked = this->marked_states_.find(aAccessedState) !=
+                                   this->marked_states_.end();
+            if (is_marked) {
+                coaccpart.emplace(aInitialState);
+            }
+
+        });
+    delete[] paccessed_states;
 
     StatesSet trimstates;
     std::set_intersection(accpart.begin(), accpart.end(), coaccpart.begin(),

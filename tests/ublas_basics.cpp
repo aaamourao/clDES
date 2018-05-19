@@ -69,26 +69,14 @@ int main() {
     cldes::DESystem sys{adjmtr, n_states, init_state, marked_states};
     auto graph = sys.GetGraph();
 
-    // std::cout << "Graph data: " << std::endl;
-    // std::cout << graph << std::endl;
-/*
-    for (auto it1 = graph.begin1(); it1 != graph.end1(); ++it1) {
-        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
-            std::cout << "(" << it1.index1() << ", " << it2.index2()
-                      << ") = " << *it2 << std::endl;
-        }
-    }
-*/
     auto accessible_states = sys.AccessiblePart();
     ProcessResult(accessible_states, "< Accessible part", "0 1 2 3 >");
-/*
+
     auto coaccessible_states = sys.CoaccessiblePart();
-    ProcessResult(coaccessible_states, "Coaccessible part", "0 1 2");
+    ProcessResult(coaccessible_states, "< Coaccessible part", "0 1 2 >");
 
     auto trimsys = sys.Trim();
-    auto trimgraph = trimsys.GetGraph();
-    PrintGraph(trimgraph, "Trim(Sys)");
-*/
+
     //std::cout << "Creating new system with ublas matrix" << std::endl;
     ublas::compressed_matrix<float> host_graph(n_states, n_states);
 
@@ -105,23 +93,15 @@ int main() {
 
     auto ublas_graph = ublas_sys.GetGraph();
 
-    /*
-    for (auto it1 = ublas_graph.begin1(); it1 != ublas_graph.end1(); ++it1) {
-        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
-            std::cout << "(" << it1.index1() << ", " << it2.index2()
-                      << ") = " << *it2 << std::endl;
-        }
-    }
-*/
     auto ublas_accessible_states = ublas_sys.AccessiblePart();
     ProcessResult(ublas_accessible_states, "< Accessible part", "0 1 2 >");
-/*
+
     auto ublas_coaccessible_states = ublas_sys.CoaccessiblePart();
-    ProcessResult(ublas_coaccessible_states, "Coaccessible part", "0 2 3");
+    ProcessResult(ublas_coaccessible_states, "< Coaccessible part", "0 2 3 >");
 
     auto ublas_trimsys = ublas_sys.Trim();
     auto ublas_trimgraph = ublas_trimsys.GetGraph();
     PrintGraph(ublas_trimgraph, "Trim(New Sys)");
-*/
+
    return 0;
 }
