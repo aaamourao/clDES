@@ -34,55 +34,9 @@
 #include <cmath>
 #include <set>
 #include "backend/oclbackend.hpp"
-#include "des/desystem.hpp"
+#include "des/desystemcl.hpp"
 
 using namespace cldes;
-
-cldes::ScalarType op::GetTransitions(DESystem const &aSys) {
-    auto graph = aSys.GetGraph();
-    float transitions = 1.0f;
-
-    for (auto lin = graph.begin1(); lin != graph.end1(); ++lin) {
-        for (auto col = lin.begin(); col != lin.end(); ++col) {
-            if (int(transitions) % int((*col))) {
-                transitions = transitions * (*col);
-            }
-        }
-    }
-
-    return transitions;
-}
-
-ScalarType op::GetPrivateTransitions(DESystem const &aSysTarget,
-                                     DESystem const &aSys) {
-    auto transitionsTarget = op::GetTransitions(aSysTarget);
-    auto graph = aSys.GetGraph();
-
-    auto privatetransitions = 1.0f;
-
-    for (auto lin = graph.begin1(); lin != graph.end1(); ++lin) {
-        for (auto col = lin.begin(); col != lin.end(); ++col) {
-            if (int(transitionsTarget) % int(*col) &&
-                int(privatetransitions) % int(*col)) {
-                privatetransitions = privatetransitions * (*col);
-            }
-        }
-    }
-
-    auto transitions = op::GetTransitions(aSys);
-    auto graphTarget = aSysTarget.GetGraph();
-
-    for (auto lin = graphTarget.begin1(); lin != graphTarget.end1(); ++lin) {
-        for (auto col = lin.begin(); col != lin.end(); ++col) {
-            if (int(transitions) % int(*col) &&
-                int(privatetransitions) % int(*col)) {
-                privatetransitions = privatetransitions * (*col);
-            }
-        }
-    }
-
-    return privatetransitions;
-}
 
 cldes_size_t op::TablePos_(cldes_size_t const &aG0Pos,
                            cldes_size_t const &aG1Pos,
@@ -106,7 +60,7 @@ float op::CalcGCD_(float aG0, float aG1) {
     return aG0;
 }
 
-DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
+DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
     auto oclbackend = backend::OclBackend::Instance();
 
     auto table_size = aSys0.states_number_ * aSys1.states_number_;
@@ -175,15 +129,15 @@ DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
         static_cast<cl_uint>(result_dev.internal_size1())));
 
     // Copy device graph to host memory
-    DESystem sync_sys(table_size, initstate_sync, markedstates_sync);
+    DESystemCL sync_sys(table_size, initstate_sync, markedstates_sync);
     viennacl::copy(result_dev, *(sync_sys.graph_));
     viennacl::copy(trans(*(sync_sys.graph_)), *(sync_sys.device_graph_));
 
     return sync_sys;
 }
 
-op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
-                                       DESystem const &aSys1) {
+op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
+                                       DESystemCL const &aSys1) {
     auto oclbackend = backend::OclBackend::Instance();
 
     auto table_size = aSys0.states_number_ * aSys1.states_number_;
@@ -215,8 +169,8 @@ op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
     return states_table;
 }
 
-DESystem op::SynchronizeStage2(op::StatesTable const *aTable, DESystem &aSys0,
-                               DESystem &aSys1) {
+DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
+                                 DESystemCL &aSys0, DESystemCL &aSys1) {
     if (aSys0.is_cache_outdated_) {
         aSys0.UpdateGraphCache_();
     }
@@ -242,7 +196,8 @@ DESystem op::SynchronizeStage2(op::StatesTable const *aTable, DESystem &aSys0,
     auto syncstage2kernel = oclbackend->GetKernel("Synchronize_Stage2");
 
     // Set Work groups size
-    SetWorkGroups_(&syncstage2kernel, aTable->tsize, aSys0.events_.size(), 1, 1);
+    SetWorkGroups_(&syncstage2kernel, aTable->tsize, aSys0.events_.size(), 1,
+                   1);
 
     auto asys0_events = CalcEventsInt_(aSys0.events_);
     auto asys1_events = CalcEventsInt_(aSys1.events_);
@@ -267,7 +222,7 @@ DESystem op::SynchronizeStage2(op::StatesTable const *aTable, DESystem &aSys0,
         static_cast<cl_uint>(result_dev.internal_size1())));
 
     // Copy device graph to host memory
-    DESystem sync_sys(aTable->tsize, initstate_sync, markedstates_sync);
+    DESystemCL sync_sys(aTable->tsize, initstate_sync, markedstates_sync);
     viennacl::copy(result_dev, *(sync_sys.graph_));
     viennacl::copy(trans(*(sync_sys.graph_)), *(sync_sys.device_graph_));
 

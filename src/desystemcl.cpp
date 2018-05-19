@@ -24,32 +24,33 @@
  Universidade Federal de Minas Gerais
 
  File: desystem.cpp
- Description: DESystem class implementation. DESystem is a graph, which
+ Description: DESystemCL class implementation. DESystemCL is a graph, which
  is modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
 
-#include "des/desystem.hpp"
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <functional>
 #include <vector>
 #include "backend/oclbackend.hpp"
-#include "des/transition_proxy.hpp"
+#include "des/desystemcl.hpp"
 #include "operations/operations.hpp"
+#include "viennacl/linalg/prod.hpp"
 
 using namespace cldes;
 
-DESystem::DESystem(GraphHostData const &aGraph,
-                   cldes_size_t const &aStatesNumber,
-                   cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                   bool const &aDevCacheEnabled)
+DESystemCL::DESystemCL(GraphHostData const &aGraph,
+                       cldes_size_t const &aStatesNumber,
+                       cldes_size_t const &aInitState, StatesSet &aMarkedStates,
+                       bool const &aDevCacheEnabled)
     : graph_{new GraphHostData{aGraph}}, init_state_{aInitState} {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
+    device_graph_ = nullptr;
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
@@ -57,46 +58,57 @@ DESystem::DESystem(GraphHostData const &aGraph,
     }
 }
 
-DESystem::DESystem(cldes_size_t const &aStatesNumber,
-                   cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                   bool const &aDevCacheEnabled)
-    : DESystem::DESystem{GraphHostData{aStatesNumber, aStatesNumber},
-                         aStatesNumber, aInitState, aMarkedStates,
-                         aDevCacheEnabled} {}
+DESystemCL::DESystemCL(cldes_size_t const &aStatesNumber,
+                       cldes_size_t const &aInitState, StatesSet &aMarkedStates,
+                       bool const &aDevCacheEnabled)
+    : DESystemCL::DESystemCL{GraphHostData{aStatesNumber, aStatesNumber},
+                             aStatesNumber, aInitState, aMarkedStates,
+                             aDevCacheEnabled} {}
 
-DESystem::DESystem(DESystem const &aSys)
+DESystemCL::DESystemCL(DESystemCL const &aSys)
     : graph_{new GraphHostData{*(aSys.graph_)}}, init_state_{aSys.init_state_} {
     states_number_ = aSys.states_number_;
     marked_states_ = aSys.marked_states_;
     dev_cache_enabled_ = aSys.dev_cache_enabled_;
     is_cache_outdated_ = aSys.is_cache_outdated_;
+
+    if (device_graph_) {
+        device_graph_ = new GraphDeviceData{*(aSys.device_graph_)};
+    } else {
+        device_graph_ = nullptr;
+    }
 }
 
-DESystem::~DESystem() {
+DESystemCL::~DESystemCL() {
     // Delete uBlas data
     if (graph_) {
         delete graph_;
     }
+    if (dev_cache_enabled_) {
+        delete device_graph_;
+    }
 }
 
-DESystem::GraphHostData DESystem::GetGraph() const { return *graph_; }
+DESystemCL::GraphHostData DESystemCL::GetGraph() const { return *graph_; }
 
-void DESystem::CacheGraph_() { is_cache_outdated_ = false; }
+void DESystemCL::CacheGraph_() {
+    // Allocate space for device_graph_
+    if (device_graph_ == nullptr) {
+        device_graph_ = new viennacl::compressed_matrix<ScalarType>{
+            states_number_, states_number_};
+    }
+    viennacl::copy(trans(*graph_), *device_graph_);
 
-DESystem::GraphHostData::const_reference DESystem::operator()(
-    cldes_size_t const &aLin, cldes_size_t const &aCol) const {
-    return (*graph_)(aLin, aCol);
+    is_cache_outdated_ = false;
 }
 
-TransitionProxy DESystem::operator()(cldes_size_t const &aLin,
-                                     cldes_size_t const &aCol) {
-    return TransitionProxy(this, aLin, aCol);
+void DESystemCL::UpdateGraphCache_() {
+    viennacl::copy(trans(*graph_), *device_graph_);
+    is_cache_outdated_ = false;
 }
-
-void DESystem::UpdateGraphCache_() { is_cache_outdated_ = false; }
 
 template <typename StatesType>
-DESystem::StatesSet *DESystem::Bfs_(
+DESystemCL::StatesSet *DESystemCL::Bfs_(
     StatesType const &aInitialNodes,
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit) {
@@ -121,7 +133,7 @@ DESystem::StatesSet *DESystem::Bfs_(
 }
 
 template <>
-DESystem::StatesSet *DESystem::Bfs_<cldes_size_t>(
+DESystemCL::StatesSet *DESystemCL::Bfs_<cldes_size_t>(
     cldes_size_t const &aInitialNode,
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit) {
@@ -138,32 +150,44 @@ DESystem::StatesSet *DESystem::Bfs_<cldes_size_t>(
     return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
-DESystem::StatesSet *DESystem::Bfs_() { return Bfs_(init_state_, nullptr); };
+DESystemCL::StatesSet *DESystemCL::Bfs_() {
+    return Bfs_(init_state_, nullptr);
+};
 
-DESystem::StatesSet *DESystem::BfsCalc_(
+DESystemCL::StatesSet *DESystemCL::BfsCalc_(
     StatesVector &aHostX,
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit,
     std::vector<cldes_size_t> const *const aStatesMap) {
     cl_uint n_initial_nodes = aHostX.size2();
 
-    ublas::compressed_matrix<ScalarType> graph{ublas::trans(*graph_)};
+    // Copy search vector to device memory
+    StatesDeviceVector x;
+    viennacl::copy(aHostX, x);
+
+    ublas::compressed_matrix<ScalarType> graph{*graph_};
 
     // Sum it to identity and set all nnz to 1.0f
     for (auto i = graph.begin1(); i != graph.end1(); ++i) {
-        graph(i.index1(), i.index1()) = 1.0f;
-        for (auto j = i.begin(); j != i.end(); ++j) {
-            graph(i.index1(), j.index2()) = 1.0f;
-        }
+        graph(i.index1(), i.index2()) = 1.0f;
     }
 
+    // Copy to device memory
+    GraphDeviceData dev_graph;
+    float pattern = 1.0f;
+    viennacl::copy(trans(graph), dev_graph);
+    clEnqueueFillBuffer(viennacl::ocl::get_queue().handle().get(),
+                        dev_graph.handle().opencl_handle(), &pattern,
+                        sizeof(float), 0, dev_graph.nnz() * sizeof(float), 0,
+                        NULL, NULL);
+
     // Executes BFS
-    StatesVector y;
+    StatesDeviceVector y;
     auto n_accessed_states = 0;
     for (auto i = 0; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        y = ublas::prod(graph, aHostX);
+        y = viennacl::linalg::prod(dev_graph, x);
 
         if (n_accessed_states == y.nnz()) {
             break;
@@ -171,11 +195,12 @@ DESystem::StatesSet *DESystem::BfsCalc_(
             n_accessed_states = y.nnz();
         }
 
-        aHostX = y;
+        x = y;
     }
+    viennacl::copy(y, aHostX);
     // Add results to a std::set vector
     auto accessed_states = new StatesSet[n_initial_nodes];
-    for (auto node = y.begin1(); node != y.end1(); ++node) {
+    for (auto node = aHostX.begin1(); node != aHostX.end1(); ++node) {
         for (auto elem = node.begin(); elem != node.end(); ++elem) {
             accessed_states[elem.index2()].emplace(node.index1());
         }
@@ -183,7 +208,87 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     return accessed_states;
 }
 
-DESystem::StatesSet DESystem::AccessiblePart() {
+DESystemCL::StatesSet *DESystemCL::BfsSpMV_(
+    cldes_size_t const &aInitialNode,
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit) {
+    /*
+     * BFS on a Linear Algebra approach:
+     *     Y = G^T * X
+     */
+    StatesDenseVector host_x{states_number_};
+
+    // GPUs does not allow dynamic memory allocation. So, we have
+    // to set X on host first.
+    host_x.clear();
+    host_x[aInitialNode] = static_cast<ScalarType>(1);
+
+    return BfsCalcSpMV_(host_x, aBfsVisit);
+}
+
+DESystemCL::StatesSet *DESystemCL::BfsCalcSpMV_(
+    StatesDenseVector &aHostX,
+    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
+        &aBfsVisit) {
+    // Cache graph temporally
+    if (!dev_cache_enabled_) {
+        this->CacheGraph_();
+    } else if (is_cache_outdated_) {
+        this->UpdateGraphCache_();
+    }
+
+    // Copy search vector to device memory
+    StatesDeviceDenseVector x{states_number_};
+    viennacl::copy(aHostX, x);
+
+    auto accessed_states = new StatesSet;
+
+    // Executes BFS
+    StatesDeviceDenseVector y;
+    for (auto i = 0; i < states_number_; ++i) {
+        // Using auto bellow results in compile error
+        // on the following for statement
+        y = viennacl::linalg::prod(*device_graph_, x);
+        x = y;
+
+        bool accessed_new_state = false;
+
+        // Unfortunatelly, until now, ViennaCL does not allow iterating on
+        // compressed matrices. Until it is implemented, it is necessary
+        // to copy the vector to the host memory.
+        viennacl::copy(x, aHostX);
+
+        for (auto vert = aHostX.begin(); vert != aHostX.end(); ++vert) {
+            // TODO: Use FUNCTIONAL FILTERING here
+            if (*vert) {
+                auto accessed_state = vert.index();
+                if (accessed_states->emplace(accessed_state).second) {
+                    accessed_new_state = true;
+                    if (aBfsVisit) {
+                        aBfsVisit(0, accessed_state);
+                    }
+                }
+            }
+        }
+
+        // TODO: If some search did not accessed a new state, it does not need
+        // to be in the BFS Matrix
+
+        // If all accessed states were previously "colored", stop searching.
+        if (!accessed_new_state) {
+            break;
+        }
+    }
+
+    // Remove graph_ from device memory, if it is set so
+    if (!dev_cache_enabled_) {
+        delete device_graph_;
+    }
+
+    return accessed_states;
+}
+
+DESystemCL::StatesSet DESystemCL::AccessiblePart() {
     // Executes a BFS on graph_
     auto paccessible_states = Bfs_();
 
@@ -193,7 +298,7 @@ DESystem::StatesSet DESystem::AccessiblePart() {
     return accessible_states;
 }
 
-DESystem::StatesSet DESystem::CoaccessiblePart() {
+DESystemCL::StatesSet DESystemCL::CoaccessiblePart() {
     StatesSet searching_nodes;
     // Initialize initial_nodes with all states, but marked states
     {
@@ -223,7 +328,7 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
     return coaccessible_states;
 }
 
-DESystem::StatesSet DESystem::TrimStates() {
+DESystemCL::StatesSet DESystemCL::TrimStates() {
     auto accpart = this->AccessiblePart();
     auto coaccpart = this->CoaccessiblePart();
 
@@ -235,7 +340,7 @@ DESystem::StatesSet DESystem::TrimStates() {
     return trimstates;
 }
 
-DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
+DESystemCL DESystemCL::Trim(bool const &aDevCacheEnabled) {
     auto trimstates = this->TrimStates();
 
     if (trimstates.size() == graph_->size1()) {
@@ -268,11 +373,11 @@ DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
         trimstates.end(),
         std::inserter(trim_marked_states, trim_marked_states.begin()));
 
-    DESystem trim_system{trim_graph, trimstates.size(), init_state_,
-                         trim_marked_states, aDevCacheEnabled};
+    DESystemCL trim_system{trim_graph, trimstates.size(), init_state_,
+                           trim_marked_states, aDevCacheEnabled};
     return trim_system;
 }
 
-void DESystem::InsertEvents(DESystem::EventsSet const &aEvents) {
+void DESystemCL::InsertEvents(DESystemCL::EventsSet const &aEvents) {
     events_ = EventsSet(aEvents);
 }

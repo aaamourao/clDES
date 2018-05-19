@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: desystem.hpp
- Description: DESystem class definition. DESystem is a graph, which is
+ Description: DESystemCL class definition. DESystemCL is a graph, which is
  modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
@@ -39,34 +39,49 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <set>
 #include "constants.hpp"
+#include "viennacl/compressed_matrix.hpp"
 
 namespace cldes {
 
 namespace ublas = boost::numeric::ublas;
 
 /*
- * Forward declarion of DESystem's friends class TransitionProxy. A transition
- * is an element of the adjascency matrix which implements the des graph.
+ * Forward declarion of DESystemCL class necessary for the forward declaration
+ * of the DESystemCL's friend function op::Synchronize
  */
-class TransitionProxy;
+class DESystemCL;
 
+namespace op {
 /*
- * Forward declarion of DESystem class necessary for the forward declaration of
- * the DESystem's friend function op::Synchronize
+ * Forward declarion of DESystemCL's friend function Synchronize which
+ * implements the parallel composition between two DES.
  */
-class DESystem;
+cldes::DESystemCL Synchronize(DESystemCL &aSys0, DESystemCL &aSys1);
 
-class DESystem {
+struct StatesTable;
+
+StatesTable *SynchronizeStage1(DESystemCL const &aSys0,
+                               DESystemCL const &aSys1);
+
+cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
+                                    cldes::DESystemCL &aSys0,
+                                    cldes::DESystemCL &aSys1);
+}  // namespace op
+
+class DESystemCL {
 public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
+    using GraphDeviceData = viennacl::compressed_matrix<ScalarType>;
     using StatesSet = std::set<cldes_size_t>;
     using StatesVector = ublas::compressed_matrix<ScalarType>;
+    using StatesDeviceVector = viennacl::compressed_matrix<ScalarType>;
     using StatesDenseVector = ublas::vector<ScalarType>;
+    using StatesDeviceDenseVector = viennacl::vector<ScalarType>;
     using EventsSet = std::set<ScalarType>;
 
-    /*! \brief DESystem constructor by copying ublas object
+    /*! \brief DESystemCL constructor by copying ublas object
      *
-     * Creates the DESystem object with N states defined by the argument
+     * Creates the DESystemCL object with N states defined by the argument
      * aStatesNumber and represented by its graph defined by argument the
      * ublas compressed matrix aGraph.
      *
@@ -76,14 +91,15 @@ public:
      * @param aMarkedStates System's marked states
      * @aDevCacheEnabled Enable or disable device cache for graph data
      */
-    explicit DESystem(GraphHostData const &aGraph,
-                      cldes_size_t const &aStatesNumber,
-                      cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                      bool const &aDevCacheEnabled = true);
+    explicit DESystemCL(GraphHostData const &aGraph,
+                        cldes_size_t const &aStatesNumber,
+                        cldes_size_t const &aInitState,
+                        StatesSet &aMarkedStates,
+                        bool const &aDevCacheEnabled = true);
 
-    /*! \brief DESystem constructor with empty matrix
+    /*! \brief DESystemCL constructor with empty matrix
      *
-     * Overloads DESystem constructor: does not require to create a
+     * Overloads DESystemCL constructor: does not require to create a
      * ublas::compressed_matrix by the class user.
      *
      * @param aStatesNumber Number of states of the system
@@ -91,22 +107,23 @@ public:
      * @param aMarkedStates System's marked states
      * @aDevCacheEnabled Enable or disable device cache for graph data
      */
-    explicit DESystem(cldes_size_t const &aStatesNumber,
-                      cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                      bool const &aDevCacheEnabled = true);
+    explicit DESystemCL(cldes_size_t const &aStatesNumber,
+                        cldes_size_t const &aInitState,
+                        StatesSet &aMarkedStates,
+                        bool const &aDevCacheEnabled = true);
 
-    DESystem(DESystem const &aSys);
+    DESystemCL(DESystemCL const &aSys);
 
-    /*! \brief DESystem destructor
+    /*! \brief DESystemCL destructor
      *
      * Delete dinamically allocated data: graph and device_graph.
      */
-    virtual ~DESystem();
+    virtual ~DESystemCL();
 
     /*! \brief Graph getter
      *
-     * Returns a copy of DESystem's private data member graph. Considering that
-     * graph is a pointer, it returns the contents of graph.
+     * Returns a copy of DESystemCL's private data member graph. Considering
+     * that graph is a pointer, it returns the contents of graph.
      */
     GraphHostData GetGraph() const;
 
@@ -140,29 +157,7 @@ public:
      *
      * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    DESystem Trim(bool const &aDevCacheEnabled = true);
-
-    /*! \brief Returns value of the specified transition
-     *
-     * Override operator () for reading transinstions values:
-     * e.g. discrete_system_foo(2,1);
-     *
-     * @param aLin Element's line
-     * @param aCol Element's column
-     */
-    GraphHostData::const_reference operator()(cldes_size_t const &aLin,
-                                              cldes_size_t const &aCol) const;
-
-    /*! \brief Returns value of the specified transition
-     *
-     * Override operator () for changing transinstions with a single assignment:
-     * e.g. discrete_system_foo(2,1) = 3.0f;
-     *
-     * @param aLin Element's line
-     * @param aCol Element's column
-     */
-    TransitionProxy operator()(cldes_size_t const &aLin,
-                               cldes_size_t const &aCol);
+    DESystemCL Trim(bool const &aDevCacheEnabled = true);
 
     /*! \brief Returns number of states of the system
      *
@@ -189,10 +184,15 @@ protected:
      * Declare default constructor as protected to avoid the class user of
      * calling it.
      */
-    DESystem();
+    DESystemCL();
 
 private:
-    friend class TransitionProxy;
+    friend DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1);
+    friend op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
+                                                  DESystemCL const &aSys1);
+    friend DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
+                                            DESystemCL &aSys0,
+                                            DESystemCL &aSys1);
 
     /*! \brief Graph represented by an adjascency matrix
      *
@@ -201,9 +201,20 @@ private:
      * its content should not be constant, as the graph should change many times
      * at runtime.
      *
+     * TODO: Explain transition scheme.
      * TODO: Should it be a smart pointer?
      */
     GraphHostData *const graph_;
+
+    /*! \brief Graph data on device memory
+     *
+     * Transposed graph_ data, but on device memory (usually a GPU). It is a
+     * dev_cache_enabled_ is false. It cannot be const, since it may change as
+     * dev_cache_enabled_ changes.
+     *
+     * TODO: Should it be a smart pointer?
+     */
+    GraphDeviceData *device_graph_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      *

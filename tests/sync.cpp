@@ -31,10 +31,11 @@
 
 #include <chrono>
 #include <string>
-#include "cldes.hpp"
+#include "des/desystemcl.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
+namespace ublas = boost::numeric::ublas;
 using namespace std::chrono;
 
 int main() {
@@ -46,44 +47,50 @@ int main() {
     // Declare system G1
     int const nstatesG1 = 3;
 
-    cldes::DESystem::StatesSet markedstatesG1;
+    cldes::DESystemCL::StatesSet markedstatesG1;
     markedstatesG1.insert(0);
     markedstatesG1.insert(2);
 
-    cldes::DESystem::EventsSet eventsG1;
+    cldes::DESystemCL::EventsSet eventsG1;
     eventsG1.insert(a);
     eventsG1.insert(b);
     eventsG1.insert(g);
 
     int const initstateG1 = 0;
-    cldes::DESystem g1{nstatesG1, initstateG1, markedstatesG1};
-    g1.InsertEvents(eventsG1);
 
-    g1(0, 0) = a;
-    g1(0, 2) = g;
-    g1(1, 0) = a;
-    g1(1, 1) = b;
-    g1(2, 1) = a * g;
-    g1(2, 2) = b;
+    ublas::compressed_matrix<float> adjmtr(nstatesG1, nstatesG1);
+
+    adjmtr(0, 0) = a;
+    adjmtr(0, 2) = g;
+    adjmtr(1, 0) = a;
+    adjmtr(1, 1) = b;
+    adjmtr(2, 1) = a * g;
+    adjmtr(2, 2) = b;
+
+    cldes::DESystemCL g1{adjmtr, nstatesG1, initstateG1, markedstatesG1};
+    g1.InsertEvents(eventsG1);
 
     // Declare system G2
     int const nstatesG2 = 2;
 
-    cldes::DESystem::StatesSet markedstatesG2;
+    cldes::DESystemCL::StatesSet markedstatesG2;
     markedstatesG1.insert(1);
 
-    cldes::DESystem::EventsSet eventsG2;
+    cldes::DESystemCL::EventsSet eventsG2;
     eventsG2.insert(a);
     eventsG2.insert(b);
 
     int const initstateG2 = 0;
-    cldes::DESystem g2{nstatesG2, initstateG2, markedstatesG2};
-    g2.InsertEvents(eventsG2);
 
-    g2(0, 0) = b;
-    g2(0, 1) = a;
-    g2(1, 0) = b;
-    g2(1, 1) = a;
+    ublas::compressed_matrix<float> adjmtrg2(nstatesG2, nstatesG2);
+
+    adjmtrg2(0, 0) = b;
+    adjmtrg2(0, 1) = a;
+    adjmtrg2(1, 0) = b;
+    adjmtrg2(1, 1) = a;
+
+    cldes::DESystemCL g2{adjmtrg2, nstatesG2, initstateG2, markedstatesG2};
+    g2.InsertEvents(eventsG2);
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto stage1 = cldes::op::SynchronizeStage1(g1, g2);

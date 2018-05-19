@@ -6,6 +6,7 @@
 # Library sources
 set(libclDESSrcs
     desystem.cpp
+    desystemcl.cpp
     transition_proxy.cpp
     oclbackend.cpp
     matrop.cpp

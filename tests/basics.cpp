@@ -28,11 +28,11 @@
  =========================================================================
 */
 
+#include <chrono>
 #include <iostream>
 #include <set>
 #include <string>
 #include "cldes.hpp"
-#include <chrono>
 
 #include "testlib.hpp"
 
@@ -40,7 +40,7 @@ using namespace std::chrono;
 
 int main() {
     std::cout << "Creating DES" << std::endl;
-    int const n_states = 8;
+    int const n_states = 4;
 
     cldes::DESystem::StatesSet marked_states;
     marked_states.insert(0);
@@ -68,26 +68,25 @@ int main() {
     // std::cout << "Graph data: " << std::endl;
     // std::cout << graph << std::endl;
 
-
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto accessible_states = sys.AccessiblePart();
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
-
-    auto duration = duration_cast<milliseconds>( t2 - t1 ).count();
-    std::cout << "Accessible States time: " << duration << std::endl;
+    auto duration = duration_cast<microseconds>(t2 - t1).count();
 
     ProcessResult(accessible_states, "< Accessible part", "0 1 2 3 >");
-/*
-    auto coaccessible_states = sys.CoaccessiblePart();
-    ProcessResult(csoaccessible_states, "Coaccessible part", "0 1 2");
+    std::cout << "Accessible States time: " << duration << " microseconds"
+              << std::endl;
+    /*
+        auto coaccessible_states = sys.CoaccessiblePart();
+        ProcessResult(csoaccessible_states, "Coaccessible part", "0 1 2");
 
-    auto trimstates = sys.TrimStates();
-    ProcessResult(trimstates, "Trim states", "0 1 2");
+        auto trimstates = sys.TrimStates();
+        ProcessResult(trimstates, "Trim states", "0 1 2");
 
-    auto trimsys = sys.Trim();
-    auto trimgraph = trimsys.GetGraph();
-*/
-    //std::cout << "Creating new system" << std::endl;
+        auto trimsys = sys.Trim();
+        auto trimgraph = trimsys.GetGraph();
+    */
+    // std::cout << "Creating new system" << std::endl;
 
     cldes::DESystem new_sys{n_states, init_state, marked_states};
 
@@ -101,21 +100,26 @@ int main() {
     new_sys(3, 2) = a;
 
     auto new_graph = new_sys.GetGraph();
-  //  PrintGraph(new_graph, "New Sys");
+    //  PrintGraph(new_graph, "New Sys");
 
+    t1 = high_resolution_clock::now();
     auto new_accessible_states = new_sys.AccessiblePart();
+    t2 = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(t2 - t1).count();
+
     ProcessResult(new_accessible_states, "< Accessible part", "0 1 2 >");
-/*
-    auto new_coaccessible_states = new_sys.CoaccessiblePart();
-    ProcessResult(new_coaccessible_states, "Coaccessible part", "0 2 3");
+    std::cout << "Accessible States time: " << duration << " microseconds"
+              << std::endl;
+    /*
+        auto new_coaccessible_states = new_sys.CoaccessiblePart();
+        ProcessResult(new_coaccessible_states, "Coaccessible part", "0 2 3");
 
-    auto new_trimstates = new_sys.TrimStates();
-    ProcessResult(new_trimstates, "Trim states", "0 2");
+        auto new_trimstates = new_sys.TrimStates();
+        ProcessResult(new_trimstates, "Trim states", "0 2");
 
-    auto new_trimsys = new_sys.Trim();
-    auto new_trimgraph = new_trimsys.GetGraph();
-    PrintGraph(new_trimgraph, "Trim(New Sys)");
-*/
-    viennacl::compressed_matrix<float> teste{n_states, n_states};
+        auto new_trimsys = new_sys.Trim();
+        auto new_trimgraph = new_trimsys.GetGraph();
+        PrintGraph(new_trimgraph, "Trim(New Sys)");
+    */
     return 0;
 }

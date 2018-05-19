@@ -43,7 +43,7 @@ namespace ublas = boost::numeric::ublas;
 
 int main() {
   //  std::cout << "Creating DES with ublas matrix" << std::endl;
-    int const n_states = 8;
+    int const n_states = 4;
 
     cldes::DESystem::StatesSet marked_states;
     marked_states.insert(0);
