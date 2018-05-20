@@ -29,6 +29,7 @@
  =========================================================================
 */
 
+#include "constants.hpp"
 #include "viennacl/ocl/backend.hpp"
 
 namespace cl {
