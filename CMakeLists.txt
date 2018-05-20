@@ -16,7 +16,7 @@ set (clDES_VERSION_MINOR 3)
 set (clDES_VERSION_PATCH 0)
 
 # OpenCL and Boost packages are required
-find_package(OpenCL REQUIRED)
+find_package(OpenCL 1.2 REQUIRED)
 find_package(Boost 1.64 REQUIRED)
 
 # Vars for configuring outputs dir
