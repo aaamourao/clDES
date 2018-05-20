@@ -97,7 +97,7 @@ int main() {
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
-    std::cout << "Synchronize time: " << duration << " MICROSECONDS"
+    std::cout << "Synchronize time: " << duration << " microseconds"
               << std::endl;
 
     for (int i = 0; i < nstatesG1 * nstatesG2; ++i) {
@@ -109,9 +109,7 @@ int main() {
     auto sync_sys = cldes::op::SynchronizeStage2(stage1, g1, g2);
     t2 = high_resolution_clock::now();
 
-    auto duration2 = duration_cast<milliseconds>(t2 - t1).count();
-    std::cout << "Synchronize time: " << duration2 << " milliseconds"
-              << std::endl;
+    duration = duration_cast<microseconds>(t2 - t1).count();
 
     std::ostringstream expected_result;
 
@@ -120,9 +118,12 @@ int main() {
     expected_result << "0 5 3 0 2 0 " << std::endl;
     expected_result << "0 0 0 2 0 5 " << std::endl;
     expected_result << "0 3 0 2 0 0 " << std::endl;
-    expected_result << "0 0 3 0 10 0 >";
+    expected_result << "0 0 3 0 10 0 " << std::endl;
+    expected_result << ">" << std::endl;
     ProcessResult(sync_sys.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());
+    std::cout << "Synchronize time: " << duration << " microseconds"
+              << std::endl;
 
     std::cout << "Finishing test" << std::endl;
 

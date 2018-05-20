@@ -31,11 +31,11 @@
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
-#include <CL/cl.hpp>
 #include "constants.hpp"
 
 namespace cldes {
 
+class DESystemCL;
 class DESystem;
 
 namespace op {
@@ -49,11 +49,6 @@ typedef struct StatesTable {
     cl_uint tsize;
     StatesTuple *table;
 } StatesTable;
-
-cldes::ScalarType GetTransitions(cldes::DESystem const &aSys);
-
-cldes::ScalarType GetPrivateTransitions(cldes::DESystem const &aSysTarget,
-                                        cldes::DESystem const &aSys);
 
 cldes::cldes_size_t TablePos_(cldes::cldes_size_t const &aG0Pos,
                               cldes::cldes_size_t const &aG1Pos,
@@ -83,15 +78,24 @@ float CalcEventsInt_(EventsSetType const &aEvents) {
 
 float CalcGCD_(float aG0, float aG1);
 
+cldes::DESystemCL Synchronize(cldes::DESystemCL &aSys0,
+                              cldes::DESystemCL &aSys1);
+
 cldes::DESystem Synchronize(cldes::DESystem &aSys0, cldes::DESystem &aSys1);
+
+StatesTable *SynchronizeStage1(cldes::DESystemCL const &aSys0,
+                               cldes::DESystemCL const &aSys1);
 
 StatesTable *SynchronizeStage1(cldes::DESystem const &aSys0,
                                cldes::DESystem const &aSys1);
 
+cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
+                                    cldes::DESystemCL &aSys0,
+                                    cldes::DESystemCL &aSys1);
+
 cldes::DESystem SynchronizeStage2(StatesTable const *aTable,
                                   cldes::DESystem &aSys0,
                                   cldes::DESystem &aSys1);
-
 }  // namespace op
 }  // namespace cldes
 #endif  // DESYSTEM_HPP

@@ -56,6 +56,23 @@ class TransitionProxy;
  */
 class DESystem;
 
+namespace op {
+
+/*
+ * Forward declarion of DESystem's friend function Synchronize which
+ * implements the parallel composition between two DES.
+ */
+cldes::DESystem Synchronize(DESystem &aSys0, DESystem &aSys1);
+
+struct StatesTable;
+
+StatesTable *SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+
+cldes::DESystem SynchronizeStage2(StatesTable const *aTable,
+                                  cldes::DESystem &aSys0,
+                                  cldes::DESystem &aSys1);
+}  // namespace op
+
 class DESystem {
 public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
@@ -193,6 +210,11 @@ protected:
 
 private:
     friend class TransitionProxy;
+    friend DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1);
+    friend op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
+                                                  DESystem const &aSys1);
+    friend DESystem op::SynchronizeStage2(op::StatesTable const *aTable,
+                                          DESystem &aSys0, DESystem &aSys1);
 
     /*! \brief Graph represented by an adjascency matrix
      *

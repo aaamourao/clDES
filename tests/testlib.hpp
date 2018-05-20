@@ -51,15 +51,11 @@ std::string ReadResult(ublas_matrix const &aOpResult,
     std::ostringstream result;
 
     result << aHeader << ":" << std::endl;
-    auto last_row = 0;
-    for (auto it1 = aOpResult.begin1(); it1 != aOpResult.end1(); ++it1) {
-        for (auto it2 = it1.begin(); it2 != it1.end(); ++it2) {
-            if (last_row != it1.index1()) {
-                ++last_row;
-                result << std::endl;
-            }
-            result << *it2 << " ";
+    for (auto it1 = 0; it1 != aOpResult.size1(); ++it1) {
+        for (auto it2 = 0; it2 != aOpResult.size2(); ++it2) {
+            result << aOpResult(it1, it2) << " ";
         }
+        result << std::endl;
     }
     result << ">" << std::endl;
 

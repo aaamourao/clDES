@@ -29,11 +29,11 @@
 */
 
 #include "operations/operations.hpp"
-#include <CL/cl.hpp>
 #include <algorithm>
 #include <cmath>
 #include <set>
 #include "backend/oclbackend.hpp"
+#include "des/desystem.hpp"
 #include "des/desystemcl.hpp"
 
 using namespace cldes;
@@ -136,6 +136,138 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
     return sync_sys;
 }
 
+DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
+    auto table_size = aSys0.states_number_ * aSys1.states_number_;
+
+    // Sync stage 1
+    auto states_tuple = new StatesTuple[table_size];
+    for (unsigned int ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
+        for (unsigned int ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
+            unsigned int index = ix1 * aSys0.graph_->size1() + ix0;
+
+            states_tuple[index].x0 = ix0;
+            states_tuple[index].x1 = ix1;
+        }
+    }
+
+    // Sync stage 2
+    auto initstate_sync = op::TablePos_(aSys0.init_state_, aSys1.init_state_,
+                                        aSys0.states_number_);
+
+    std::set<cldes_size_t> markedstates_sync;
+    std::set_union(aSys0.marked_states_.begin(), aSys0.marked_states_.end(),
+                   aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
+                   std::inserter(markedstates_sync, markedstates_sync.begin()));
+
+    auto sys0_events = CalcEventsInt_(aSys0.events_);
+    auto sys1_events = CalcEventsInt_(aSys1.events_);
+
+    auto gcd_private = CalcGCD_(sys0_events, sys1_events);
+    auto sys0_private = sys0_events / gcd_private;
+    auto sys1_private = sys1_events / gcd_private;
+
+    DESystem::GraphHostData result(table_size, table_size);
+
+    for (auto i = 0; i < table_size; ++i) {
+        auto state = states_tuple[i];
+
+        /*
+         * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
+         * and += implemented. Report bug and remove the following workaround.
+         */
+        auto sys0_row = aSys0.graph_->begin1();
+        for (auto i_sys0 = 0; i_sys0 != state.x0; ++i_sys0) {
+            ++sys0_row;
+        }
+        // TODO: End of the workaround
+
+        for (auto j = sys0_row.begin(); j != sys0_row.end(); ++j) {
+            float sys0_elem = *j;
+            if (sys0_private > 1.0f && sys0_elem > 1.0f) {
+                float sys0_gcd_priv = CalcGCD_(sys0_private, sys0_elem);
+                if (sys0_gcd_priv > 1.0f) {
+                    unsigned int index0 =
+                        state.x1 * aSys0.graph_->size1() + j.index2();
+                    if (result(i, index0) > 1.0f) {
+                        result(i, index0) *= sys0_gcd_priv;
+                    } else {
+                        result(i, index0) = sys0_gcd_priv;
+                    }
+                }
+            }
+            if (sys0_elem > 1.0f) {
+                /*
+                 * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
+                 * and += implemented. Report bug and remove the following workaround.
+                 */
+                auto sys1_row = aSys1.graph_->begin1();
+                for (auto i_sys1 = 0; i_sys1 != state.x1; ++i_sys1) {
+                    ++sys1_row;
+                }
+                // TODO: End of workaround
+
+                for (auto j_sys1 = sys1_row.begin(); j_sys1 != sys1_row.end();
+                     ++j_sys1) {
+                    float sys1_elem = *j_sys1;
+                    if (sys1_private > 1.0f) {
+                        float sys1_gcd_priv = CalcGCD_(sys1_private, sys1_elem);
+                        if (sys1_gcd_priv > 1.0f) {
+                            unsigned int index0 =
+                                j_sys1.index2() * aSys0.graph_->size1() +
+                                state.x0;
+                            if (result(i, index0) > 1.0f) {
+                                result(i, index0) *= sys1_gcd_priv;
+                            } else {
+                                result(i, index0) = sys1_gcd_priv;
+                            }
+                        }
+                    }
+                    float sync_gcd = CalcGCD_(sys0_elem, sys1_elem);
+                    if (sync_gcd > 1.0f) {
+                        unsigned int index0 =
+                            j_sys1.index2() * aSys0.graph_->size1() +
+                            j.index2();
+                        if (result(i, index0) > 1.0f) {
+                            result(i, index0) *= sync_gcd;
+                        } else {
+                            result(i, index0) = sync_gcd;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Copy device graph to host memory
+    DESystem sync_sys(result, table_size, initstate_sync, markedstates_sync);
+
+    return sync_sys;
+}
+
+op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
+                                       DESystem const &aSys1) {
+    auto table_size = aSys0.states_number_ * aSys1.states_number_;
+
+    // Get the result and saves it on host memory
+    auto states_tuple = new StatesTuple[table_size];
+    auto sys0_size = aSys0.graph_->size1();
+
+    for (auto ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
+        for (auto ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
+            auto index = ix1 * sys0_size + ix0;
+
+            states_tuple[index].x0 = ix0;
+            states_tuple[index].x1 = ix1;
+        }
+    }
+
+    auto states_table = new StatesTable;
+    states_table->tsize = table_size;
+    states_table->table = states_tuple;
+
+    return states_table;
+}
+
 op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
                                        DESystemCL const &aSys1) {
     auto oclbackend = backend::OclBackend::Instance();
@@ -225,6 +357,101 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
     DESystemCL sync_sys(aTable->tsize, initstate_sync, markedstates_sync);
     viennacl::copy(result_dev, *(sync_sys.graph_));
     viennacl::copy(trans(*(sync_sys.graph_)), *(sync_sys.device_graph_));
+
+    return sync_sys;
+}
+
+DESystem op::SynchronizeStage2(op::StatesTable const *aTable, DESystem &aSys0,
+                               DESystem &aSys1) {
+    auto initstate_sync = op::TablePos_(aSys0.init_state_, aSys1.init_state_,
+                                        aSys0.states_number_);
+
+    std::set<cldes_size_t> markedstates_sync;
+    std::set_union(aSys0.marked_states_.begin(), aSys0.marked_states_.end(),
+                   aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
+                   std::inserter(markedstates_sync, markedstates_sync.begin()));
+
+    auto sys0_events = CalcEventsInt_(aSys0.events_);
+    auto sys1_events = CalcEventsInt_(aSys1.events_);
+
+    auto gcd_private = CalcGCD_(sys0_events, sys1_events);
+    auto sys0_private = sys0_events / gcd_private;
+    auto sys1_private = sys1_events / gcd_private;
+
+    DESystem::GraphHostData result(aTable->tsize, aTable->tsize);
+
+    for (auto i = 0; i < aTable->tsize; ++i) {
+        auto state = aTable->table[i];
+
+        /*
+         * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
+         * and += implemented. Report bug and remove the following workaround.
+         */
+        auto sys0_row = aSys0.graph_->begin1();
+        for (auto i_sys0 = 0; i_sys0 != state.x0; ++i_sys0) {
+            ++sys0_row;
+        }
+        // TODO: End of the workaround
+
+        for (auto j = sys0_row.begin(); j != sys0_row.end(); ++j) {
+            float sys0_elem = *j;
+            if (sys0_private > 1.0f && sys0_elem > 1.0f) {
+                float sys0_gcd_priv = CalcGCD_(sys0_private, sys0_elem);
+                if (sys0_gcd_priv > 1.0f) {
+                    unsigned int index0 =
+                        state.x1 * aSys0.graph_->size1() + j.index2();
+                    if (result(i, index0) > 1.0f) {
+                        result(i, index0) *= sys0_gcd_priv;
+                    } else {
+                        result(i, index0) = sys0_gcd_priv;
+                    }
+                }
+            }
+            if (sys0_elem > 1.0f) {
+                /*
+                 * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
+                 * and += implemented. Report bug and remove the following workaround.
+                 */
+                auto sys1_row = aSys1.graph_->begin1();
+                for (auto i_sys1 = 0; i_sys1 != state.x1; ++i_sys1) {
+                    ++sys1_row;
+                }
+                // TODO: End of the workaround
+
+                for (auto j_sys1 = sys1_row.begin(); j_sys1 != sys1_row.end();
+                     ++j_sys1) {
+                    float sys1_elem = *j_sys1;
+                    if (sys1_private > 1.0f) {
+                        float sys1_gcd_priv = CalcGCD_(sys1_private, sys1_elem);
+                        if (sys1_gcd_priv > 1.0f) {
+                            unsigned int index0 =
+                                j_sys1.index2() * aSys0.graph_->size1() +
+                                state.x0;
+                            if (result(i, index0) > 1.0f) {
+                                result(i, index0) *= sys1_gcd_priv;
+                            } else {
+                                result(i, index0) = sys1_gcd_priv;
+                            }
+                        }
+                    }
+                    float sync_gcd = CalcGCD_(sys0_elem, sys1_elem);
+                    if (sync_gcd > 1.0f) {
+                        unsigned int index0 =
+                            j_sys1.index2() * aSys0.graph_->size1() +
+                            j.index2();
+                        if (result(i, index0) > 1.0f) {
+                            result(i, index0) *= sync_gcd;
+                        } else {
+                            result(i, index0) = sync_gcd;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Copy device graph to host memory
+    DESystem sync_sys(result, aTable->tsize, initstate_sync, markedstates_sync);
 
     return sync_sys;
 }

@@ -152,9 +152,6 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     // Sum it to identity and set all nnz to 1.0f
     for (auto i = graph.begin1(); i != graph.end1(); ++i) {
         graph(i.index1(), i.index1()) = 1.0f;
-        for (auto j = i.begin(); j != i.end(); ++j) {
-            graph(i.index1(), j.index2()) = 1.0f;
-        }
     }
 
     // Executes BFS

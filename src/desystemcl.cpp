@@ -29,13 +29,13 @@
  =========================================================================
 */
 
+#include "des/desystemcl.hpp"
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <functional>
 #include <vector>
 #include "backend/oclbackend.hpp"
-#include "des/desystemcl.hpp"
 #include "operations/operations.hpp"
 #include "viennacl/linalg/prod.hpp"
 

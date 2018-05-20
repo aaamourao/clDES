@@ -29,8 +29,8 @@
  =========================================================================
 */
 
-#ifndef DESYSTEM_HPP
-#define DESYSTEM_HPP
+#ifndef DESYSTEMCL_HPP
+#define DESYSTEMCL_HPP
 
 #ifndef VIENNACL_WITH_OPENCL
 #define VIENNACL_WITH_OPENCL
@@ -326,4 +326,4 @@ private:
 };
 
 }  // namespace cldes
-#endif  // DESYSTEM_HPP
+#endif  // DESYSTEMCL_HPP

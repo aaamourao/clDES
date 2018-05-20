@@ -32,7 +32,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <chrono>
 #include <string>
-#include "des/desystemcl.hpp"
+#include "des/desystem.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
@@ -48,11 +48,11 @@ int main() {
     // Declare system G1
     int const nstatesG1 = 3;
 
-    cldes::DESystemCL::StatesSet markedstatesG1;
+    cldes::DESystem::StatesSet markedstatesG1;
     markedstatesG1.insert(0);
     markedstatesG1.insert(2);
 
-    cldes::DESystemCL::EventsSet eventsG1;
+    cldes::DESystem::EventsSet eventsG1;
     eventsG1.insert(a);
     eventsG1.insert(b);
     eventsG1.insert(g);
@@ -68,16 +68,16 @@ int main() {
     adjmtr(2, 1) = a * g;
     adjmtr(2, 2) = b;
 
-    cldes::DESystemCL g1{adjmtr, nstatesG1, initstateG1, markedstatesG1};
+    cldes::DESystem g1{adjmtr, nstatesG1, initstateG1, markedstatesG1};
     g1.InsertEvents(eventsG1);
 
     // Declare system G2
     int const nstatesG2 = 2;
 
-    cldes::DESystemCL::StatesSet markedstatesG2;
+    cldes::DESystem::StatesSet markedstatesG2;
     markedstatesG1.insert(1);
 
-    cldes::DESystemCL::EventsSet eventsG2;
+    cldes::DESystem::EventsSet eventsG2;
     eventsG2.insert(a);
     eventsG2.insert(b);
 
@@ -90,7 +90,7 @@ int main() {
     adjmtrg2(1, 0) = b;
     adjmtrg2(1, 1) = a;
 
-    cldes::DESystemCL g2{adjmtrg2, nstatesG2, initstateG2, markedstatesG2};
+    cldes::DESystem g2{adjmtrg2, nstatesG2, initstateG2, markedstatesG2};
     g2.InsertEvents(eventsG2);
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -98,8 +98,6 @@ int main() {
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
-    std::cout << "Synchronize time: " << duration << " microseconds"
-              << std::endl;
 
     std::ostringstream expected_result;
 
@@ -109,9 +107,11 @@ int main() {
     expected_result << "0 0 0 2 0 5 " << std::endl;
     expected_result << "0 3 0 2 0 0 " << std::endl;
     expected_result << "0 0 3 0 10 0 " << std::endl;
-    expected_result << ">";
+    expected_result << ">" << std::endl;
     ProcessResult(sync_sys.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());
+    std::cout << "Synchronize time: " << duration << " microseconds"
+              << std::endl;
 
     std::cout << "Finishing test" << std::endl;
 
