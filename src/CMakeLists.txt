@@ -5,12 +5,11 @@
 
 # Library sources
 set(libclDESSrcs
+    operations.cpp
     desystem.cpp
     desystemcl.cpp
     transition_proxy.cpp
     oclbackend.cpp
-    matrop.cpp
-    operations.cpp
 )
 
 # Library public headers
