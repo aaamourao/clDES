@@ -4,7 +4,7 @@
 
 C++11/*OpenCL 1.2* library for **Discrete-Event Systems** modeled as **Automata**
 and their operations on a **parallel programming approach** . A
-**Discrete Controller Synthesizer** parallel algorithm is also available.
+**Supervisor Synthesizer** parallel algorithm is also available.
 
 ## Implementation
 
@@ -26,7 +26,7 @@ Trim | `cldes::DESystem::Trim()` | **Implemented**
 Synchronization: parallel composition | `cldes::op::Synchronize()` | **Implemented**
 Virtual parallel composition | `cldes::op::SynchronizeStage1()` | **Implemented**
 Real parallel composition | `cldes::op::SynchronizeStage2()` | **Implemented**
-Controller Synthesis | `cldes::op::ControllerSynth()` | **in progress**
+Controller Synthesis | `cldes::op::SupervisorSynth()` | **in progress**
 
 The following operations are going to be available on **clDES-1.1.0**:
 
