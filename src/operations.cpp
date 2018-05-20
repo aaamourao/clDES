@@ -61,28 +61,26 @@ float op::CalcGCD_(float aG0, float aG1) {
 }
 
 DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
-    auto oclbackend = backend::OclBackend::Instance();
-
     auto table_size = aSys0.states_number_ * aSys1.states_number_;
 
     // Allocate memory on the device
-    auto states_tuple_dev = oclbackend->GetContext().create_memory(
+    auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
         CL_MEM_READ_WRITE, table_size * sizeof(StatesTuple), nullptr);
 
-    auto syncstage1kernel = oclbackend->GetKernel("Synchronize_Stage1");
+    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage1");
 
     // Set Work groups size
     SetWorkGroups_(&syncstage1kernel, aSys0.states_number_,
                    aSys1.states_number_, 1, 1);
 
     // Execute kernel on the device
-    oclbackend->Enqueue(syncstage1kernel(
+    aSys0.backend_ptr_->Enqueue(syncstage1kernel(
         states_tuple_dev, static_cast<cl_uint>(aSys0.states_number_)));
 
     // Get the result and saves it on host memory
     auto states_tuple_host = new StatesTuple[table_size];
-    clEnqueueReadBuffer(oclbackend->CommandQueue(), states_tuple_dev, CL_TRUE,
-                        0, table_size * sizeof(StatesTuple),
+    clEnqueueReadBuffer(aSys0.backend_ptr_->CommandQueue(), states_tuple_dev,
+                        CL_TRUE, 0, table_size * sizeof(StatesTuple),
                         (void *)states_tuple_host, 0, NULL, NULL);
 
     if (aSys0.is_cache_outdated_) {
@@ -101,7 +99,7 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
                    aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
                    std::inserter(markedstates_sync, markedstates_sync.begin()));
 
-    auto syncstage2kernel = oclbackend->GetKernel("Synchronize_Stage2");
+    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage2");
 
     // Set Work groups size
     SetWorkGroups_(&syncstage2kernel, table_size, aSys0.events_.size(), 1, 1);
@@ -117,7 +115,7 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
     result_dev.clear();
 
     // Execute kernel on the device
-    oclbackend->Enqueue(syncstage2kernel(
+    aSys0.backend_ptr_->Enqueue(syncstage2kernel(
         states_tuple_dev, aSys0.device_graph_->handle1().opencl_handle(),
         aSys0.device_graph_->handle2().opencl_handle(),
         aSys0.device_graph_->handle().opencl_handle(),
@@ -197,8 +195,9 @@ DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
             }
             if (sys0_elem > 1.0f) {
                 /*
-                 * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
-                 * and += implemented. Report bug and remove the following workaround.
+                 * TODO: ublas::compressed_matrix<>::iterator1 does not have
+                 * operators + and += implemented. Report bug and remove the
+                 * following workaround.
                  */
                 auto sys1_row = aSys1.graph_->begin1();
                 for (auto i_sys1 = 0; i_sys1 != state.x1; ++i_sys1) {
@@ -270,28 +269,26 @@ op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
 
 op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
                                        DESystemCL const &aSys1) {
-    auto oclbackend = backend::OclBackend::Instance();
-
     auto table_size = aSys0.states_number_ * aSys1.states_number_;
 
     // Allocate memory on the device
-    auto states_tuple_dev = oclbackend->GetContext().create_memory(
+    auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
         CL_MEM_WRITE_ONLY, table_size * sizeof(StatesTuple), nullptr);
 
-    auto syncstage1kernel = oclbackend->GetKernel("Synchronize_Stage1");
+    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage1");
 
     // Set Work groups size
     SetWorkGroups_(&syncstage1kernel, aSys0.states_number_,
                    aSys1.states_number_, 1, 1);
 
     // Execute kernel on the device
-    oclbackend->Enqueue(syncstage1kernel(
+    aSys0.backend_ptr_->Enqueue(syncstage1kernel(
         states_tuple_dev, static_cast<cl_uint>(aSys0.states_number_)));
 
     // Get the result and saves it on host memory
     auto states_tuple_host = new StatesTuple[table_size];
-    clEnqueueReadBuffer(oclbackend->CommandQueue(), states_tuple_dev, CL_TRUE,
-                        0, table_size * sizeof(StatesTuple),
+    clEnqueueReadBuffer(aSys0.backend_ptr_->CommandQueue(), states_tuple_dev,
+                        CL_TRUE, 0, table_size * sizeof(StatesTuple),
                         (void *)states_tuple_host, 0, NULL, NULL);
 
     auto states_table = new StatesTable;
@@ -319,13 +316,11 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
                    aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
                    std::inserter(markedstates_sync, markedstates_sync.begin()));
 
-    auto oclbackend = backend::OclBackend::Instance();
-
     // Allocate memory on the device
-    auto states_tuple_dev = oclbackend->GetContext().create_memory(
+    auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
         CL_MEM_READ_ONLY, aTable->tsize * sizeof(StatesTuple), aTable->table);
 
-    auto syncstage2kernel = oclbackend->GetKernel("Synchronize_Stage2");
+    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage2");
 
     // Set Work groups size
     SetWorkGroups_(&syncstage2kernel, aTable->tsize, aSys0.events_.size(), 1,
@@ -342,7 +337,7 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
     result_dev.clear();
 
     // Execute kernel on the device
-    oclbackend->Enqueue(syncstage2kernel(
+    aSys0.backend_ptr_->Enqueue(syncstage2kernel(
         states_tuple_dev, aSys0.device_graph_->handle1().opencl_handle(),
         aSys0.device_graph_->handle2().opencl_handle(),
         aSys0.device_graph_->handle().opencl_handle(),
@@ -409,8 +404,9 @@ DESystem op::SynchronizeStage2(op::StatesTable const *aTable, DESystem &aSys0,
             }
             if (sys0_elem > 1.0f) {
                 /*
-                 * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
-                 * and += implemented. Report bug and remove the following workaround.
+                 * TODO: ublas::compressed_matrix<>::iterator1 does not have
+                 * operators + and += implemented. Report bug and remove the
+                 * following workaround.
                  */
                 auto sys1_row = aSys1.graph_->begin1();
                 for (auto i_sys1 = 0; i_sys1 != state.x1; ++i_sys1) {

@@ -68,6 +68,10 @@ cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
                                     cldes::DESystemCL &aSys1);
 }  // namespace op
 
+namespace backend {
+class OclBackend;
+}
+
 class DESystemCL {
 public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
@@ -255,6 +259,8 @@ private:
      * A std::set containing all the events that matter for the current system.
      */
     EventsSet events_;
+
+    static backend::OclBackend *backend_ptr_;
 
     /*! \brief Method for caching the graph
      *

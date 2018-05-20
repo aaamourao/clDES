@@ -41,6 +41,8 @@
 
 using namespace cldes;
 
+backend::OclBackend *DESystemCL::backend_ptr_ = nullptr;
+
 DESystemCL::DESystemCL(GraphHostData const &aGraph,
                        cldes_size_t const &aStatesNumber,
                        cldes_size_t const &aInitState, StatesSet &aMarkedStates,
@@ -51,6 +53,7 @@ DESystemCL::DESystemCL(GraphHostData const &aGraph,
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
     device_graph_ = nullptr;
+    backend_ptr_ = backend::OclBackend::Instance();
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
@@ -71,6 +74,7 @@ DESystemCL::DESystemCL(DESystemCL const &aSys)
     marked_states_ = aSys.marked_states_;
     dev_cache_enabled_ = aSys.dev_cache_enabled_;
     is_cache_outdated_ = aSys.is_cache_outdated_;
+    backend_ptr_ = backend::OclBackend::Instance();
 
     if (device_graph_) {
         device_graph_ = new GraphDeviceData{*(aSys.device_graph_)};
@@ -87,6 +91,7 @@ DESystemCL::~DESystemCL() {
     if (dev_cache_enabled_) {
         delete device_graph_;
     }
+    // TODO: Add objects counter and delete OclBackend if = 0
 }
 
 DESystemCL::GraphHostData DESystemCL::GetGraph() const { return *graph_; }
