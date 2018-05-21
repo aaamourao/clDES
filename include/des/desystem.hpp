@@ -37,7 +37,9 @@
 #endif
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <list>
 #include <set>
+#include <tuple>
 #include "constants.hpp"
 
 namespace cldes {
@@ -57,7 +59,6 @@ class TransitionProxy;
 class DESystem;
 
 namespace op {
-
 /*
  * Forward declarion of DESystem's friend function Synchronize which
  * implements the parallel composition between two DES.
@@ -66,11 +67,26 @@ cldes::DESystem Synchronize(DESystem &aSys0, DESystem &aSys1);
 
 struct StatesTable;
 
-StatesTable *SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+struct StatesTuple;
 
-cldes::DESystem SynchronizeStage2(StatesTable const *aTable,
+using StatesTupleSTL = std::tuple<cldes_size_t, cldes_size_t>;
+using StatesTableSTL = std::vector<StatesTupleSTL>;
+
+StatesTableSTL SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+
+cldes::DESystem SynchronizeStage2(StatesTableSTL const aTable,
                                   cldes::DESystem &aSys0,
                                   cldes::DESystem &aSys1);
+
+StatesTupleSTL *TransitionVirtual(cldes::DESystem const &aP,
+                                  cldes::DESystem const &aE,
+                                  StatesTupleSTL const q, float const event);
+
+bool TransitionReal(cldes::DESystem const &aP, cldes::cldes_size_t const &x,
+                    float const &event);
+
+cldes::DESystem SupervisorSynth(cldes::DESystem &aP, cldes::DESystem &aS,
+                                std::set<float> const &non_contr);
 }  // namespace op
 
 class DESystem {
@@ -211,17 +227,24 @@ protected:
 private:
     friend class TransitionProxy;
     friend DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1);
-    friend op::StatesTable *op::SynchronizeStage1(DESystem const &aSys0,
-                                                  DESystem const &aSys1);
-    friend DESystem op::SynchronizeStage2(op::StatesTable const *aTable,
+    friend op::StatesTableSTL op::SynchronizeStage1(DESystem const &aSys0,
+                                                    DESystem const &aSys1);
+    friend DESystem op::SynchronizeStage2(op::StatesTableSTL const aTable,
                                           DESystem &aSys0, DESystem &aSys1);
-
+    friend op::StatesTupleSTL *op::TransitionVirtual(DESystem const &aP,
+                                                     DESystem const &aE,
+                                                     op::StatesTupleSTL const q,
+                                                     float const event);
+    friend bool op::TransitionReal(DESystem const &aP, cldes_size_t const &x,
+                                   float const &event);
+    friend DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
+                                        std::set<float> const &non_contr);
     /*! \brief Graph represented by an adjascency matrix
      *
-     * A sparse matrix who represents the automata as a graph in an adjascency
-     * matrix. It is implemented as a CSR scheme. The pointer is constant, but
-     * its content should not be constant, as the graph should change many times
-     * at runtime.
+     * A sparse matrix who represents the automata as a graph in an
+     * adjascency matrix. It is implemented as a CSR scheme. The pointer is
+     * constant, but its content should not be constant, as the graph should
+     * change many times at runtime.
      *
      * TODO: Should it be a smart pointer?
      */
@@ -229,9 +252,9 @@ private:
 
     /*! \brief Keeps if caching graph data on device is enabled
      *
-     * If dev_cache_enabled_ is true, the graph should be cached on the device
-     * memory, so device_graph_ is not nullptr. It can be set at any time at run
-     * time, so it is not a constant.
+     * If dev_cache_enabled_ is true, the graph should be cached on the
+     * device memory, so device_graph_ is not nullptr. It can be set at any
+     * time at run time, so it is not a constant.
      */
     bool dev_cache_enabled_;
 
@@ -243,8 +266,8 @@ private:
 
     /*! \brief Current system's states number
      *
-     * Hold the number of states that the automata contains. As the automata can
-     * be cut, the states number is not a constant at all.
+     * Hold the number of states that the automata contains. As the automata
+     * can be cut, the states number is not a constant at all.
      */
     cldes_size_t states_number_;
 
@@ -256,14 +279,15 @@ private:
 
     /*! \brief Current system's marked states
      *
-     * Hold all marked states. Cannot be const, since the automata can be cut,
-     * and some marked states may be deleted.
+     * Hold all marked states. Cannot be const, since the automata can be
+     * cut, and some marked states may be deleted.
      */
     StatesSet marked_states_;
 
     /*! \brief System's events
      *
-     * A std::set containing all the events that matter for the current system.
+     * A std::set containing all the events that matter for the current
+     * system.
      */
     EventsSet events_;
 
@@ -331,7 +355,8 @@ private:
 
     /*! \brief Return a pointer to accessed states from the initial state
      *
-     * Executes a breadth first search on the graph starting from init_state_.
+     * Executes a breadth first search on the graph starting from
+     * init_state_.
      */
     StatesSet *Bfs_();
 };

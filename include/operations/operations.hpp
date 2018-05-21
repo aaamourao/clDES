@@ -31,6 +31,9 @@
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
+#include <set>
+#include <tuple>
+#include <vector>
 #include "constants.hpp"
 
 namespace cldes {
@@ -49,6 +52,9 @@ typedef struct StatesTable {
     cl_uint tsize;
     StatesTuple *table;
 } StatesTable;
+
+using StatesTupleSTL = std::tuple<cldes_size_t, cldes_size_t>;
+using StatesTableSTL = std::vector<StatesTupleSTL>;
 
 cldes::cldes_size_t TablePos_(cldes::cldes_size_t const &aG0Pos,
                               cldes::cldes_size_t const &aG1Pos,
@@ -86,16 +92,26 @@ cldes::DESystem Synchronize(cldes::DESystem &aSys0, cldes::DESystem &aSys1);
 StatesTable *SynchronizeStage1(cldes::DESystemCL const &aSys0,
                                cldes::DESystemCL const &aSys1);
 
-StatesTable *SynchronizeStage1(cldes::DESystem const &aSys0,
-                               cldes::DESystem const &aSys1);
+StatesTableSTL SynchronizeStage1(cldes::DESystem const &aSys0,
+                                 cldes::DESystem const &aSys1);
 
 cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
                                     cldes::DESystemCL &aSys0,
                                     cldes::DESystemCL &aSys1);
 
-cldes::DESystem SynchronizeStage2(StatesTable const *aTable,
+cldes::DESystem SynchronizeStage2(StatesTableSTL const aTable,
                                   cldes::DESystem &aSys0,
                                   cldes::DESystem &aSys1);
+
+StatesTupleSTL *TransitionVirtual(cldes::DESystem const &aP,
+                                  cldes::DESystem const &aE,
+                                  StatesTupleSTL const q, float const event);
+
+bool TransitionReal(cldes::DESystem const &aP, cldes::cldes_size_t const &x,
+                    float const &event);
+
+cldes::DESystem SupervisorSynth(cldes::DESystem &aP, cldes::DESystem &aS,
+                                std::set<float> const &non_contr);
 }  // namespace op
 }  // namespace cldes
 #endif  // DESYSTEM_HPP

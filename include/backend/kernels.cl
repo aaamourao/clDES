@@ -94,7 +94,7 @@ __kernel void Synchronize_Stage2(__global StatesTuple *aTable,
                 }
                 // TODO: uncomment next line when aG0Private get in the local
                 // mem
-                //aG0Private = aG0Private / g0_gcd_priv;
+                // aG0Private = aG0Private / g0_gcd_priv;
                 g0_elem = g0_elem / g0_gcd_priv;
             }
         }
@@ -115,7 +115,9 @@ __kernel void Synchronize_Stage2(__global StatesTuple *aTable,
                                       aPad +
                                   row] = g1_gcd_priv;
                         }
-                        aG1Private = aG1Private / g1_gcd_priv;
+                        // TODO: uncomment next line when aG0Private get in the local
+                        // mem
+                        // aG1Private = aG1Private / g1_gcd_priv;
                         g1_elem = g1_elem / g1_gcd_priv;
                     }
                 }

@@ -31,6 +31,7 @@
 
 #include <chrono>
 #include <string>
+#include <tuple>
 #include "des/desystem.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
@@ -100,9 +101,9 @@ int main() {
     std::cout << "SynchronizeStage1 time: " << duration << " microseconds"
               << std::endl;
 
-    for (int i = 0; i < nstatesG1 * nstatesG2; ++i) {
-        std::cout << "(" << stage1->table[i].x0 << ", " << stage1->table[i].x1
-                  << ")" << std::endl;
+    for (auto i = stage1.begin(); i != stage1.end(); ++i) {
+        std::cout << "(" << std::get<0>(*i) << ", " << std::get<1>(*i) << ")"
+                  << std::endl;
     }
 
     t1 = high_resolution_clock::now();
