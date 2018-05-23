@@ -45,7 +45,7 @@ DESystem::DESystem(GraphHostData const &aGraph,
                    cldes_size_t const &aStatesNumber,
                    cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                    bool const &aDevCacheEnabled)
-    : graph_{new GraphHostData{aGraph}}, init_state_{aInitState} {
+    : graph_{GraphHostData{aGraph}}, init_state_{aInitState} {
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
@@ -64,28 +64,23 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
                          aStatesNumber, aInitState, aMarkedStates,
                          aDevCacheEnabled} {}
 
-DESystem::DESystem(DESystem const &aSys)
-    : graph_{new GraphHostData{*(aSys.graph_)}}, init_state_{aSys.init_state_} {
-    states_number_ = aSys.states_number_;
-    marked_states_ = aSys.marked_states_;
-    dev_cache_enabled_ = aSys.dev_cache_enabled_;
-    is_cache_outdated_ = aSys.is_cache_outdated_;
+DESystem::DESystem(DESystem const &aSys) {
+    init_state_ = cldes_size_t{aSys.init_state_};
+    states_number_ = cldes_size_t{aSys.states_number_};
+    marked_states_ = StatesSet{aSys.marked_states_};
+    dev_cache_enabled_ = bool{aSys.dev_cache_enabled_};
+    is_cache_outdated_ = bool{aSys.is_cache_outdated_};
+    events_ = EventsSet{aSys.events_};
+    graph_ = GraphHostData{aSys.graph_};
 }
 
-DESystem::~DESystem() {
-    // Delete uBlas data
-    if (graph_) {
-        delete graph_;
-    }
-}
-
-DESystem::GraphHostData DESystem::GetGraph() const { return *graph_; }
+DESystem::GraphHostData DESystem::GetGraph() const { return graph_; }
 
 void DESystem::CacheGraph_() { is_cache_outdated_ = false; }
 
 DESystem::GraphHostData::const_reference DESystem::operator()(
     cldes_size_t const &aLin, cldes_size_t const &aCol) const {
-    return (*graph_)(aLin, aCol);
+    return graph_(aLin, aCol);
 }
 
 TransitionProxy DESystem::operator()(cldes_size_t const &aLin,
@@ -147,10 +142,13 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     std::vector<cldes_size_t> const *const aStatesMap) {
     cl_uint n_initial_nodes = aHostX.size2();
 
-    ublas::compressed_matrix<ScalarType> graph{ublas::trans(*graph_)};
+    ublas::compressed_matrix<ScalarType> graph{ublas::trans(graph_)};
 
     // Sum it to identity and set all nnz to 1.0f
     for (auto i = graph.begin1(); i != graph.end1(); ++i) {
+        // for (auto j = i.begin(); j != i.end(); ++j) {
+        //    graph(i.index1(), j.index2()) = 1.0f;
+        //}
         graph(i.index1(), i.index1()) = 1.0f;
     }
 
@@ -231,43 +229,26 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
 }
 
 DESystem::StatesSet DESystem::TrimStates() {
-    StatesSet searching_nodes;
-    // Initialize initial_nodes with all states, but marked states
-    {
-        StatesSet all_nodes(
-            boost::counting_iterator<cldes_size_t>(0),
-            boost::counting_iterator<cldes_size_t>(states_number_));
-        std::set_difference(
-            all_nodes.begin(), all_nodes.end(), marked_states_.begin(),
-            marked_states_.end(),
-            std::inserter(searching_nodes, searching_nodes.begin()));
-    }
-    // Guarantee that init_state_ is a searching node: it can be marked
-    searching_nodes.emplace(init_state_);
+    StatesSet accpart = AccessiblePart();
 
-    StatesSet accpart;
-    StatesSet coaccpart = marked_states_;
+    StatesSet trimstates = marked_states_;
+    StatesSet searching_nodes;
+    std::set_difference(
+        accpart.begin(), accpart.end(), marked_states_.begin(),
+        marked_states_.end(),
+        std::inserter(searching_nodes, searching_nodes.begin()));
     auto paccessed_states = Bfs_(
         searching_nodes,
-        [this, &accpart, &coaccpart](cldes_size_t const &aInitialState,
-                                     cldes_size_t const &aAccessedState) {
-            if (aInitialState == this->init_state_) {
-                accpart.emplace(aAccessedState);
-            }
-
+        [this, &trimstates](cldes_size_t const &aInitialState,
+                            cldes_size_t const &aAccessedState) {
             bool const is_marked = this->marked_states_.find(aAccessedState) !=
                                    this->marked_states_.end();
             if (is_marked) {
-                coaccpart.emplace(aInitialState);
+                trimstates.emplace(aInitialState);
             }
 
         });
     delete[] paccessed_states;
-
-    StatesSet trimstates;
-    std::set_intersection(accpart.begin(), accpart.end(), coaccpart.begin(),
-                          coaccpart.end(),
-                          std::inserter(trimstates, trimstates.begin()));
 
     return trimstates;
 }
@@ -275,7 +256,7 @@ DESystem::StatesSet DESystem::TrimStates() {
 DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
     auto trimstates = this->TrimStates();
 
-    if (trimstates.size() == graph_->size1()) {
+    if (trimstates.size() == graph_.size1()) {
         return *this;
     }
 
@@ -283,7 +264,7 @@ DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
     GraphHostData sliced_graph{trimstates.size(), states_number_};
     auto mapped_state = 0;
     for (auto state : trimstates) {
-        ublas::matrix_row<GraphHostData> graphrow(*graph_, state);
+        ublas::matrix_row<GraphHostData> graphrow(graph_, state);
         ublas::matrix_row<GraphHostData> slicedrow(sliced_graph, mapped_state);
         slicedrow.swap(graphrow);
         ++mapped_state;

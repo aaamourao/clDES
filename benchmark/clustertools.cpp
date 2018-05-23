@@ -30,22 +30,24 @@
 */
 
 #include <vector>
-#include "des/desystem.cpp"
+#include "des/desystem.hpp"
+#include "des/transition_proxy.hpp"
 
-std::vector<unsigned int> GeneratePrimeNumbers(unsigned int aMax) {
+std::vector<cldes::ScalarType> GeneratePrimeNumbers(unsigned int aMax) {
     std::vector<cldes::ScalarType> primes;
     primes.push_back(2);
-    for (int i = 3; i < aMax; i++) {
+    auto i = 2;
+    while (primes.size() < aMax) {
+        ++i;
         bool prime = true;
         for (auto j = 0; j < primes.size() && primes[j] * primes[j] <= i; j++) {
-            if (i % primes[j] == 0) {
+            if (i % static_cast<int>(primes[j]) == 0) {
                 prime = false;
                 break;
             }
         }
         if (prime) {
             primes.push_back(static_cast<cldes::ScalarType>(i));
-            cout << i << " ";
         }
     }
     return primes;
@@ -54,19 +56,18 @@ std::vector<unsigned int> GeneratePrimeNumbers(unsigned int aMax) {
 void ClusterTool(unsigned int const &aNClusters,
                  std::vector<cldes::DESystem> &aPlants,
                  std::vector<cldes::DESystem> &aSpecs,
-                 std::set<cldes::DESystem> &non_contr) {
+                 std::set<cldes::ScalarType> &non_contr) {
     if (aPlants.size() != 0 || aSpecs.size() != 0 || non_contr.size() ||
         aNClusters == 0) {
         throw std::runtime_error("ClusterTool: Invalid inputs");
     }
 
-    std::set<cldes_size_t> marked_states;
+    std::set<cldes::cldes_size_t> marked_states;
     marked_states.emplace(0);
 
-    auto n_events = 12 * aNClusters;
+    auto n_events = 8 * aNClusters + 4 * (aNClusters - 1);
     auto events = GeneratePrimeNumbers(n_events);
 
-    std::set<cldes::ScalarType> non_contr;
     for (auto i = 0; i < aNClusters; ++i) {
         for (auto k = 0; k < 9; ++k) {
             auto index = i * 9 + k;
@@ -85,22 +86,33 @@ void ClusterTool(unsigned int const &aNClusters,
             r_i(2, 0) = events[i * aNClusters + 3];
             r_i(0, 3) = events[i * aNClusters + 4];
             r_i(3, 1) = events[i * aNClusters + 5];
-            r_i.InsertEvents();
+            std::set<cldes::ScalarType> events_r_i = {
+                events[i * aNClusters],     events[i * aNClusters + 1],
+                events[i * aNClusters + 2], events[i * aNClusters + 3],
+                events[i * aNClusters + 4], events[i * aNClusters + 5]};
+            r_i.InsertEvents(events_r_i);
+
+            aPlants.push_back(r_i);
         } else {
             cldes::DESystem r_i{3, 0, marked_states};
             r_i(0, 1) = events[i * aNClusters];
             r_i(1, 0) = events[i * aNClusters + 1];
             r_i(0, 2) = events[i * aNClusters + 4];
             r_i(2, 0) = events[i * aNClusters + 3];
-            r_i.InsertEvents();
-        }
+            std::set<cldes::ScalarType> events_r_i = {
+                events[i * aNClusters], events[i * aNClusters + 1],
+                events[i * aNClusters + 3], events[i * aNClusters + 4]};
+            r_i.InsertEvents(events_r_i);
 
-        aPlants.push_back(r_i);
+            aPlants.push_back(r_i);
+        }
 
         cldes::DESystem c_i{2, 0, marked_states};
         c_i(0, 1) = events[i * aNClusters + 6];
         c_i(1, 0) = events[i * aNClusters + 7];
-        c_i.InsertEvents();
+        std::set<cldes::ScalarType> events_c_i = {events[i * aNClusters + 6],
+                                                  events[i * aNClusters + 7]};
+        c_i.InsertEvents(events_c_i);
 
         aPlants.push_back(c_i);
 
@@ -109,9 +121,12 @@ void ClusterTool(unsigned int const &aNClusters,
         e_i(1, 0) = events[i * aNClusters + 6];
         e_i(0, 2) = events[i * aNClusters + 7];
         e_i(2, 0) = events[i * aNClusters + 4];
-        e_i.InsertEvents();
+        std::set<cldes::ScalarType> events_e_i = {
+            events[i * aNClusters + 1], events[i * aNClusters + 6],
+            events[i * aNClusters + 4], events[i * aNClusters + 7]};
+        e_i.InsertEvents(events_e_i);
 
-        aSpecs.push_back(e_i)
+        aSpecs.push_back(e_i);
     }
 
     auto event_index_begin = 8 * aNClusters;
@@ -122,9 +137,14 @@ void ClusterTool(unsigned int const &aNClusters,
         e_ij(1, 0) = events[event_index_begin + i * aNClusters];
         e_ij(0, 2) = events[event_index_begin + i * aNClusters + 3];
         e_ij(2, 0) = events[event_index_begin + i * aNClusters + 2];
-        e_ij.InsertEvents();
+        std::set<cldes::ScalarType> events_e_ij = {
+            events[event_index_begin + i * aNClusters],
+            events[event_index_begin + i * aNClusters + 1],
+            events[event_index_begin + i * aNClusters + 2],
+            events[event_index_begin + i * aNClusters + 3]};
+        e_ij.InsertEvents(events_e_ij);
 
-        aSpecs.push_back(e_i)
+        aSpecs.push_back(e_ij);
     }
 
     return;

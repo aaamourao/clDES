@@ -41,10 +41,10 @@ TransitionProxy::TransitionProxy(DESystem *const aSysPtr,
 
 TransitionProxy &TransitionProxy::operator=(ScalarType aTransitionValue) {
     sys_ptr_->is_cache_outdated_ = true;
-    (*(sys_ptr_->graph_))(lin_, col_) = aTransitionValue;
+    (sys_ptr_->graph_)(lin_, col_) = aTransitionValue;
     return *this;
 }
 
 TransitionProxy::operator ScalarType() {
-    return (*(sys_ptr_->graph_))(lin_, col_);
+    return (sys_ptr_->graph_)(lin_, col_);
 }

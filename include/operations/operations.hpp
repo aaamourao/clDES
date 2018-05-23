@@ -72,11 +72,11 @@ void SetWorkGroups_(KernelType *k, cldes::cldes_size_t const aGws0,
 }
 
 template <class EventsSetType>
-float CalcEventsInt_(EventsSetType const &aEvents) {
-    float events_integer = 1.0f;
+long long  CalcEventsInt_(EventsSetType const &aEvents) {
+    long long events_integer = 1;
 
     for (auto event : aEvents) {
-        events_integer = events_integer * event;
+        events_integer = events_integer * static_cast<long long>(event);
     }
 
     return events_integer;

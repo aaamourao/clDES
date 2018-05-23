@@ -33,10 +33,16 @@
 #include <cstdlib>
 #include <set>
 #include <vector>
-#include "clustertools.hpp"
 #include "des/desystem.hpp"
+#include "operations/operations.hpp"
+#include "testlib.hpp"
 
 using namespace std::chrono;
+
+void ClusterTool(unsigned int const &aNClusters,
+                 std::vector<cldes::DESystem> &aPlants,
+                 std::vector<cldes::DESystem> &aSpecs,
+                 std::set<cldes::ScalarType> &non_contr);
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -51,13 +57,15 @@ int main(int argc, char *argv[]) {
               << std::endl;
     ClusterTool(std::atoi(argv[1]), plants, specs, non_contr);
 
+    std::cout << "Synchronizing plants" << std::endl;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    DESystem plant = *(plants.back());
-    plants.pop_back();
-    for (auto sys : plants) {
-        DESystem op0 = plant;
-        DESystem op1 = sys;
-        plant = cldes::op::Synchronize(op0, op1);
+    auto last_result = plants[0];
+    auto plant = last_result;
+    PrintGraph(plants[0].GetGraph(), "plants[0]");
+    for (auto i = 1; i < plants.size(); ++i) {
+        plant = cldes::op::Synchronize(last_result, plants[i]);
+        last_result = plant;
+    PrintGraph(plants[i].GetGraph(), "plants[i]");
     }
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
@@ -65,13 +73,15 @@ int main(int argc, char *argv[]) {
     std::cout << "Plants sync time spent: " << duration << " microseconds"
               << std::endl;
 
+    std::cout << "Synchronizing specs" << std::endl;
     t1 = high_resolution_clock::now();
-    DESystem spec = *(specs.back());
-    specs.pop_back();
-    for (auto sys : specs) {
-        DESystem op0 = spec;
-        DESystem op1 = sys;
-        spec = cldes::op::Synchronize(op0, op1);
+    last_result = specs[0];
+    PrintGraph(specs[0].GetGraph(), "spec[0]");
+    auto spec = last_result;
+    for (auto i = 1; i < specs.size(); ++i) {
+        spec = cldes::op::Synchronize(last_result, specs[i]);
+        last_result = spec;
+    PrintGraph(specs[i].GetGraph(), "spec[i]");
     }
     t2 = high_resolution_clock::now();
 
@@ -79,8 +89,18 @@ int main(int argc, char *argv[]) {
     std::cout << "Specs sync time spent: " << duration << " microseconds"
               << std::endl;
 
+    std::cout << std::endl
+              << "Number of states of plant: " << plant.Size() << std::endl;
+    std::cout << "Number of transitions of the plant " << plant.GetGraph().nnz()
+              << std::endl;
+    std::cout << "Computing the supervisor" << std::endl;
+    std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
+    std::cout << "Number of transitions of the spec " << spec.GetGraph().nnz()
+              << std::endl
+              << std::endl;
+
     t1 = high_resolution_clock::now();
-    auto supervisor = cldes::op::SupervisorSynth(plants, specs, non_contr);
+    auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<microseconds>(t2 - t1).count();

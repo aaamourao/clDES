@@ -134,7 +134,7 @@ public:
      *
      * Delete dinamically allocated data: graph and device_graph.
      */
-    virtual ~DESystem();
+    // virtual ~DESystem();
 
     /*! \brief Graph getter
      *
@@ -246,9 +246,8 @@ private:
      * constant, but its content should not be constant, as the graph should
      * change many times at runtime.
      *
-     * TODO: Should it be a smart pointer?
      */
-    GraphHostData *const graph_;
+    GraphHostData graph_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      *
@@ -275,7 +274,7 @@ private:
      *
      * Hold the initial state position.
      */
-    cldes_size_t const init_state_;
+    cldes_size_t init_state_;
 
     /*! \brief Current system's marked states
      *

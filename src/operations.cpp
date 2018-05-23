@@ -151,80 +151,87 @@ DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
                    aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
                    std::inserter(markedstates_sync, markedstates_sync.begin()));
 
-    auto sys0_events = CalcEventsInt_(aSys0.events_);
-    auto sys1_events = CalcEventsInt_(aSys1.events_);
-
-    auto gcd_private = CalcGCD_(sys0_events, sys1_events);
-    auto sys0_private = sys0_events / gcd_private;
-    auto sys1_private = sys1_events / gcd_private;
+    std::set<float> sync_events;
+    std::set_union(aSys0.events_.begin(), aSys0.events_.end(),
+                   aSys1.events_.begin(), aSys1.events_.end(),
+                   std::inserter(sync_events, sync_events.begin()));
 
     DESystem::GraphHostData result(states_tuple.size(), states_tuple.size());
 
-    for (auto i = 0; i < states_tuple.size(); ++i) {
-        auto state = states_tuple[i];
-
-        /*
-         * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
-         * and += implemented. Report bug and remove the following workaround.
-         */
-        auto sys0_row = aSys0.graph_->begin1();
-        for (auto i_sys0 = 0; i_sys0 != std::get<0>(state); ++i_sys0) {
-            ++sys0_row;
-        }
-        // TODO: End of the workaround
-
-        for (auto j = sys0_row.begin(); j != sys0_row.end(); ++j) {
-            float sys0_elem = *j;
-            if (sys0_private > 1.0f && sys0_elem > 1.0f) {
-                float sys0_gcd_priv = CalcGCD_(sys0_private, sys0_elem);
-                if (sys0_gcd_priv > 1.0f) {
-                    unsigned int index0 =
-                        std::get<1>(state) * aSys0.graph_->size1() + j.index2();
-                    if (result(i, index0) > 1.0f) {
-                        result(i, index0) *= sys0_gcd_priv;
-                    } else {
-                        result(i, index0) = sys0_gcd_priv;
-                    }
-                }
+    for (auto q : states_tuple) {
+        for (auto event : sync_events) {
+            bool const is_in_p =
+                std::find(aSys0.events_.begin(), aSys0.events_.end(), event) !=
+                aSys0.events_.end();
+            bool const is_in_e =
+                std::find(aSys1.events_.begin(), aSys1.events_.end(), event) !=
+                aSys1.events_.end();
+            if (!is_in_p && !is_in_e) {
+                break;
             }
-            if (sys0_elem > 1.0f) {
+
+            int xid = -1;
+            int yid;
+
+            if (is_in_p) {
                 /*
                  * TODO: ublas::compressed_matrix<>::iterator1 does not have
                  * operators + and += implemented. Report bug and remove the
                  * following workaround.
                  */
-                auto sys1_row = aSys1.graph_->begin1();
-                for (auto i_sys1 = 0; i_sys1 != std::get<1>(state); ++i_sys1) {
-                    ++sys1_row;
+                auto p_row = aSys0.graph_.begin1();
+                for (auto i = 0; i < std::get<0>(q); ++i) {
+                    ++p_row;
                 }
-                // TODO: End of workaround
+                // TODO: End of the workaround
 
-                for (auto j_sys1 = sys1_row.begin(); j_sys1 != sys1_row.end();
-                     ++j_sys1) {
-                    float sys1_elem = *j_sys1;
-                    if (sys1_private > 1.0f) {
-                        float sys1_gcd_priv = CalcGCD_(sys1_private, sys1_elem);
-                        if (sys1_gcd_priv > 1.0f) {
-                            unsigned int index0 =
-                                j_sys1.index2() * aSys0.graph_->size1() +
-                                std::get<0>(state);
-                            if (result(i, index0) > 1.0f) {
-                                result(i, index0) *= sys1_gcd_priv;
+                for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
+                    if (std::fmod(*elem, event) == 0.0f) {
+                        xid = elem.index2();
+                        if (!is_in_e) {
+                            yid = std::get<1>(q);
+                            auto index0 =
+                                std::get<1>(q) * aSys0.states_number_ +
+                                std::get<0>(q);
+                            auto index1 = yid * aSys0.states_number_ + xid;
+                            if (result(index0, index1) != 0) {
+                                result(index0, index1) *= event;
                             } else {
-                                result(i, index0) = sys1_gcd_priv;
+                                result(index0, index1) = event;
                             }
+                            break;
                         }
                     }
-                    float sync_gcd = CalcGCD_(sys0_elem, sys1_elem);
-                    if (sync_gcd > 1.0f) {
-                        unsigned int index0 =
-                            j_sys1.index2() * aSys0.graph_->size1() +
-                            j.index2();
-                        if (result(i, index0) > 1.0f) {
-                            result(i, index0) *= sync_gcd;
-                        } else {
-                            result(i, index0) = sync_gcd;
+                }
+            }
+
+            /*
+             * TODO: ublas::compressed_matrix<>::iterator1 does not have
+             * operators + and += implemented. Report bug and remove the
+             * following workaround.
+             */
+            auto e_row = aSys1.graph_.begin1();
+            for (auto i = 0; i < std::get<1>(q); ++i) {
+                ++e_row;
+            }
+            // TODO: End of the workaround
+
+            if ((is_in_e && !is_in_p) || (is_in_e && (xid != -1))) {
+                for (auto elem = e_row.begin(); elem != e_row.end(); ++elem) {
+                    if (std::fmod(*elem, event) == 0.0f) {
+                        if (!is_in_p) {
+                            xid = std::get<0>(q);
                         }
+                        yid = elem.index2();
+                        auto index0 = std::get<1>(q) * aSys0.states_number_ +
+                                      std::get<0>(q);
+                        auto index1 = yid * aSys0.states_number_ + xid;
+                        if (result(index0, index1) != 0) {
+                            result(index0, index1) *= event;
+                        } else {
+                            result(index0, index1) = event;
+                        }
+                        break;
                     }
                 }
             }
@@ -234,6 +241,7 @@ DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
     // Copy device graph to host memory
     DESystem sync_sys(result, states_tuple.size(), initstate_sync,
                       markedstates_sync);
+    sync_sys.events_ = sync_events;
 
     return sync_sys;
 }
@@ -351,80 +359,102 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const aTable, DESystem &aSys0,
                    aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
                    std::inserter(markedstates_sync, markedstates_sync.begin()));
 
-    auto sys0_events = CalcEventsInt_(aSys0.events_);
-    auto sys1_events = CalcEventsInt_(aSys1.events_);
-
-    auto gcd_private = CalcGCD_(sys0_events, sys1_events);
-    auto sys0_private = sys0_events / gcd_private;
-    auto sys1_private = sys1_events / gcd_private;
+    std::set<float> sync_events;
+    std::set_union(aSys0.events_.begin(), aSys0.events_.end(),
+                   aSys1.events_.begin(), aSys1.events_.end(),
+                   std::inserter(sync_events, sync_events.begin()));
 
     DESystem::GraphHostData result(aTable.size(), aTable.size());
 
-    for (auto i = 0; i < aTable.size(); ++i) {
-        auto state = aTable[i];
-
-        /*
-         * TODO: ublas::compressed_matrix<>::iterator1 does not have operators +
-         * and += implemented. Report bug and remove the following workaround.
-         */
-        auto sys0_row = aSys0.graph_->begin1();
-        for (auto i_sys0 = 0; i_sys0 != std::get<0>(state); ++i_sys0) {
-            ++sys0_row;
-        }
-        // TODO: End of the workaround
-
-        for (auto j = sys0_row.begin(); j != sys0_row.end(); ++j) {
-            float sys0_elem = *j;
-            if (sys0_private > 1.0f && sys0_elem > 1.0f) {
-                float sys0_gcd_priv = CalcGCD_(sys0_private, sys0_elem);
-                if (sys0_gcd_priv > 1.0f) {
-                    unsigned int index0 =
-                        std::get<1>(state) * aSys0.graph_->size1() + j.index2();
-                    if (result(i, index0) > 1.0f) {
-                        result(i, index0) *= sys0_gcd_priv;
-                    } else {
-                        result(i, index0) = sys0_gcd_priv;
-                    }
-                }
+    for (auto q = aTable.begin(); q != aTable.end(); ++q) {
+        for (auto event : sync_events) {
+            bool const is_in_p =
+                std::find(aSys0.events_.begin(), aSys0.events_.end(), event) !=
+                aSys0.events_.end();
+            bool const is_in_e =
+                std::find(aSys1.events_.begin(), aSys1.events_.end(), event) !=
+                aSys1.events_.end();
+            if (!is_in_p && !is_in_e) {
+                break;
             }
-            if (sys0_elem > 1.0f) {
+
+            int xid = -1;
+            int yid;
+
+            auto index0 = std::distance(aTable.begin(), q);
+
+            if (is_in_p) {
                 /*
                  * TODO: ublas::compressed_matrix<>::iterator1 does not have
                  * operators + and += implemented. Report bug and remove the
                  * following workaround.
                  */
-                auto sys1_row = aSys1.graph_->begin1();
-                for (auto i_sys1 = 0; i_sys1 != std::get<1>(state); ++i_sys1) {
-                    ++sys1_row;
+                auto p_row = aSys0.graph_.begin1();
+                for (auto i = 0; i < std::get<0>(*q); ++i) {
+                    ++p_row;
                 }
                 // TODO: End of the workaround
 
-                for (auto j_sys1 = sys1_row.begin(); j_sys1 != sys1_row.end();
-                     ++j_sys1) {
-                    float sys1_elem = *j_sys1;
-                    if (sys1_private > 1.0f) {
-                        float sys1_gcd_priv = CalcGCD_(sys1_private, sys1_elem);
-                        if (sys1_gcd_priv > 1.0f) {
-                            unsigned int index0 =
-                                j_sys1.index2() * aSys0.graph_->size1() +
-                                std::get<0>(state);
-                            if (result(i, index0) > 1.0f) {
-                                result(i, index0) *= sys1_gcd_priv;
+                for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
+                    if (std::fmod(*elem, event) == 0.0f) {
+                        xid = elem.index2();
+                        if (!is_in_e) {
+                            yid = std::get<1>(*q);
+                            StatesTupleSTL to_state_tuple =
+                                std::make_tuple(xid, yid);
+                            auto index1_iter = std::find_if(
+                                aTable.begin(), aTable.end(),
+                                [&to_state_tuple](
+                                    std::tuple<cldes_size_t, cldes_size_t> i) {
+                                    return (i == to_state_tuple);
+                                });
+                            size_t index1 =
+                                std::distance(aTable.begin(), index1_iter);
+                            if (result(index0, index1) != 0) {
+                                result(index0, index1) *= event;
                             } else {
-                                result(i, index0) = sys1_gcd_priv;
+                                result(index0, index1) = event;
                             }
+                            break;
                         }
                     }
-                    float sync_gcd = CalcGCD_(sys0_elem, sys1_elem);
-                    if (sync_gcd > 1.0f) {
-                        unsigned int index0 =
-                            j_sys1.index2() * aSys0.graph_->size1() +
-                            j.index2();
-                        if (result(i, index0) > 1.0f) {
-                            result(i, index0) *= sync_gcd;
-                        } else {
-                            result(i, index0) = sync_gcd;
+                }
+            }
+
+            /*
+             * TODO: ublas::compressed_matrix<>::iterator1 does not have
+             * operators + and += implemented. Report bug and remove the
+             * following workaround.
+             */
+            auto e_row = aSys1.graph_.begin1();
+            for (auto i = 0; i < std::get<1>(*q); ++i) {
+                ++e_row;
+            }
+            // TODO: End of the workaround
+
+            if ((is_in_e && !is_in_p) || (is_in_e && (xid != -1))) {
+                for (auto elem = e_row.begin(); elem != e_row.end(); ++elem) {
+                    if (std::fmod(*elem, event) == 0.0f) {
+                        if (!is_in_p) {
+                            xid = std::get<0>(*q);
                         }
+                        yid = elem.index2();
+                        StatesTupleSTL to_state_tuple =
+                            std::make_tuple(xid, yid);
+                        auto index1_iter = std::find_if(
+                            aTable.begin(), aTable.end(),
+                            [&to_state_tuple](
+                                std::tuple<cldes_size_t, cldes_size_t> i) {
+                                return (i == to_state_tuple);
+                            });
+                        size_t index1 =
+                            std::distance(aTable.begin(), index1_iter);
+                        if (result(index0, index1) != 0) {
+                            result(index0, index1) *= event;
+                        } else {
+                            result(index0, index1) = event;
+                        }
+                        break;
                     }
                 }
             }
@@ -433,6 +463,7 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const aTable, DESystem &aSys0,
 
     // Copy device graph to host memory
     DESystem sync_sys(result, aTable.size(), initstate_sync, markedstates_sync);
+    sync_sys.events_ = sync_events;
 
     return sync_sys;
 }
@@ -453,7 +484,7 @@ op::StatesTupleSTL *op::TransitionVirtual(DESystem const &aP,
      * operators + and += implemented. Report bug and remove the
      * following workaround.
      */
-    auto p_row = aP.graph_->begin1();
+    auto p_row = aP.graph_.begin1();
     for (auto i = 0; i < std::get<0>(q); ++i) {
         ++p_row;
     }
@@ -463,7 +494,7 @@ op::StatesTupleSTL *op::TransitionVirtual(DESystem const &aP,
 
     if (is_in_p) {
         for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
-            if (CalcGCD_(*elem, event) > 1.0f) {
+            if (std::fmod(*elem, event) == 0.0f) {
                 ret = new StatesTupleSTL;
                 std::get<0>(*ret) = elem.index2();
                 if (!is_in_e) {
@@ -479,7 +510,7 @@ op::StatesTupleSTL *op::TransitionVirtual(DESystem const &aP,
      * operators + and += implemented. Report bug and remove the
      * following workaround.
      */
-    auto e_row = aE.graph_->begin1();
+    auto e_row = aE.graph_.begin1();
     for (auto i = 0; i < std::get<1>(q); ++i) {
         ++e_row;
     }
@@ -487,7 +518,7 @@ op::StatesTupleSTL *op::TransitionVirtual(DESystem const &aP,
 
     if ((is_in_e && !is_in_p) || (is_in_e && (ret != nullptr))) {
         for (auto elem = e_row.begin(); elem != e_row.end(); ++elem) {
-            if (CalcGCD_(*elem, event) > 1.0f) {
+            if (std::fmod(*elem, event) == 0.0f) {
                 if (!is_in_p) {
                     ret = new StatesTupleSTL;
                     std::get<0>(*ret) = std::get<0>(q);
@@ -514,14 +545,14 @@ bool op::TransitionReal(DESystem const &aP, cldes_size_t const &x,
      * operators + and += implemented. Report bug and remove the
      * following workaround.
      */
-    auto p_row = aP.graph_->begin1();
+    auto p_row = aP.graph_.begin1();
     for (auto i = 0; i < x; ++i) {
         ++p_row;
     }
     // TODO: End of the workaround
 
     for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
-        if (CalcGCD_(*elem, event) > 1.0f) {
+        if (std::fmod(*elem, event) == 0.0f) {
             return true;
         }
     }
@@ -561,7 +592,7 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
 
     if (is_in_p) {
         for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
-            if (op::CalcGCD_(*elem, event) > 1.0f) {
+            if (std::fmod(*elem, event) == 0.0f) {
                 if (!is_in_e) {
                     ret.push_back(
                         std::make_tuple(elem.index2(), std::get<1>(q)));
@@ -569,7 +600,7 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
                 } else {
                     for (auto elemg2 = e_row.begin(); elemg2 != e_row.end();
                          ++elemg2) {
-                        if (op::CalcGCD_(*elemg2, event) > 1.0f) {
+                        if (std::fmod(*elemg2, event) == 0.0f) {
                             ret.push_back(std::make_tuple(elem.index2(),
                                                           elemg2.index2()));
                         }
@@ -579,7 +610,7 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
         }
     } else {  // Is only on e: !is_in_p && is_in_e
         for (auto elemg2 = e_row.begin(); elemg2 != e_row.end(); ++e_row) {
-            if (op::CalcGCD_(*elemg2, event) > 1.0f) {
+            if (std::fmod(*elemg2, event) == 0.0f) {
                 ret.push_back(std::make_tuple(std::get<0>(q), elemg2.index2()));
                 return ret;
             }
@@ -624,7 +655,7 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
     f.insert(std::make_tuple(aP.init_state_, aE.init_state_));
 
     DESystem::EventsSet s_events;
-    std::set_union(aP.events_.begin(), aE.events_.end(), aE.events_.begin(),
+    std::set_union(aP.events_.begin(), aP.events_.end(), aE.events_.begin(),
                    aE.events_.end(), std::inserter(s_events, s_events.begin()));
 
     DESystem::EventsSet s_non_contr;
@@ -632,15 +663,16 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
                           non_contr.end(),
                           std::inserter(s_non_contr, s_non_contr.begin()));
 
-    auto const p_inversedgraph = boost::numeric::ublas::trans(*(aP.graph_));
-    auto const e_inversedgraph = boost::numeric::ublas::trans(*(aE.graph_));
+    auto const p_inversedgraph = boost::numeric::ublas::trans(aP.graph_);
+    auto const e_inversedgraph = boost::numeric::ublas::trans(aE.graph_);
 
     while (f.size() != 0) {
         auto q = *(f.begin());
         s_states.emplace(q);
         f.erase(f.begin());
         for (auto event : s_events) {
-            bool const is_non_contr = non_contr.find(event) != non_contr.end();
+            bool const is_non_contr =
+                s_non_contr.find(event) != s_non_contr.end();
             auto fs_qevent = TransitionVirtual(aP, aE, q, event);
 
             if (is_non_contr && fs_qevent == nullptr &&
@@ -648,10 +680,9 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
                 __RemoveBadStates(aP.events_, aE.events_, p_inversedgraph,
                                   e_inversedgraph, s_states, q, s_non_contr);
             } else if (fs_qevent) {
-                auto is_in_f = false;
-                auto is_in_s_states = false;
-                is_in_f = f.find(*fs_qevent) != f.end();
-                is_in_s_states = s_states.find(*fs_qevent) != s_states.end();
+                auto is_in_f = f.find(*fs_qevent) != f.end();
+                auto is_in_s_states =
+                    s_states.find(*fs_qevent) != s_states.end();
                 if (!is_in_s_states && !is_in_f) {
                     f.emplace(*fs_qevent);
                 }
