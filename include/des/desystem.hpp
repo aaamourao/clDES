@@ -80,6 +80,7 @@ cldes::DESystem SynchronizeStage2(StatesTableSTL const aTable,
 
 StatesTupleSTL *TransitionVirtual(cldes::DESystem const &aP,
                                   cldes::DESystem const &aE,
+                                  StatesTableSTL const &aTable,
                                   StatesTupleSTL const q, float const event);
 
 bool TransitionReal(cldes::DESystem const &aP, cldes::cldes_size_t const &x,
@@ -96,6 +97,7 @@ public:
     using StatesVector = ublas::compressed_matrix<ScalarType>;
     using StatesDenseVector = ublas::vector<ScalarType>;
     using EventsSet = std::set<ScalarType>;
+    using StatesEventsTable = std::vector<EventsSet>;
 
     /*! \brief DESystem constructor by copying ublas object
      *
@@ -231,10 +233,10 @@ private:
                                                     DESystem const &aSys1);
     friend DESystem op::SynchronizeStage2(op::StatesTableSTL const aTable,
                                           DESystem &aSys0, DESystem &aSys1);
-    friend op::StatesTupleSTL *op::TransitionVirtual(DESystem const &aP,
-                                                     DESystem const &aE,
-                                                     op::StatesTupleSTL const q,
-                                                     float const event);
+    friend op::StatesTupleSTL *op::TransitionVirtual(
+        DESystem const &aP, DESystem const &aE,
+        op::StatesTableSTL const &aTable, op::StatesTupleSTL const q,
+        float const event);
     friend bool op::TransitionReal(DESystem const &aP, cldes_size_t const &x,
                                    float const &event);
     friend DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
@@ -289,6 +291,10 @@ private:
      * system.
      */
     EventsSet events_;
+
+    /*! \brief Vector containing a events set per state
+     */
+    StatesEventsTable states_events_;
 
     /*! \brief Method for caching the graph
      *

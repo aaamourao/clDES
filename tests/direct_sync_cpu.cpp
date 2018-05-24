@@ -29,10 +29,10 @@
  =========================================================================
 */
 
-#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <chrono>
 #include <string>
-#include "des/desystem.hpp"
+#include <tuple>
+#include "cldes.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
@@ -59,17 +59,16 @@ int main() {
 
     int const initstateG1 = 0;
 
-    ublas::compressed_matrix<float> adjmtr(nstatesG1, nstatesG1);
-
-    adjmtr(0, 0) = a;
-    adjmtr(0, 2) = g;
-    adjmtr(1, 0) = a;
-    adjmtr(1, 1) = b;
-    adjmtr(2, 1) = a * g;
-    adjmtr(2, 2) = b;
-
-    cldes::DESystem g1{adjmtr, nstatesG1, initstateG1, markedstatesG1};
+    cldes::DESystem g1{nstatesG1, initstateG1, markedstatesG1};
     g1.InsertEvents(eventsG1);
+
+    g1(0, 0) = a;
+    g1(0, 2) = g;
+    g1(1, 0) = a;
+    g1(1, 1) = b;
+    g1(2, 1) = a;
+    g1(2, 1) = g;
+    g1(2, 2) = b;
 
     // Declare system G2
     int const nstatesG2 = 2;
@@ -83,15 +82,13 @@ int main() {
 
     int const initstateG2 = 0;
 
-    ublas::compressed_matrix<float> adjmtrg2(nstatesG2, nstatesG2);
-
-    adjmtrg2(0, 0) = b;
-    adjmtrg2(0, 1) = a;
-    adjmtrg2(1, 0) = b;
-    adjmtrg2(1, 1) = a;
-
-    cldes::DESystem g2{adjmtrg2, nstatesG2, initstateG2, markedstatesG2};
+    cldes::DESystem g2{nstatesG2, initstateG2, markedstatesG2};
     g2.InsertEvents(eventsG2);
+
+    g2(0, 0) = b;
+    g2(0, 1) = a;
+    g2(1, 0) = b;
+    g2(1, 1) = a;
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto sync_sys = cldes::op::Synchronize(g1, g2);

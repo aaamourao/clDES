@@ -51,6 +51,11 @@ DESystem::DESystem(GraphHostData const &aGraph,
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
 
+    for (auto i = 0; i < states_number_; ++i) {
+        DESystem::EventsSet state_events;
+        states_events_.push_back(state_events);
+    }
+
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
         this->CacheGraph_();
@@ -72,6 +77,7 @@ DESystem::DESystem(DESystem const &aSys) {
     is_cache_outdated_ = bool{aSys.is_cache_outdated_};
     events_ = EventsSet{aSys.events_};
     graph_ = GraphHostData{aSys.graph_};
+    states_events_ = StatesEventsTable{aSys.states_events_};
 }
 
 DESystem::GraphHostData DESystem::GetGraph() const { return graph_; }

@@ -72,7 +72,7 @@ void SetWorkGroups_(KernelType *k, cldes::cldes_size_t const aGws0,
 }
 
 template <class EventsSetType>
-long long  CalcEventsInt_(EventsSetType const &aEvents) {
+long long CalcEventsInt_(EventsSetType const &aEvents) {
     long long events_integer = 1;
 
     for (auto event : aEvents) {
@@ -105,6 +105,7 @@ cldes::DESystem SynchronizeStage2(StatesTableSTL const aTable,
 
 StatesTupleSTL *TransitionVirtual(cldes::DESystem const &aP,
                                   cldes::DESystem const &aE,
+                                  StatesTableSTL const &aTable,
                                   StatesTupleSTL const q, float const event);
 
 bool TransitionReal(cldes::DESystem const &aP, cldes::cldes_size_t const &x,

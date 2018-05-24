@@ -38,10 +38,15 @@ TransitionProxy::TransitionProxy(DESystem *const aSysPtr,
                                  cldes_size_t const &aCol)
     : sys_ptr_{aSysPtr}, lin_{aLin}, col_{aCol} {}
 
-
 TransitionProxy &TransitionProxy::operator=(ScalarType aTransitionValue) {
     sys_ptr_->is_cache_outdated_ = true;
-    (sys_ptr_->graph_)(lin_, col_) = aTransitionValue;
+    sys_ptr_->events_.emplace(aTransitionValue);
+    sys_ptr_->states_events_[lin_].emplace(aTransitionValue);
+    if ((sys_ptr_->graph_)(lin_, col_) > 0.0f) {
+        (sys_ptr_->graph_)(lin_, col_) *= aTransitionValue;
+    } else {
+        (sys_ptr_->graph_)(lin_, col_) = aTransitionValue;
+    }
     return *this;
 }
 
