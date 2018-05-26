@@ -33,12 +33,12 @@
 #define CLDES_HPP
 
 #include "des/desystem.hpp"
-#include "des/desystemcl.hpp"
+// #include "des/desystemcl.hpp"
 #include "des/transition_proxy.hpp"
 
 namespace cldes {
 class DESystem;
-class DESystemCL;
+// class DESystemCL;
 }
 
 #endif // CLDESS_HPP

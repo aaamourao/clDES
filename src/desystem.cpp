@@ -35,25 +35,24 @@
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <functional>
 #include <vector>
-#include "backend/oclbackend.hpp"
 #include "des/transition_proxy.hpp"
-#include "operations/operations.hpp"
 
 using namespace cldes;
 
-DESystem::DESystem(GraphHostData const &aGraph,
-                   cldes_size_t const &aStatesNumber,
+DESystem::DESystem(cldes_size_t const &aStatesNumber,
                    cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                   bool const &aDevCacheEnabled)
-    : graph_{GraphHostData{aGraph}}, init_state_{aInitState} {
+                   bool const &aDevCacheEnabled) {
+    init_state_ = aInitState;
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
+    graph_ = DESystem::GraphHostData(states_number_, states_number_);
+    bit_graph_ = DESystem::BitGraphHostData(states_number_, states_number_);
 
-    for (auto i = 0; i < states_number_; ++i) {
-        DESystem::EventsSet state_events;
-        states_events_.push_back(state_events);
+    DESystem::EventsSet events;
+    for (auto i = 0u; i < states_number_; ++i) {
+        states_events_.push_back(events);
     }
 
     // If device cache is enabled, cache it
@@ -61,13 +60,6 @@ DESystem::DESystem(GraphHostData const &aGraph,
         this->CacheGraph_();
     }
 }
-
-DESystem::DESystem(cldes_size_t const &aStatesNumber,
-                   cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                   bool const &aDevCacheEnabled)
-    : DESystem::DESystem{GraphHostData{aStatesNumber, aStatesNumber},
-                         aStatesNumber, aInitState, aMarkedStates,
-                         aDevCacheEnabled} {}
 
 DESystem::DESystem(DESystem const &aSys) {
     init_state_ = cldes_size_t{aSys.init_state_};
@@ -77,6 +69,7 @@ DESystem::DESystem(DESystem const &aSys) {
     is_cache_outdated_ = bool{aSys.is_cache_outdated_};
     events_ = EventsSet{aSys.events_};
     graph_ = GraphHostData{aSys.graph_};
+    bit_graph_ = BitGraphHostData{aSys.bit_graph_};
     states_events_ = StatesEventsTable{aSys.states_events_};
 }
 
@@ -112,7 +105,7 @@ DESystem::StatesSet *DESystem::Bfs_(
     // to set X on host first.
     std::vector<cldes_size_t> states_map;
     for (auto state : aInitialNodes) {
-        host_x(state, states_map.size()) = 1;
+        host_x(state, states_map.size()) = true;
         // Maping each search from each initial node to their correspondent
         // vector on the matrix
         states_map.push_back(state);
@@ -134,7 +127,7 @@ DESystem::StatesSet *DESystem::Bfs_<cldes_size_t>(
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
-    host_x(aInitialNode, 0) = 1;
+    host_x(aInitialNode, 0) = true;
 
     return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
@@ -148,23 +141,17 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     std::vector<cldes_size_t> const *const aStatesMap) {
     cl_uint n_initial_nodes = aHostX.size2();
 
-    ublas::compressed_matrix<ScalarType> graph{ublas::trans(graph_)};
-
-    // Sum it to identity and set all nnz to 1.0f
-    for (auto i = graph.begin1(); i != graph.end1(); ++i) {
-        // for (auto j = i.begin(); j != i.end(); ++j) {
-        //    graph(i.index1(), j.index2()) = 1.0f;
-        //}
-        graph(i.index1(), i.index1()) = 1.0f;
+    for (auto i = bit_graph_.begin1(); i != bit_graph_.end1(); ++i) {
+        bit_graph_(i.index1(), i.index1()) = true;
     }
 
     // Executes BFS
     StatesVector y;
-    auto n_accessed_states = 0;
+    auto n_accessed_states = 0l;
     for (auto i = 0; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        y = ublas::prod(graph, aHostX);
+        y = ublas::prod(bit_graph_, aHostX);
 
         if (n_accessed_states == y.nnz()) {
             break;
@@ -237,12 +224,13 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
 DESystem::StatesSet DESystem::TrimStates() {
     StatesSet accpart = AccessiblePart();
 
-    StatesSet trimstates = marked_states_;
-    StatesSet searching_nodes;
+    StatesSet trimstates;
+    StatesSet searching_nodes = accpart;
+    /*
     std::set_difference(
         accpart.begin(), accpart.end(), marked_states_.begin(),
         marked_states_.end(),
-        std::inserter(searching_nodes, searching_nodes.begin()));
+        std::inserter(searching_nodes, searching_nodes.begin()));*/
     auto paccessed_states = Bfs_(
         searching_nodes,
         [this, &trimstates](cldes_size_t const &aInitialState,
@@ -292,8 +280,13 @@ DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
         trimstates.end(),
         std::inserter(trim_marked_states, trim_marked_states.begin()));
 
-    DESystem trim_system{trim_graph, trimstates.size(), init_state_,
-                         trim_marked_states, aDevCacheEnabled};
+    DESystem trim_system{trimstates.size(), init_state_, trim_marked_states,
+                         aDevCacheEnabled};
+
+    trim_system.graph_ = trim_graph;
+
+    // TODO: Assign bit_graph_
+
     return trim_system;
 }
 

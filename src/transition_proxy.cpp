@@ -38,18 +38,35 @@ TransitionProxy::TransitionProxy(DESystem *const aSysPtr,
                                  cldes_size_t const &aCol)
     : sys_ptr_{aSysPtr}, lin_{aLin}, col_{aCol} {}
 
-TransitionProxy &TransitionProxy::operator=(ScalarType aTransitionValue) {
-    sys_ptr_->is_cache_outdated_ = true;
-    sys_ptr_->events_.emplace(aTransitionValue);
-    sys_ptr_->states_events_[lin_].emplace(aTransitionValue);
-    if ((sys_ptr_->graph_)(lin_, col_) > 0.0f) {
-        (sys_ptr_->graph_)(lin_, col_) *= aTransitionValue;
-    } else {
-        (sys_ptr_->graph_)(lin_, col_) = aTransitionValue;
+TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
+    if (aEventPos > g_max_events) {
+        throw "ValueError: Max transition value = 64";
     }
+
+    // Add transition to the system and to the state
+    sys_ptr_->events_[aEventPos] = true;
+    (sys_ptr_->states_events_[lin_])[aEventPos] = true;
+
+    // Add transition to graph
+    std::bitset<64> event_l;
+    event_l[aEventPos] = true;
+    if ((sys_ptr_->graph_)(lin_, col_) == 0) {
+        (sys_ptr_->graph_)(lin_, col_) = event_l;
+    } else {
+        std::bitset<64> last_value = ((sys_ptr_->graph_)(lin_, col_));
+        (sys_ptr_->graph_)(lin_, col_) = last_value | event_l;
+    }
+
+    // Add transition to bit graph, which is transposed
+    (sys_ptr_->bit_graph_)(col_, lin_) = true;
+
+    sys_ptr_->is_cache_outdated_ = true;
+
     return *this;
 }
 
+/*
 TransitionProxy::operator ScalarType() {
     return (sys_ptr_->graph_)(lin_, col_);
 }
+*/

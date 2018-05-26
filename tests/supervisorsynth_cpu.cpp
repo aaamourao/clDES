@@ -30,76 +30,76 @@
 */
 
 #include <chrono>
+#include <iostream>
+#include <unordered_set>
+#include <sstream>
 #include <string>
-#include <tuple>
 #include "cldes.hpp"
+
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
-namespace ublas = boost::numeric::ublas;
 using namespace std::chrono;
 
 int main() {
     // Declare transitions: represented by prime numbers
-    cldes::ScalarType a = 0;
-    cldes::ScalarType b = 1;
-    cldes::ScalarType g = 2;
+    cldes::ScalarType const a0 = 0;
+    cldes::ScalarType const a1 = 1;
+    cldes::ScalarType const b0 = 2;
+    cldes::ScalarType const b1 = 3;
 
-    // Declare system G1
-    int const nstatesG1 = 3;
+    std::unordered_set<cldes::ScalarType> non_contr = {b0, b1};
 
-    cldes::DESystem::StatesSet markedstatesG1;
-    markedstatesG1.insert(0);
-    markedstatesG1.insert(2);
+    std::set<cldes::cldes_size_t> plant_marked_states = {0};
 
-    int const initstateG1 = 0;
+    cldes::DESystem plant{4, 0, plant_marked_states};
 
-    cldes::DESystem g1{nstatesG1, initstateG1, markedstatesG1};
+    plant(0, 1) = a0;
+    plant(0, 2) = a1;
+    plant(1, 0) = b0;
+    plant(1, 3) = a1;
+    plant(2, 0) = b1;
+    plant(2, 3) = a0;
+    plant(3, 1) = b1;
+    plant(3, 2) = b0;
 
-    g1(0, 0) = a;
-    g1(0, 2) = g;
-    g1(1, 0) = a;
-    g1(1, 1) = b;
-    g1(2, 1) = a;
-    g1(2, 1) = g;
-    g1(2, 2) = b;
+    PrintGraph(plant.GetGraph(), "Plant");
 
-    // Declare system G2
-    int const nstatesG2 = 2;
+    std::set<cldes::cldes_size_t> spec_marked_states = {0, 1};
 
-    cldes::DESystem::StatesSet markedstatesG2;
-    markedstatesG1.insert(1);
+    cldes::DESystem spec{2, 0, spec_marked_states};
 
-    int const initstateG2 = 0;
+    spec(0, 1) = b0;
+    spec(1, 0) = a1;
 
-    cldes::DESystem g2{nstatesG2, initstateG2, markedstatesG2};
+    PrintGraph(spec.GetGraph(), "Spec");
 
-    g2(0, 0) = b;
-    g2(0, 1) = a;
-    g2(1, 0) = b;
-    g2(1, 1) = a;
-
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    auto sync_sys = cldes::op::Synchronize(g1, g2);
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    auto t1 = high_resolution_clock::now();
+    auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
+    auto t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
+    std::cout << "Supervisor synth time spent: " << duration << " microseconds"
+              << std::endl;
+
+    std::cout << "Number of states of the supervisor: " << supervisor.Size()
+              << std::endl;
+    std::cout << "Number of transitions of the supervisor "
+              << supervisor.GetGraph().nnz() << std::endl;
 
     std::ostringstream expected_result;
 
-    expected_result << "0 5 0 2 0 0 " << std::endl;
-    expected_result << "0 0 1 0 0 2 " << std::endl;
-    expected_result << "4 0 1 0 0 0 " << std::endl;
-    expected_result << "0 1 0 2 0 4 " << std::endl;
-    expected_result << "0 0 1 4 0 0 " << std::endl;
-    expected_result << "0 0 1 0 0 2 " << std::endl;
+    expected_result << "0 0 4 0 0 0 " << std::endl;
+    expected_result << "1 0 0 0 0 0 " << std::endl;
+    expected_result << "0 0 0 2 0 0 " << std::endl;
+    expected_result << "0 8 0 0 1 0 " << std::endl;
+    expected_result << "8 0 0 0 0 4 " << std::endl;
+    expected_result << "0 0 8 0 0 0 " << std::endl;
     expected_result << ">" << std::endl;
-    ProcessResult(sync_sys.GetGraph(), "< Sync graph",
+    ProcessResult(supervisor.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());
     std::cout << "Synchronize time: " << duration << " microseconds"
               << std::endl;
-
-    std::cout << "Finishing test" << std::endl;
 
     return 0;
 }

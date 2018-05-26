@@ -51,15 +51,16 @@ int main() {
     cldes::DESystem sys{n_states, init_state, marked_states};
 
     // Declare transitions: represented by prime numbers
-    float const a = 2.0f;
-    float const b = 3.0f;
-    float const g = 5.0f;
+    cldes::ScalarType const a = 0;
+    cldes::ScalarType const b = 1;
+    cldes::ScalarType const g = 2;
 
     sys(0, 0) = a;
     sys(0, 2) = g;
     sys(1, 0) = a;
     sys(1, 1) = b;
-    sys(2, 1) = a * g;
+    sys(2, 1) = a;
+    sys(2, 1) = g;
     sys(2, 2) = b;
     sys(2, 3) = a;
 
@@ -99,7 +100,8 @@ int main() {
     new_sys(0, 0) = a;
     new_sys(0, 2) = g;
     new_sys(1, 1) = b;
-    new_sys(2, 1) = a * g;
+    new_sys(2, 1) = a;
+    new_sys(2, 1) = g;
     new_sys(2, 2) = b;
     new_sys(3, 1) = a;
     new_sys(3, 2) = a;

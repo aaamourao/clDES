@@ -43,7 +43,7 @@ std::string ReadResult(T const &aOpResult, StringType const aHeader) {
     return result.str();
 }
 
-using ublas_matrix = boost::numeric::ublas::compressed_matrix<float>;
+using ublas_matrix = boost::numeric::ublas::compressed_matrix<std::bitset<64>>;
 
 template <typename StringType>
 std::string ReadResult(ublas_matrix const &aOpResult,
@@ -53,7 +53,12 @@ std::string ReadResult(ublas_matrix const &aOpResult,
     result << aHeader << ":" << std::endl;
     for (auto it1 = 0; it1 != aOpResult.size1(); ++it1) {
         for (auto it2 = 0; it2 != aOpResult.size2(); ++it2) {
-            result << aOpResult(it1, it2) << " ";
+            auto events = aOpResult(it1, it2);
+            if (events != 0) {
+                result << events.to_ulong() << " ";
+            } else {
+                result << "0 ";
+            }
         }
         result << std::endl;
     }
@@ -81,7 +86,12 @@ void PrintGraph(GraphType const &aGraph, StringType const &aGraphName) {
     std::cout << aGraphName << std::endl;
     for (auto it1 = 0; it1 != aGraph.size1(); ++it1) {
         for (auto it2 = 0; it2 != aGraph.size2(); ++it2) {
-            std::cout << aGraph(it1, it2) << " ";
+            auto events = aGraph(it1, it2);
+            if (events != 0) {
+                std::cout << events.to_ulong() << " ";
+            } else {
+                std::cout << "0 ";
+            }
         }
         std::cout << std::endl;
     }

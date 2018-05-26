@@ -37,9 +37,10 @@
 #endif
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
-#include <list>
 #include <set>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 #include "constants.hpp"
 
 namespace cldes {
@@ -70,51 +71,39 @@ struct StatesTable;
 struct StatesTuple;
 
 using StatesTupleSTL = std::tuple<cldes_size_t, cldes_size_t>;
-using StatesTableSTL = std::vector<StatesTupleSTL>;
+using StatesTableSTL = std::unordered_map<cldes_size_t, StatesTupleSTL>;
 
 StatesTableSTL SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
 
-cldes::DESystem SynchronizeStage2(StatesTableSTL const aTable,
+cldes::DESystem SynchronizeStage2(StatesTableSTL const &aTable,
                                   cldes::DESystem &aSys0,
                                   cldes::DESystem &aSys1);
 
-StatesTupleSTL *TransitionVirtual(cldes::DESystem const &aP,
-                                  cldes::DESystem const &aE,
-                                  StatesTableSTL const &aTable,
-                                  StatesTupleSTL const q, float const event);
+StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
+                                 cldes::DESystem const &aSys1,
+                                 StatesTupleSTL const q,
+                                 ScalarType const event);
 
-bool TransitionReal(cldes::DESystem const &aP, cldes::cldes_size_t const &x,
-                    float const &event);
+bool ExistTransitionVirtual(cldes::DESystem const &aSys0,
+                            cldes::DESystem const &aSys1,
+                            StatesTupleSTL const q, ScalarType const event);
 
-cldes::DESystem SupervisorSynth(cldes::DESystem &aP, cldes::DESystem &aS,
-                                std::set<float> const &non_contr);
+bool ExistTransitionReal(cldes::DESystem const &aSys0,
+                         cldes::cldes_size_t const &x, ScalarType const &event);
+
+cldes::DESystem SupervisorSynth(
+    cldes::DESystem &aP, cldes::DESystem &aS,
+    std::unordered_set<ScalarType> const &non_contr);
 }  // namespace op
 
 class DESystem {
 public:
-    using GraphHostData = ublas::compressed_matrix<ScalarType>;
+    using GraphHostData = ublas::compressed_matrix<EventsBitArray>;
+    using BitGraphHostData = ublas::compressed_matrix<bool>;
     using StatesSet = std::set<cldes_size_t>;
-    using StatesVector = ublas::compressed_matrix<ScalarType>;
-    using StatesDenseVector = ublas::vector<ScalarType>;
-    using EventsSet = std::set<ScalarType>;
+    using StatesVector = ublas::compressed_matrix<bool>;
+    using EventsSet = EventsBitArray;
     using StatesEventsTable = std::vector<EventsSet>;
-
-    /*! \brief DESystem constructor by copying ublas object
-     *
-     * Creates the DESystem object with N states defined by the argument
-     * aStatesNumber and represented by its graph defined by argument the
-     * ublas compressed matrix aGraph.
-     *
-     * @param aGraph Ublas matrix containing the graph data
-     * @param aStatesNumber Number of states of the system
-     * @param aInitState System's initial state
-     * @param aMarkedStates System's marked states
-     * @aDevCacheEnabled Enable or disable device cache for graph data
-     */
-    explicit DESystem(GraphHostData const &aGraph,
-                      cldes_size_t const &aStatesNumber,
-                      cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                      bool const &aDevCacheEnabled = true);
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -231,16 +220,23 @@ private:
     friend DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1);
     friend op::StatesTableSTL op::SynchronizeStage1(DESystem const &aSys0,
                                                     DESystem const &aSys1);
-    friend DESystem op::SynchronizeStage2(op::StatesTableSTL const aTable,
+    friend DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                                           DESystem &aSys0, DESystem &aSys1);
-    friend op::StatesTupleSTL *op::TransitionVirtual(
-        DESystem const &aP, DESystem const &aE,
-        op::StatesTableSTL const &aTable, op::StatesTupleSTL const q,
-        float const event);
-    friend bool op::TransitionReal(DESystem const &aP, cldes_size_t const &x,
-                                   float const &event);
-    friend DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
-                                        std::set<float> const &non_contr);
+    friend op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
+                                                    DESystem const &aSys1,
+                                                    op::StatesTupleSTL const q,
+                                                    ScalarType const event);
+    friend bool op::ExistTransitionVirtual(DESystem const &aSys0,
+                                           DESystem const &aSys1,
+                                           op::StatesTupleSTL const q,
+                                           ScalarType const event);
+    friend bool op::ExistTransitionReal(DESystem const &aSys0,
+                                        cldes_size_t const &x,
+                                        ScalarType const &event);
+    friend DESystem op::SupervisorSynth(
+        DESystem &aP, DESystem &aE,
+        std::unordered_set<ScalarType> const &non_contr);
+
     /*! \brief Graph represented by an adjascency matrix
      *
      * A sparse matrix who represents the automata as a graph in an
@@ -250,6 +246,10 @@ private:
      *
      */
     GraphHostData graph_;
+
+    /*! \brief Bit graph represented by an adjascency matrix
+     */
+    BitGraphHostData bit_graph_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      *
@@ -285,14 +285,14 @@ private:
      */
     StatesSet marked_states_;
 
-    /*! \brief System's events
+    /*! \brief System's events hash table
      *
-     * A std::set containing all the events that matter for the current
+     * A hash table containing all the events that matter for the current
      * system.
      */
     EventsSet events_;
 
-    /*! \brief Vector containing a events set per state
+    /*! \brief Vector containing a events hash table per state
      */
     StatesEventsTable states_events_;
 
@@ -320,18 +320,6 @@ private:
                     std::function<void(cldes_size_t const &,
                                        cldes_size_t const &)> const &aBfsVisit);
 
-    /*! \brief Setup BFS using dense vector and return accessed states array
-     *
-     * Executes a breadth first search on the graph starting from the node
-     * aInitialNode. The algorithm is based on SpMV.
-     *
-     * @param aInitialNode Node where the searches will start
-     */
-    StatesSet *BfsSpMV_(
-        cldes_size_t const &aInitialNode,
-        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-            &aBfsVisit);
-
     /*! \brief Calculates Bfs and returns accessed states array
      *
      * Executes a breadth first search on the graph starting from one single
@@ -344,19 +332,6 @@ private:
         std::function<void(cldes_size_t const &, cldes_size_t const &)> const
             &aBfsVisit,
         std::vector<cldes_size_t> const *const aStatesMap);
-
-    /*! \brief Calculates Bfs using dense vector and returns accessed states
-     * array
-     *
-     * Executes a breadth first search on the graph starting from one single
-     * node. The algorithm is based on SpMV.
-     *
-     * @param aInitialNode Where the search will start
-     */
-    StatesSet *BfsCalcSpMV_(
-        StatesDenseVector &aHostX,
-        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-            &aBfsVisit);
 
     /*! \brief Return a pointer to accessed states from the initial state
      *

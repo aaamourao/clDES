@@ -41,9 +41,9 @@ using namespace std::chrono;
 
 int main() {
     // Declare transitions: represented by prime numbers
-    const float a = 2.0f;
-    const float b = 3.0f;
-    const float g = 5.0f;
+    cldes::ScalarType a = 0;
+    cldes::ScalarType b = 1;
+    cldes::ScalarType g = 2;
 
     // Declare system G1
     int const nstatesG1 = 3;
@@ -51,11 +51,6 @@ int main() {
     cldes::DESystem::StatesSet markedstatesG1;
     markedstatesG1.insert(0);
     markedstatesG1.insert(2);
-
-    cldes::DESystem::EventsSet eventsG1;
-    eventsG1.insert(a);
-    eventsG1.insert(b);
-    eventsG1.insert(g);
 
     int const initstateG1 = 0;
 
@@ -69,15 +64,13 @@ int main() {
     g1(2, 1) = g;
     g1(2, 2) = b;
 
+    PrintGraph(g1.GetGraph(), "g1");
+
     // Declare system G2
     int const nstatesG2 = 2;
 
     cldes::DESystem::StatesSet markedstatesG2;
     markedstatesG1.insert(1);
-
-    cldes::DESystem::EventsSet eventsG2;
-    eventsG2.insert(a);
-    eventsG2.insert(b);
 
     int const initstateG2 = 0;
 
@@ -88,6 +81,8 @@ int main() {
     g2(1, 0) = b;
     g2(1, 1) = a;
 
+    PrintGraph(g2.GetGraph(), "g2");
+
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto stage1 = cldes::op::SynchronizeStage1(g1, g2);
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
@@ -96,7 +91,8 @@ int main() {
     std::cout << "SynchronizeStage1 time: " << duration << " microseconds"
               << std::endl;
 
-    for (auto s : stage1) {
+    for (auto p : stage1) {
+        auto s = std::get<1>(p);
         std::cout << "(" << std::get<0>(s) << ", " << std::get<1>(s) << ")"
                   << std::endl;
     }
@@ -109,12 +105,12 @@ int main() {
 
     std::ostringstream expected_result;
 
-    expected_result << "0 0 5 2 0 0 " << std::endl;
-    expected_result << "0 3 0 2 0 0 " << std::endl;
-    expected_result << "0 5 3 0 2 0 " << std::endl;
-    expected_result << "0 0 0 2 0 5 " << std::endl;
-    expected_result << "0 3 0 2 0 0 " << std::endl;
-    expected_result << "0 0 3 0 10 0 " << std::endl;
+    expected_result << "0 5 0 2 0 0 " << std::endl;
+    expected_result << "0 0 1 0 0 2 " << std::endl;
+    expected_result << "4 0 1 0 0 0 " << std::endl;
+    expected_result << "0 1 0 2 0 4 " << std::endl;
+    expected_result << "0 0 1 4 0 0 " << std::endl;
+    expected_result << "0 0 1 0 0 2 " << std::endl;
     expected_result << ">" << std::endl;
     ProcessResult(sync_sys.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());

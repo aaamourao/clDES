@@ -7,9 +7,9 @@
 set(libclDESSrcs
     operations.cpp
     desystem.cpp
-    desystemcl.cpp
+    # desystemcl.cpp
     transition_proxy.cpp
-    oclbackend.cpp
+    # oclbackend.cpp
 )
 
 # Library public headers
@@ -25,7 +25,7 @@ add_library(libclDES SHARED ${libclDESSrcs})
 set_target_properties(libclDES PROPERTIES VERSION ${PROJECT_VERSION})
 
 # Link OpenCL library
-target_link_libraries(libclDES OpenCL::OpenCL)
+# target_link_libraries(libclDES OpenCL::OpenCL)
 
 
 # Add install targets

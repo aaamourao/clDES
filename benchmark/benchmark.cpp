@@ -31,7 +31,7 @@
 
 #include <chrono>
 #include <cstdlib>
-#include <set>
+#include <unordered_set>
 #include <vector>
 #include "des/desystem.hpp"
 #include "operations/operations.hpp"
@@ -42,7 +42,7 @@ using namespace std::chrono;
 void ClusterTool(unsigned int const &aNClusters,
                  std::vector<cldes::DESystem> &aPlants,
                  std::vector<cldes::DESystem> &aSpecs,
-                 std::set<cldes::ScalarType> &non_contr);
+                 std::unordered_set<cldes::ScalarType> &non_contr);
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<cldes::DESystem> plants;
     std::vector<cldes::DESystem> specs;
-    std::set<cldes::ScalarType> non_contr;
+    std::unordered_set<cldes::ScalarType> non_contr;
 
     std::cout << "Generating ClusterTool(" << std::atoi(argv[1]) << ")"
               << std::endl;
@@ -84,6 +84,9 @@ int main(int argc, char *argv[]) {
     PrintGraph(specs[i].GetGraph(), "spec[i]");
     }
     t2 = high_resolution_clock::now();
+
+    spec = spec.Trim();
+    plant = plant.Trim();
 
     duration = duration_cast<microseconds>(t2 - t1).count();
     std::cout << "Specs sync time spent: " << duration << " microseconds"
