@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
+#include <boost/numeric/ublas/operation_sparse.hpp>
 #include <functional>
 #include <vector>
 #include "des/transition_proxy.hpp"
@@ -48,11 +49,13 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
     graph_ = DESystem::GraphHostData(states_number_, states_number_);
-    bit_graph_ = DESystem::BitGraphHostData(states_number_, states_number_);
+    bit_graph_ = DESystem::BitGraphHostData(states_number_, states_number_,
+                                            states_number_);
 
     DESystem::EventsSet events;
-    for (auto i = 0u; i < states_number_; ++i) {
+    for (auto s = 0u; s < states_number_; ++s) {
         states_events_.push_back(events);
+        bit_graph_(s, s) = true;
     }
 
     // If device cache is enabled, cache it
@@ -141,17 +144,13 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     std::vector<cldes_size_t> const *const aStatesMap) {
     cl_uint n_initial_nodes = aHostX.size2();
 
-    for (auto i = bit_graph_.begin1(); i != bit_graph_.end1(); ++i) {
-        bit_graph_(i.index1(), i.index1()) = true;
-    }
-
     // Executes BFS
-    StatesVector y;
+    StatesVector y{states_number_, n_initial_nodes};
     auto n_accessed_states = 0l;
     for (auto i = 0; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        y = ublas::prod(bit_graph_, aHostX);
+        ublas::sparse_prod(bit_graph_, aHostX, y, true);
 
         if (n_accessed_states == y.nnz()) {
             break;
@@ -223,26 +222,27 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
 
 DESystem::StatesSet DESystem::TrimStates() {
     StatesSet accpart = AccessiblePart();
+    StatesSet coapart = CoaccessiblePart();
 
     StatesSet trimstates;
-    StatesSet searching_nodes = accpart;
+    std::set_intersection(accpart.begin(), accpart.end(), coapart.begin(),
+                          coapart.end(),
+                          std::inserter(trimstates, trimstates.begin()));
     /*
-    std::set_difference(
-        accpart.begin(), accpart.end(), marked_states_.begin(),
-        marked_states_.end(),
-        std::inserter(searching_nodes, searching_nodes.begin()));*/
-    auto paccessed_states = Bfs_(
-        searching_nodes,
-        [this, &trimstates](cldes_size_t const &aInitialState,
-                            cldes_size_t const &aAccessedState) {
-            bool const is_marked = this->marked_states_.find(aAccessedState) !=
-                                   this->marked_states_.end();
-            if (is_marked) {
-                trimstates.emplace(aInitialState);
-            }
+StatesSet searching_nodes = accpart;
+auto paccessed_states = Bfs_(
+    searching_nodes,
+    [this, &trimstates](cldes_size_t const &aInitialState,
+                        cldes_size_t const &aAccessedState) {
+        bool const is_marked = this->marked_states_.find(aAccessedState) !=
+                               this->marked_states_.end();
+        if (is_marked) {
+            trimstates.emplace(aInitialState);
+        }
 
-        });
-    delete[] paccessed_states;
+    });
+delete[] paccessed_states;
+*/
 
     return trimstates;
 }
