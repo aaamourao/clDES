@@ -128,7 +128,7 @@ op::StatesTableSTL op::SynchronizeStage1(DESystem const &aSys0,
     for (auto ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
         for (auto ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
             states_table[ix1 * aSys0.states_number_ + ix0] =
-                std::make_tuple(ix0, ix1);
+                std::make_pair(ix0, ix1);
         }
     }
 
@@ -234,34 +234,24 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
 
     auto sync_events = aSys0.events_ | aSys1.events_;
 
-    std::vector<StatesTupleSTL> ordered_table;
-    std::transform(aTable.begin(), aTable.end(),
-                   std::back_inserter(ordered_table),
-                   [](std::pair<cldes_size_t, StatesTupleSTL> const &e) {
-                       return e.second;
-                   });
-
-    for (auto q_ref = ordered_table.begin(); q_ref != ordered_table.end();
-         ++q_ref) {
+    for (auto q_ref = aTable.begin(); q_ref != aTable.end(); ++q_ref) {
         auto event = 0u;
-        auto q = *q_ref;
+        auto q = q_ref->second;
         auto sync_events_iter = sync_events;
         while (sync_events_iter != 0) {
             if (sync_events_iter[0]) {
                 bool const is_in_p = aSys0.events_[event];
                 bool const is_in_e = aSys1.events_[event];
 
-                bool const is_in_x =
-                    (aSys0.states_events_[std::get<0>(q)])[event];
-                bool const is_in_y =
-                    (aSys1.states_events_[std::get<1>(q)])[event];
+                bool const is_in_x = (aSys0.states_events_[q.first])[event];
+                bool const is_in_y = (aSys1.states_events_[q.second])[event];
 
                 if ((is_in_x && is_in_y) || (is_in_x && !is_in_e) ||
                     (is_in_y && !is_in_p)) {
                     int xid = -1;
                     int yid;
 
-                    auto index0 = std::distance(ordered_table.begin(), q_ref);
+                    auto index0 = std::distance(aTable.begin(), q_ref);
 
                     if (is_in_x) {
                         /*
@@ -270,7 +260,7 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                          * remove the following workaround.
                          */
                         auto p_row = aSys0.graph_.begin1();
-                        for (auto i = 0; i < std::get<0>(q); ++i) {
+                        for (auto i = 0; i < q.first; ++i) {
                             ++p_row;
                         }
                         // TODO: End of the workaround
@@ -280,14 +270,12 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                             if ((*elem)[event]) {
                                 xid = elem.index2();
                                 if (!is_in_e) {
-                                    yid = std::get<1>(q);
-                                    auto index1_iter =
-                                        std::find(ordered_table.begin(),
-                                                  ordered_table.end(),
-                                                  std::make_tuple(xid, yid));
-                                    if (index1_iter != ordered_table.end()) {
+                                    yid = q.second;
+                                    auto index1_iter = aTable.find(
+                                        yid * aSys0.states_number_ + xid);
+                                    if (index1_iter != aTable.end()) {
                                         size_t index1 = std::distance(
-                                            ordered_table.begin(), index1_iter);
+                                            aTable.begin(), index1_iter);
                                         result(index0, index1) = event;
                                     }
                                     break;
@@ -303,7 +291,7 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                          * remove the following workaround.
                          */
                         auto e_row = aSys1.graph_.begin1();
-                        for (auto i = 0; i < std::get<1>(q); ++i) {
+                        for (auto i = 0; i < q.second; ++i) {
                             ++e_row;
                         }
                         // TODO: End of the workaround
@@ -312,15 +300,14 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                              ++elem) {
                             if ((*elem)[event]) {
                                 if (!is_in_p) {
-                                    xid = std::get<0>(q);
+                                    xid = q.first;
                                 }
                                 yid = elem.index2();
-                                auto index1_iter = std::find(
-                                    ordered_table.begin(), ordered_table.end(),
-                                    std::make_tuple(xid, yid));
-                                if (index1_iter != ordered_table.end()) {
+                                auto index1_iter = aTable.find(
+                                    yid * aSys0.states_number_ + xid);
+                                if (index1_iter != aTable.end()) {
                                     size_t index1 = std::distance(
-                                        ordered_table.begin(), index1_iter);
+                                        aTable.begin(), index1_iter);
                                     result(index0, index1) = event;
                                 }
                                 break;
@@ -336,21 +323,18 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
 
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
-            auto s_it = std::find(ordered_table.begin(), ordered_table.end(),
-                                  std::make_tuple(s0, s1));
-            if (s_it != ordered_table.end()) {
-                auto marked_state = std::distance(ordered_table.begin(), s_it);
+            auto s_it = aTable.find(s1 * aSys0.states_number_ + s0);
+            if (s_it != aTable.end()) {
+                auto marked_state = std::distance(aTable.begin(), s_it);
                 markedstates_sync.emplace(marked_state);
             }
         }
     }
     result.marked_states_ = markedstates_sync;
 
-    auto init_state_sync_iter =
-        std::find(ordered_table.begin(), ordered_table.end(),
-                  std::make_tuple(aSys0.init_state_, aSys1.init_state_));
-    auto init_state_sync =
-        std::distance(ordered_table.begin(), init_state_sync_iter);
+    auto init_state_sync_iter = aTable.find(
+        aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_);
+    auto init_state_sync = std::distance(aTable.begin(), init_state_sync_iter);
     result.init_state_ = init_state_sync;
 
     return result;
@@ -362,8 +346,8 @@ bool op::ExistTransitionVirtual(DESystem const &aSys0, DESystem const &aSys1,
     bool const is_in_p = aSys0.events_[event];
     bool const is_in_e = aSys1.events_[event];
 
-    bool const is_in_x = (aSys0.states_events_[std::get<0>(q)])[event];
-    bool const is_in_y = (aSys1.states_events_[std::get<1>(q)])[event];
+    bool const is_in_x = (aSys0.states_events_[q.first])[event];
+    bool const is_in_y = (aSys1.states_events_[q.second])[event];
 
     bool exist_transition = false;
 
@@ -382,8 +366,8 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
     bool const is_in_p = aSys0.events_[event];
     bool const is_in_e = aSys1.events_[event];
 
-    bool const is_in_x = (aSys0.states_events_[std::get<0>(q)])[event];
-    bool const is_in_y = (aSys1.states_events_[std::get<1>(q)])[event];
+    bool const is_in_x = (aSys0.states_events_[q.first])[event];
+    bool const is_in_y = (aSys1.states_events_[q.second])[event];
 
     int xid = -1;
     int yid;
@@ -397,7 +381,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
          * remove the following workaround.
          */
         auto p_row = aSys0.graph_.begin1();
-        for (auto i = 0; i < std::get<0>(q); ++i) {
+        for (auto i = 0; i < q.first; ++i) {
             ++p_row;
         }
         // TODO: End of the workaround
@@ -406,9 +390,9 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
             if ((*elem)[event]) {
                 xid = elem.index2();
                 if (!is_in_e) {
-                    yid = std::get<1>(q);
-                    std::get<0>(ret) = xid;
-                    std::get<1>(ret) = yid;
+                    yid = q.second;
+                    ret.first = xid;
+                    ret.second = yid;
                     return ret;
                 }
             }
@@ -422,7 +406,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
          * following workaround.
          */
         auto e_row = aSys1.graph_.begin1();
-        for (auto i = 0; i < std::get<1>(q); ++i) {
+        for (auto i = 0; i < q.second; ++i) {
             ++e_row;
         }
         // TODO: End of the workaround
@@ -430,11 +414,11 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
         for (auto elem = e_row.begin(); elem != e_row.end(); ++elem) {
             if ((*elem)[event]) {
                 if (!is_in_p) {
-                    xid = std::get<0>(q);
+                    xid = q.first;
                 }
                 yid = elem.index2();
-                std::get<0>(ret) = xid;
-                std::get<1>(ret) = yid;
+                ret.first = xid;
+                ret.second = yid;
                 return ret;
             }
         }
@@ -470,11 +454,11 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
      * following workaround.
      */
     auto p_row = aInvGraphP.begin1();
-    for (auto i = 0; i < std::get<0>(q); ++i) {
+    for (auto i = 0; i < q.first; ++i) {
         ++p_row;
     }
     auto e_row = aInvGraphE.begin1();
-    for (auto i = 0; i < std::get<1>(q); ++i) {
+    for (auto i = 0; i < q.second; ++i) {
         ++e_row;
     }
     // TODO: End of the workaround
@@ -483,9 +467,8 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
         for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
             if ((*elem)[event]) {
                 if (!is_in_e) {
-                    auto key =
-                        std::get<1>(q) * aInvGraphP.size1() + elem.index2();
-                    ret[key] = std::make_tuple(elem.index2(), std::get<1>(q));
+                    auto key = q.second * aInvGraphP.size1() + elem.index2();
+                    ret[key] = std::make_pair(elem.index2(), q.second);
                 } else {
                     for (auto elemg2 = e_row.begin(); elemg2 != e_row.end();
                          ++elemg2) {
@@ -493,7 +476,7 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
                             auto key = elemg2.index2() * aInvGraphP.size1() +
                                        elem.index2();
                             ret[key] =
-                                std::make_tuple(elem.index2(), elemg2.index2());
+                                std::make_pair(elem.index2(), elemg2.index2());
                         }
                     }
                 }
@@ -502,9 +485,8 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
     } else {  // Is only on e: !is_in_p && is_in_e
         for (auto elemg2 = e_row.begin(); elemg2 != e_row.end(); ++elemg2) {
             if ((*elemg2)[event]) {
-                auto key =
-                    elemg2.index2() * aInvGraphP.size1() + std::get<0>(q);
-                ret[key] = std::make_tuple(std::get<0>(q), elemg2.index2());
+                auto key = elemg2.index2() * aInvGraphP.size1() + q.first;
+                ret[key] = std::make_pair(q.first, elemg2.index2());
             }
         }
     }
@@ -522,11 +504,12 @@ static void __RemoveBadStates(EventsType const &aEventsP,
                               std::unordered_set<ScalarType> const &s_non_contr,
                               op::StatesTableSTL &aRemovedStates) {
     op::StatesTableSTL f;
-    f[std::get<1>(q) * aInvGraphP.size1() + std::get<0>(q)] = q;
+    f[q.second * aInvGraphP.size1() + q.first] = q;
+    aRemovedStates[q.second * aInvGraphP.size1() + q.first] = q;
 
     while (f.size() != 0) {
         op::StatesTupleSTL x = std::get<1>(*(f.begin()));
-        C.erase(std::get<1>(x) * aInvGraphP.size1() + std::get<0>(x));
+        C.erase(x.second * aInvGraphP.size1() + x.first);
         f.erase(f.begin());
         for (auto e : s_non_contr) {
             auto finv = __TransitionVirtualInv(aEventsP, aEventsE, aInvGraphP,
@@ -557,8 +540,7 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
     StatesTableSTL f;
 
     if (init_state_sync_iter != states_table.end()) {
-        f[init_state_sync_key] =
-            std::make_tuple(aP.init_state_, aE.init_state_);
+        f[init_state_sync_key] = std::make_pair(aP.init_state_, aE.init_state_);
     }
 
     StatesTableSTL s_states;
@@ -566,7 +548,7 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
 
     while (f.size() != 0) {
         auto q = std::get<1>(*(f.begin()));
-        s_states[std::get<1>(q) * aP.states_number_ + std::get<0>(q)] = q;
+        s_states[q.second * aP.states_number_ + q.first] = q;
         f.erase(f.begin());
         auto event = 0u;
         auto s_events_iter = s_events;
@@ -574,14 +556,14 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
             if (s_events_iter[0]) {
                 bool const is_non_contr =
                     non_contr.find(event) != non_contr.end();
-                auto is_fp = ExistTransitionReal(aP, std::get<0>(q), event);
+                auto is_fp = ExistTransitionReal(aP, q.first, event);
                 auto is_fs_qevent = ExistTransitionVirtual(aP, aE, q, event);
                 StatesTupleSTL fs_qevent;
                 if (is_fs_qevent) {
                     fs_qevent = TransitionVirtual(aP, aE, q, event);
                     if (removed_states.find(
-                            std::get<1>(fs_qevent) * aP.states_number_ +
-                            std::get<0>(fs_qevent)) != removed_states.end()) {
+                            fs_qevent.second * aP.states_number_ +
+                            fs_qevent.first) != removed_states.end()) {
                         is_fs_qevent = false;
                     }
                 }
@@ -591,8 +573,8 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
                                       removed_states);
                     break;
                 } else if (is_fs_qevent) {
-                    auto key = std::get<1>(fs_qevent) * aP.states_number_ +
-                               std::get<0>(fs_qevent);
+                    auto key =
+                        fs_qevent.second * aP.states_number_ + fs_qevent.first;
                     auto is_in_f = f.find(key) != f.end();
                     auto is_in_s_states = s_states.find(key) != s_states.end();
                     if (!is_in_s_states && !is_in_f) {
@@ -608,15 +590,15 @@ DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
     auto supervisor = SynchronizeStage2(s_states, aP, aE);
 
     for (auto st : states_table) {
-        auto s = std::get<1>(st);
-        std::cout << "(" << std::get<0>(s) << ", " << std::get<1>(s) << "): ";
+        auto s = st.second;
+        std::cout << "(" << s.first << ", " << s.second << "): ";
         for (auto e = 0; e < 64; ++e) {
             auto finv = __TransitionVirtualInv(
                 aP.events_, aE.events_, p_inversedgraph, e_inversedgraph, s, e);
             for (auto qt : finv) {
-                auto q = std::get<1>(qt);
-                std::cout << "((" << std::get<0>(q) << ", " << std::get<1>(q)
-                          << "), " << e << ") ";
+                auto q = qt.second;
+                std::cout << "((" << q.first << ", " << q.second << "), " << e
+                          << ") ";
             }
         }
         std::cout << std::endl;

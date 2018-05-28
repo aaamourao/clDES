@@ -70,7 +70,7 @@ struct StatesTable;
 
 struct StatesTuple;
 
-using StatesTupleSTL = std::tuple<cldes_size_t, cldes_size_t>;
+using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 using StatesTableSTL = std::unordered_map<cldes_size_t, StatesTupleSTL>;
 
 StatesTableSTL SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);

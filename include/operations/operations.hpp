@@ -57,7 +57,7 @@ typedef struct StatesTable {
  *
  * (state_id_g0, state_id_g1)
  */
-using StatesTupleSTL = std::tuple<cldes_size_t, cldes_size_t>;
+using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 
 /*! \brief Hash table of tuples representing a virtual synch (stage 1)
  */
@@ -105,13 +105,13 @@ StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
                                  cldes::ScalarType const event);
 
 bool ExistTransitionVirtual(cldes::DESystem const &aSys0,
-                             cldes::DESystem const &aSys1,
-                             StatesTupleSTL const q,
-                             cldes::ScalarType const event);
+                            cldes::DESystem const &aSys1,
+                            StatesTupleSTL const q,
+                            cldes::ScalarType const event);
 
 bool ExistTransitionReal(cldes::DESystem const &aSys,
-                          cldes::cldes_size_t const &x,
-                          cldes::ScalarType const &event);
+                         cldes::cldes_size_t const &x,
+                         cldes::ScalarType const &event);
 
 cldes::DESystem SupervisorSynth(
     cldes::DESystem &aP, cldes::DESystem &aS,

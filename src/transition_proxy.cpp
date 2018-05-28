@@ -48,12 +48,12 @@ TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
     (sys_ptr_->states_events_[lin_])[aEventPos] = true;
 
     // Add transition to graph
-    std::bitset<64> event_l;
+    std::bitset<g_max_events> event_l;
     event_l[aEventPos] = true;
     if ((sys_ptr_->graph_)(lin_, col_) == 0) {
         (sys_ptr_->graph_)(lin_, col_) = event_l;
     } else {
-        std::bitset<64> last_value = ((sys_ptr_->graph_)(lin_, col_));
+        std::bitset<g_max_events> last_value = ((sys_ptr_->graph_)(lin_, col_));
         (sys_ptr_->graph_)(lin_, col_) = last_value | event_l;
     }
 
