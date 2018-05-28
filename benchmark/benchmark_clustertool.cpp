@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
+    auto supervisor = cldes::op::Synchronize(plant, spec);
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<microseconds>(t2 - t1).count();
