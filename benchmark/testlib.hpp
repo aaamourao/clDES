@@ -43,7 +43,7 @@ std::string ReadResult(T const &aOpResult, StringType const aHeader) {
     return result.str();
 }
 
-using ublas_matrix = boost::numeric::ublas::compressed_matrix<std::bitset<64>>;
+using ublas_matrix = boost::numeric::ublas::compressed_matrix<std::bitset<100>>;
 
 template <typename StringType>
 std::string ReadResult(ublas_matrix const &aOpResult,
