@@ -28,7 +28,8 @@
  =========================================================================
 */
 
-#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <eigen3/Eigen/Sparse>
+#include <iostream>
 
 template <typename T, typename StringType>
 std::string ReadResult(T const &aOpResult, StringType const aHeader) {
@@ -43,22 +44,17 @@ std::string ReadResult(T const &aOpResult, StringType const aHeader) {
     return result.str();
 }
 
-using ublas_matrix = boost::numeric::ublas::compressed_matrix<std::bitset<100>>;
+using eigen_matrix = Eigen::SparseMatrix<std::bitset<100>, Eigen::RowMajor>;
 
 template <typename StringType>
-std::string ReadResult(ublas_matrix const &aOpResult,
+std::string ReadResult(eigen_matrix const &aOpResult,
                        StringType const aHeader) {
     std::ostringstream result;
 
     result << aHeader << ":" << std::endl;
-    for (auto it1 = 0ul; it1 != aOpResult.size1(); ++it1) {
-        for (auto it2 = 0ul; it2 != aOpResult.size2(); ++it2) {
-            auto events = aOpResult(it1, it2);
-            if (events != 0ul) {
-                result << events.to_ulong() << " ";
-            } else {
-                result << "0 ";
-            }
+    for (auto it1 = 0l; it1 != aOpResult.rows(); ++it1) {
+        for (auto it2 = 0l; it2 != aOpResult.cols(); ++it2) {
+            result << aOpResult.coeff(it1, it2).to_ullong() << " ";
         }
         result << std::endl;
     }
@@ -84,14 +80,9 @@ void ProcessResult(T const &aOpResult, StringType const aHeader,
 template <typename GraphType, typename StringType>
 void PrintGraph(GraphType const &aGraph, StringType const &aGraphName) {
     std::cout << aGraphName << std::endl;
-    for (auto it1 = 0ul; it1 != aGraph.size1(); ++it1) {
-        for (auto it2 = 0ul; it2 != aGraph.size2(); ++it2) {
-            auto events = aGraph(it1, it2);
-            if (events != 0ul) {
-                std::cout << events.to_ulong() << " ";
-            } else {
-                std::cout << "0 ";
-            }
+    for (auto it1 = 0l; it1 != aGraph.rows(); ++it1) {
+        for (auto it2 = 0l; it2 != aGraph.cols(); ++it2) {
+            std::cout << aGraph.coeff(it1, it2).to_ullong() << " ";
         }
         std::cout << std::endl;
     }

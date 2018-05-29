@@ -32,8 +32,6 @@
 #include "des/desystem.hpp"
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
-#include <boost/numeric/ublas/matrix_proxy.hpp>
-#include <boost/numeric/ublas/operation_sparse.hpp>
 #include <functional>
 #include <vector>
 #include "des/transition_proxy.hpp"
@@ -50,14 +48,15 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
     is_cache_outdated_ = true;
 
     // Resize graphs and do not preserve elements
-    graph_.resize(states_number_, states_number_, false);
-    bit_graph_.resize(states_number_, states_number_, false);
+    graph_.resize(states_number_, states_number_);
+    bit_graph_.resize(states_number_, states_number_);
+
+    // Change graphs storage type to CSR
+    graph_.makeCompressed();
+    bit_graph_.makeCompressed();
 
     // Initialize bit graph with Identity
-    bit_graph_.reserve(states_number_);
-    for (auto s = 0u; s < states_number_; ++s) {
-        bit_graph_(s, s) = true;
-    }
+    bit_graph_.setIdentity();
 
     // Reserve mem for hash tables for avoiding re-hashing
     states_events_.reserve(states_number_);
@@ -88,9 +87,9 @@ DESystem::GraphHostData DESystem::GetGraph() const { return graph_; }
 
 void DESystem::CacheGraph_() { is_cache_outdated_ = false; }
 
-DESystem::GraphHostData::const_reference DESystem::operator()(
-    cldes_size_t const &aLin, cldes_size_t const &aCol) const {
-    return graph_(aLin, aCol);
+DESystem::EventsSet const DESystem::operator()(cldes_size_t const &aLin,
+                                               cldes_size_t const &aCol) const {
+    return graph_.coeff(aLin, aCol);
 }
 
 TransitionProxy DESystem::operator()(cldes_size_t const &aLin,
@@ -110,13 +109,14 @@ DESystem::StatesSet *DESystem::Bfs_(
      *     Y = G^T * X
      */
     // There is no need of search if a marked state is coaccessible
-    StatesVector host_x{states_number_, aInitialNodes.size()};
+    StatesVector host_x{static_cast<Eigen::Index>(states_number_),
+                        static_cast<Eigen::Index>(aInitialNodes.size())};
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
     std::vector<cldes_size_t> states_map;
     for (auto state : aInitialNodes) {
-        host_x(state, states_map.size()) = true;
+        host_x.coeffRef(state, states_map.size()) = true;
         // Maping each search from each initial node to their correspondent
         // vector on the matrix
         states_map.push_back(state);
@@ -134,36 +134,40 @@ DESystem::StatesSet *DESystem::Bfs_<cldes_size_t>(
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-    StatesVector host_x{states_number_, 1};
+    StatesVector host_x{static_cast<Eigen::Index>(states_number_), 1};
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
-    host_x(aInitialNode, 0) = true;
+    host_x.coeffRef(aInitialNode, 0) = true;
 
     return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
 DESystem::StatesSet *DESystem::Bfs_() { return Bfs_(init_state_, nullptr); };
 
+using RowIteratorConst = Eigen::InnerIterator<DESystem::StatesVector const>;
+using RowIterator = Eigen::InnerIterator<DESystem::StatesVector>;
+
 DESystem::StatesSet *DESystem::BfsCalc_(
     StatesVector &aHostX,
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit,
     std::vector<cldes_size_t> const *const aStatesMap) {
-    cldes_size_t n_initial_nodes = aHostX.size2();
+    cldes_size_t n_initial_nodes = aHostX.cols();
 
     // Executes BFS
-    StatesVector y{states_number_, n_initial_nodes};
-    auto n_accessed_states = 0ul;
+    StatesVector y{static_cast<Eigen::Index>(states_number_),
+                   static_cast<Eigen::Index>(n_initial_nodes)};
+    auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        ublas::sparse_prod(bit_graph_, aHostX, y, true);
+        y = (bit_graph_ * aHostX).pruned();
 
-        if (n_accessed_states == y.nnz()) {
+        if (n_accessed_states == y.nonZeros()) {
             break;
         } else {
-            n_accessed_states = y.nnz();
+            n_accessed_states = y.nonZeros();
         }
 
         aHostX = y;
@@ -171,18 +175,18 @@ DESystem::StatesSet *DESystem::BfsCalc_(
 
     // Add results to a std::set vector
     if (aBfsVisit) {
-        for (auto node = y.begin1(); node != y.end1(); ++node) {
-            for (auto elem = node.begin(); elem != node.end(); ++elem) {
-                aBfsVisit((*aStatesMap)[elem.index2()], node.index1());
+        for (auto s = 0l; s < y.rows(); ++s) {
+            for (RowIterator e(y, s); e; ++e) {
+                aBfsVisit((*aStatesMap)[e.col()], e.row());
             }
         }
         return nullptr;
     }
 
     auto accessed_states = new StatesSet[n_initial_nodes];
-    for (auto node = y.begin1(); node != y.end1(); ++node) {
-        for (auto elem = node.begin(); elem != node.end(); ++elem) {
-            accessed_states[elem.index2()].emplace(node.index1());
+    for (auto s = 0l; s < y.rows(); ++s) {
+        for (RowIterator e(y, s); e; ++e) {
+            accessed_states[e.col()].emplace(e.row());
         }
     }
     return accessed_states;
@@ -258,30 +262,63 @@ delete[] paccessed_states;
 DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
     auto trimstates = this->TrimStates();
 
-    if (trimstates.size() == graph_.size1()) {
+    if (trimstates.size() == static_cast<unsigned long>(graph_.rows())) {
         return *this;
     }
 
+    DESystem::StatesSet states_to_remove;
+    {
+        DESystem::StatesSet all_states;
+        for (auto i = 0ul; i < states_number_; ++i) {
+            all_states.emplace(i);
+        }
+        std::set_difference(
+            all_states.begin(), all_states.end(), trimstates.begin(),
+            trimstates.end(),
+            std::inserter(states_to_remove, states_to_remove.begin()));
+    }
+
+    /*
     // First remove rows of non-trim states
-    GraphHostData sliced_graph{trimstates.size(), states_number_};
-    auto mapped_state = 0;
-    for (auto state : trimstates) {
-        ublas::matrix_row<GraphHostData> graphrow(graph_, state);
-        ublas::matrix_row<GraphHostData> slicedrow(sliced_graph, mapped_state);
-        slicedrow.swap(graphrow);
-        ++mapped_state;
+    {
+        auto removed_rows = 0ul;
+        cldes_size_t num_cols = graph_.cols();
+        for (auto s : states_to_remove) {
+            cldes_size_t num_rows = graph_.rows() - 1ul;
+
+            cldes_size_t r = s - removed_rows;
+
+            if (r < num_rows) {
+                graph_.block(r, 0, num_rows - r, num_cols) =
+                    graph_.block(r + 1, 0, num_rows - r, num_cols);
+            }
+
+            graph_.conservativeResize(num_rows, num_cols);
+
+            ++removed_rows;
+        }
     }
 
     // Now remove the non-trim columns
-    GraphHostData trim_graph{trimstates.size(), trimstates.size()};
-    mapped_state = 0;
-    for (auto state : trimstates) {
-        ublas::matrix_column<GraphHostData> slicedcol(sliced_graph, state);
-        ublas::matrix_column<GraphHostData> trimcol(trim_graph, mapped_state);
-        trimcol.swap(slicedcol);
-        ++mapped_state;
-    }
+    {
+        auto removed_cols = 0ul;
+        cldes_size_t num_rows = graph_.rows();
+        for (auto s : states_to_remove) {
+            cldes_size_t num_cols = graph_.cols() - 1ul;
 
+            cldes_size_t c = s - removed_cols;
+
+            if (r < num_rows) {
+                graph_.block(0, c, num_rows, num_cols - c) =
+                    graph_.block(0, c + 1, num_rows, num_cols - c);
+            }
+
+            graph_.conservativeResize(num_rows, num_cols);
+
+            ++removed_cols;
+        }
+    }
+    */
     StatesSet trim_marked_states;
     std::set_intersection(
         marked_states_.begin(), marked_states_.end(), trimstates.begin(),
@@ -291,7 +328,7 @@ DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
     DESystem trim_system{trimstates.size(), init_state_, trim_marked_states,
                          aDevCacheEnabled};
 
-    trim_system.graph_ = trim_graph;
+    // trim_system.graph_ = trim_graph;
 
     // TODO: Assign bit_graph_
 

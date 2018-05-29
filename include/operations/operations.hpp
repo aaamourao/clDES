@@ -31,7 +31,7 @@
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
-#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <eigen3/Eigen/Sparse>
 #include <qt5/QtCore/QHash>
 #include <qt5/QtCore/QSet>
 #include <tuple>
@@ -44,8 +44,7 @@ class DESystem;
 
 namespace op {
 
-using GraphType =
-    boost::numeric::ublas::compressed_matrix<cldes::EventsBitArray>;
+using GraphType = Eigen::SparseMatrix<cldes::EventsBitArray, Eigen::RowMajor>;
 
 /*
 typedef struct StatesTuple {

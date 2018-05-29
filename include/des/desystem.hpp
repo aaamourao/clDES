@@ -36,7 +36,7 @@
 #define VIENNACL_WITH_OPENCL
 #endif
 
-#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <eigen3/Eigen/Sparse>
 #include <qt5/QtCore/QHash>
 #include <qt5/QtCore/QSet>
 #include <set>
@@ -44,8 +44,6 @@
 #include "constants.hpp"
 
 namespace cldes {
-
-namespace ublas = boost::numeric::ublas;
 
 /*
  * Forward declarion of DESystem's friends class TransitionProxy. A transition
@@ -60,8 +58,7 @@ class TransitionProxy;
 class DESystem;
 
 namespace op {
-using GraphType =
-    boost::numeric::ublas::compressed_matrix<cldes::EventsBitArray>;
+using GraphType = Eigen::SparseMatrix<cldes::EventsBitArray, Eigen::RowMajor>;
 
 /*
  * Forward declarion of DESystem's friend function Synchronize which
@@ -100,17 +97,17 @@ cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
 
 class DESystem {
 public:
-    using GraphHostData = ublas::compressed_matrix<EventsBitArray>;
-    using BitGraphHostData = ublas::compressed_matrix<bool>;
+    using GraphHostData = Eigen::SparseMatrix<EventsBitArray, Eigen::RowMajor>;
+    using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::RowMajor>;
     using StatesSet = std::set<cldes_size_t>;
-    using StatesVector = ublas::compressed_matrix<bool>;
+    using StatesVector = Eigen::SparseMatrix<bool>;
     using EventsSet = EventsBitArray;
     using StatesEventsTable = QHash<cldes_size_t, EventsSet>;
 
     /*! \brief DESystem constructor with empty matrix
      *
      * Overloads DESystem constructor: does not require to create a
-     * ublas::compressed_matrix by the class user.
+     * eigen sparse matrix by the class user.
      *
      * @param aStatesNumber Number of states of the system
      * @param aInitState System's initial state
@@ -176,8 +173,8 @@ public:
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    GraphHostData::const_reference operator()(cldes_size_t const &aLin,
-                                              cldes_size_t const &aCol) const;
+    EventsSet const operator()(cldes_size_t const &aLin,
+                               cldes_size_t const &aCol) const;
 
     /*! \brief Returns value of the specified transition
      *

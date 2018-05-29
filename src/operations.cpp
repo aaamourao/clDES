@@ -34,8 +34,10 @@
 // #include "backend/oclbackend.hpp"
 #include "des/desystem.hpp"
 // #include "des/desystemcl.hpp"
-#include <boost/numeric/ublas/matrix_proxy.hpp>
+#include <eigen3/Eigen/Sparse>
 #include "des/transition_proxy.hpp"
+
+#include <iostream>
 
 using namespace cldes;
 
@@ -99,12 +101,12 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
         states_tuple_dev, aSys0.device_graph_->handle1().opencl_handle(),
         aSys0.device_graph_->handle2().opencl_handle(),
         aSys0.device_graph_->handle().opencl_handle(),
-        static_cast<cl_uint>(aSys0.device_graph_->size1()), asys0_private,
+        static_cast<cl_uint>(aSys0.device_graph_->rows()), asys0_private,
         aSys1.device_graph_->handle1().opencl_handle(),
         aSys1.device_graph_->handle2().opencl_handle(),
         aSys1.device_graph_->handle().opencl_handle(), asys1_private,
         result_dev.handle().opencl_handle(),
-        static_cast<cl_uint>(result_dev.internal_size1())));
+        static_cast<cl_uint>(result_dev.internal_rows())));
 
     // Copy device graph to host memory
     DESystemCL sync_sys(table_size, initstate_sync, markedstates_sync);
@@ -251,12 +253,12 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
         states_tuple_dev, aSys0.device_graph_->handle1().opencl_handle(),
         aSys0.device_graph_->handle2().opencl_handle(),
         aSys0.device_graph_->handle().opencl_handle(),
-        static_cast<cl_uint>(aSys0.device_graph_->size1()), asys0_private,
+        static_cast<cl_uint>(aSys0.device_graph_->rows()), asys0_private,
         aSys1.device_graph_->handle1().opencl_handle(),
         aSys1.device_graph_->handle2().opencl_handle(),
         aSys1.device_graph_->handle().opencl_handle(), asys1_private,
         result_dev.handle().opencl_handle(),
-        static_cast<cl_uint>(result_dev.internal_size1())));
+        static_cast<cl_uint>(result_dev.internal_rows())));
 
     // Copy device graph to host memory
     DESystemCL sync_sys(aTable->tsize, initstate_sync, markedstates_sync);
@@ -266,6 +268,8 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
     return sync_sys;
 }
 */
+
+using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
 
 void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                            DESystem const &aSys1) {
@@ -284,9 +288,11 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
     // Make it const to avoid eventual re-hashes due to the insertion of
     // transitions
+    Eigen::VectorXi transitions_number(aVirtualSys.states_events_.size());
     std::map<cldes_size_t, EventsBitArray> virtualse;
     for (auto st = aVirtualSys.states_events_.constBegin();
          st != aVirtualSys.states_events_.constEnd(); ++st) {
+        transitions_number(virtualse.size()) = st.value().count();
         virtualse[st.key()] = st.value();
     }
     std::cout << "Size " << virtualse.size() << std::endl;
@@ -297,16 +303,17 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
     // Resize adj matrices if necessary
     if (aVirtualSys.states_number_ != virtualse.size()) {
-        aVirtualSys.graph_.resize(virtualse.size(), virtualse.size(), false);
-        aVirtualSys.bit_graph_.resize(virtualse.size(), virtualse.size(),
-                                      false);
+        aVirtualSys.graph_.resize(virtualse.size(), virtualse.size());
+        aVirtualSys.bit_graph_.resize(virtualse.size(), virtualse.size());
         aVirtualSys.states_number_ = virtualse.size();
 
         // Initialize bit graph with Identity
-        for (auto s = 0u; s < aVirtualSys.states_number_; ++s) {
-            aVirtualSys.bit_graph_(s, s) = true;
-        }
+        aVirtualSys.bit_graph_.setIdentity();
     }
+
+    // Reserve space for transitions
+    aVirtualSys.graph_.reserve(transitions_number);
+    aVirtualSys.bit_graph_.reserve(transitions_number);
 
     // Calculate transitions
     for (auto q_ref = virtualse.begin(); q_ref != virtualse.end(); ++q_ref) {
@@ -326,25 +333,9 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                     bool const is_in_e = aSys1.events_[event];
 
                     if (is_in_p) {
-                        /*
-                         * TODO: ublas::compressed_matrix<>::iterator1 does
-                         * not have operators + and += implemented. Report
-                         * bug and remove the following workaround.
-                         */
-                        /*
-                        auto p_row = aSys0.graph_.begin1();
-                        for (auto i = 0; i < q.first; ++i) {
-                            ++p_row;
-                        }
-                        */
-                        ublas::matrix_row<DESystem::GraphHostData const> p_row(
-                            aSys0.graph_, q.first);
-                        // TODO: End of the workaround
-
-                        for (auto elem = p_row.begin(); elem != p_row.end();
-                             ++elem) {
-                            if ((*elem)[event]) {
-                                xto = elem.index();
+                        for (RowIterator pe(aSys0.graph_, q.first); pe; ++pe) {
+                            if (pe.value()[event]) {
+                                xto = pe.col();
                                 if (!is_in_e) {
                                     yto = q.second;
                                     auto index1_iter = virtualse.find(
@@ -361,28 +352,12 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                     }
 
                     if (is_in_e) {
-                        /*
-                         * TODO: ublas::compressed_matrix<>::iterator1 does
-                         * not have operators + and += implemented. Report
-                         * bug and remove the following workaround.
-                         */
-                        /*
-                        auto e_row = aSys1.graph_.begin1();
-                        for (auto i = 0; i < q.second; ++i) {
-                            ++e_row;
-                        }
-                        */
-                        ublas::matrix_row<DESystem::GraphHostData const> e_row(
-                            aSys1.graph_, q.second);
-                        // TODO: End of the workaround
-
-                        for (auto elem = e_row.begin(); elem != e_row.end();
-                             ++elem) {
-                            if ((*elem)[event]) {
+                        for (RowIterator ee(aSys1.graph_, q.second); ee; ++ee) {
+                            if (ee.value()[event]) {
                                 if (!is_in_p) {
                                     xto = q.first;
                                 }
-                                yto = elem.index();
+                                yto = ee.col();
                                 auto index1_iter = virtualse.find(
                                     yto * aSys0.states_number_ + xto);
                                 if (index1_iter != virtualse.end()) {
@@ -400,6 +375,10 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
             sync_events_iter >>= 1u;
         }
     }
+
+    // Remove aditional space
+    aVirtualSys.graph_.makeCompressed();
+    aVirtualSys.bit_graph_.makeCompressed();
 
     // Remap marked states
     aVirtualSys.marked_states_.clear();
@@ -457,24 +436,9 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
     StatesTupleSTL ret;
 
     if (is_in_p) {
-        /*
-         * TODO: ublas::compressed_matrix<>::iterator1 does not
-         * have operators + and += implemented. Report bug and
-         * remove the following workaround.
-         */
-        /*
-        auto p_row = aSys0.graph_.begin1();
-        for (auto i = 0; i < qx; ++i) {
-            ++p_row;
-        }
-        */
-        ublas::matrix_row<DESystem::GraphHostData const> p_row(aSys0.graph_,
-                                                               qx);
-        // TODO: End of the workaround
-
-        for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
-            if ((*elem)[event]) {
-                xid = elem.index();
+        for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
+            if (pe.value()[event]) {
+                xid = pe.col();
                 if (!is_in_e) {
                     yid = qy;
                     ret.first = xid;
@@ -487,27 +451,12 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
     }
 
     if (is_in_e) {
-        /*
-         * TODO: ublas::compressed_matrix<>::iterator1 does not have
-         * operators + and += implemented. Report bug and remove the
-         * following workaround.
-         */
-        /*
-        auto e_row = aSys1.graph_.begin1();
-        for (auto i = 0; i < qy; ++i) {
-            ++e_row;
-        }
-        */
-        ublas::matrix_row<DESystem::GraphHostData const> e_row(aSys1.graph_,
-                                                               qy);
-        // TODO: End of the workaround
-
-        for (auto elem = e_row.begin(); elem != e_row.end(); ++elem) {
-            if ((*elem)[event]) {
+        for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
+            if (ee.value()[event]) {
                 if (!is_in_p) {
                     xid = qx;
                 }
-                yid = elem.index();
+                yid = ee.col();
                 ret.first = xid;
                 ret.second = yid;
                 return ret;
@@ -523,27 +472,8 @@ static op::StatesTableSTL __TransitionVirtualInv(
     EventsType const &aEventsP, EventsType const &aEventsE,
     op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
     cldes_size_t const &q, ScalarType const &event) {
-    auto qx = q % aInvGraphP.size1();
-    auto qy = q / aInvGraphP.size1();
-
-    /*
-     * TODO: ublas::compressed_matrix<>::iterator1 does not have
-     * operators + and += implemented. Report bug and remove the
-     * following workaround.
-     */
-    /*
-    auto p_row = aInvGraphP.begin1();
-    for (auto i = 0; i < qx; ++i) {
-        ++p_row;
-    }
-    auto e_row = aInvGraphE.begin1();
-    for (auto i = 0; i < qy; ++i) {
-        ++e_row;
-    }
-    */
-    ublas::matrix_row<op::GraphType const> p_row(aInvGraphP, qx);
-    ublas::matrix_row<op::GraphType const> e_row(aInvGraphE, qy);
-    // TODO: End of the workaround
+    auto qx = q % aInvGraphP.rows();
+    auto qy = q / aInvGraphP.rows();
 
     bool const is_in_p = aEventsP[event];
     bool const is_in_e = aEventsE[event];
@@ -552,28 +482,26 @@ static op::StatesTableSTL __TransitionVirtualInv(
     ret.reserve(aEventsP.size());
 
     if (is_in_p && is_in_e) {
-        for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
-            if ((*elem)[event]) {
-                for (auto elemg2 = e_row.begin(); elemg2 != e_row.end();
-                     ++elemg2) {
-                    if ((*elemg2)[event]) {
-                        auto key =
-                            elemg2.index() * aInvGraphP.size1() + elem.index();
+        for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
+            if (pe.value()[event]) {
+                for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
+                    if (ee.value()[event]) {
+                        auto key = ee.col() * aInvGraphP.rows() + pe.col();
                         ret.insert(key);
                     }
                 }
             }
         }
     } else if (is_in_p) {  // Is only in p: is_in_p && !is_in_e
-        for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
-            if ((*elem)[event]) {
-                ret.insert(qy * aInvGraphP.size1() + elem.index());
+        for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
+            if (pe.value()[event]) {
+                ret.insert(qy * aInvGraphP.rows() + pe.col());
             }
         }
     } else {  // Is only in e: !is_in_p && is_in_e
-        for (auto elemg2 = e_row.begin(); elemg2 != e_row.end(); ++elemg2) {
-            if ((*elemg2)[event]) {
-                ret.insert(elemg2.index() * aInvGraphP.size1() + qx);
+        for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
+            if (ee.value()[event]) {
+                ret.insert(ee.col() * aInvGraphP.rows() + qx);
             }
         }
     }
@@ -637,8 +565,8 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
 
 DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                              QSet<ScalarType> const &non_contr) {
-    auto const p_invgraph = boost::numeric::ublas::trans(aP.graph_);
-    auto const e_invgraph = boost::numeric::ublas::trans(aE.graph_);
+    DESystem::GraphHostData const p_invgraph = aP.graph_.transpose();
+    DESystem::GraphHostData const e_invgraph = aE.graph_.transpose();
 
     auto virtualsys = SynchronizeStage1(aP, aE);
 
@@ -769,5 +697,5 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     }
 */
 
-    return virtualsys.Trim();
+    return virtualsys;
 }

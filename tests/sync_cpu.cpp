@@ -36,7 +36,6 @@
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
-namespace ublas = boost::numeric::ublas;
 using namespace std::chrono;
 
 int main() {

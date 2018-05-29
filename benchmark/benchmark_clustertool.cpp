@@ -90,11 +90,11 @@ int main(int argc, char *argv[]) {
 
     std::cout << std::endl
               << "Number of states of plant: " << plant.Size() << std::endl;
-    std::cout << "Number of transitions of the plant " << plant.GetGraph().nnz()
+    std::cout << "Number of transitions of the plant " << plant.GetGraph().nonZeros()
               << std::endl;
     std::cout << "Computing the supervisor" << std::endl;
     std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
-    std::cout << "Number of transitions of the spec " << spec.GetGraph().nnz()
+    std::cout << "Number of transitions of the spec " << spec.GetGraph().nonZeros()
               << std::endl
               << std::endl;
 
@@ -109,5 +109,5 @@ int main(int argc, char *argv[]) {
     std::cout << "Number of states of the supervisor: " << supervisor.Size()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
-              << supervisor.GetGraph().nnz() << std::endl;
+              << supervisor.GetGraph().nonZeros() << std::endl;
 }

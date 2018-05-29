@@ -84,7 +84,7 @@ int main() {
     std::cout << "Number of states of the supervisor: " << supervisor.Size()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
-              << supervisor.GetGraph().nnz() << std::endl;
+              << supervisor.GetGraph().nonZeros() << std::endl;
 
     std::ostringstream expected_result;
 

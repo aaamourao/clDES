@@ -70,15 +70,15 @@ TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
     }
 
     // Add transition to graph
-    if ((sys_ptr_->graph_)(lin_, col_) == 0) {
-        (sys_ptr_->graph_)(lin_, col_) = event_ull;
+    if (sys_ptr_->graph_.coeff(lin_, col_) == 0) {
+        sys_ptr_->graph_.coeffRef(lin_, col_) = event_ull;
     } else {
-        DESystem::EventsSet last_value = (sys_ptr_->graph_)(lin_, col_);
-        (sys_ptr_->graph_)(lin_, col_) = last_value | event_ull;
+        DESystem::EventsSet last_value = sys_ptr_->graph_.coeff(lin_, col_);
+        sys_ptr_->graph_.coeffRef(lin_, col_) = last_value | event_ull;
     }
 
     // Add transition to bit graph, which is transposed
-    (sys_ptr_->bit_graph_)(col_, lin_) = true;
+    sys_ptr_->bit_graph_.coeffRef(col_, lin_) = true;
 
     sys_ptr_->is_cache_outdated_ = true;
 
