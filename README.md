@@ -45,7 +45,8 @@ Follow the instructions bellow to build the project.
 It is necessary to make sure that **CMake** is installed, such as **LLVM Clang** C/C++
 developer tools.
 
-System support to **OpenCL** version `>= 1.2` and **Boost** Library version `>= 1.64`
+System support to **OpenCL** version `>= 1.2`, **Boost** Library version `>= 1.64`,
+**Eigen3** Library and **Qt5Core**
 are required. So far, you should install it manually. In a near
 future, **CMake** will install it locally if it was not previously installed in
 the system.
