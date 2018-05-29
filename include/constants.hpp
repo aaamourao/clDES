@@ -37,7 +37,7 @@
 
 namespace cldes {
 // Host adjascency matrix base type which represents an array of bits
-using ScalarType = unsigned long;
+using ScalarType = unsigned long long;
 
 // clDES base type for indexing matrices and arrays
 using cldes_size_t = cl_uint;

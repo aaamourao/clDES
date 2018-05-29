@@ -60,6 +60,9 @@ class TransitionProxy;
 class DESystem;
 
 namespace op {
+using GraphType =
+    boost::numeric::ublas::compressed_matrix<cldes::EventsBitArray>;
+
 /*
  * Forward declarion of DESystem's friend function Synchronize which
  * implements the parallel composition between two DES.
@@ -71,28 +74,28 @@ struct StatesTable;
 struct StatesTuple;
 
 using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
-using StatesTableSTL = std::unordered_map<cldes_size_t, StatesTupleSTL>;
+using StatesTableSTL = std::unordered_set<cldes_size_t>;
 
-StatesTableSTL SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+cldes::DESystem SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
 
-cldes::DESystem SynchronizeStage2(StatesTableSTL const &aTable,
-                                  cldes::DESystem &aSys0,
-                                  cldes::DESystem &aSys1);
+void SynchronizeStage2(cldes::DESystem &aVirtualSys,
+                       cldes::DESystem const &aSys0,
+                       cldes::DESystem const &aSys1);
 
-StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
+StatesTupleSTL TransitionVirtual(cldes::DESystem &aVirtualSys,
+                                 cldes::DESystem const &aSys0,
                                  cldes::DESystem const &aSys1,
-                                 StatesTupleSTL const q,
-                                 ScalarType const event);
+                                 cldes::cldes_size_t const &q,
+                                 cldes::ScalarType const &event);
 
-bool ExistTransitionVirtual(cldes::DESystem const &aSys0,
-                            cldes::DESystem const &aSys1,
-                            StatesTupleSTL const q, ScalarType const event);
-
-bool ExistTransitionReal(cldes::DESystem const &aSys0,
-                         cldes::cldes_size_t const &x, ScalarType const &event);
+void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
+                     cldes::DESystem const &aE, GraphType const &aInvGraphP,
+                     GraphType const &aInvGraphE, op::StatesTableSTL &C,
+                     cldes_size_t const &q,
+                     std::unordered_set<ScalarType> const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(
-    cldes::DESystem &aP, cldes::DESystem &aS,
+    cldes::DESystem const &aP, cldes::DESystem const &aS,
     std::unordered_set<ScalarType> const &non_contr);
 }  // namespace op
 
@@ -103,7 +106,7 @@ public:
     using StatesSet = std::set<cldes_size_t>;
     using StatesVector = ublas::compressed_matrix<bool>;
     using EventsSet = EventsBitArray;
-    using StatesEventsTable = std::vector<EventsSet>;
+    using StatesEventsTable = std::unordered_map<cldes_size_t, EventsSet>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -119,7 +122,7 @@ public:
                       cldes_size_t const &aInitState, StatesSet &aMarkedStates,
                       bool const &aDevCacheEnabled = true);
 
-    DESystem(DESystem const &aSys);
+    // DESystem(DESystem &aSys);
 
     /*! \brief DESystem destructor
      *
@@ -218,23 +221,23 @@ protected:
 private:
     friend class TransitionProxy;
     friend DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1);
-    friend op::StatesTableSTL op::SynchronizeStage1(DESystem const &aSys0,
-                                                    DESystem const &aSys1);
-    friend DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
-                                          DESystem &aSys0, DESystem &aSys1);
-    friend op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
+    friend DESystem op::SynchronizeStage1(DESystem const &aSys0,
+                                          DESystem const &aSys1);
+    friend void op::SynchronizeStage2(DESystem &aVirtualSys,
+                                      DESystem const &aSys0,
+                                      DESystem const &aSys1);
+    friend op::StatesTupleSTL op::TransitionVirtual(DESystem &aVirtualSys,
+                                                    DESystem const &aSys0,
                                                     DESystem const &aSys1,
-                                                    op::StatesTupleSTL const q,
-                                                    ScalarType const event);
-    friend bool op::ExistTransitionVirtual(DESystem const &aSys0,
-                                           DESystem const &aSys1,
-                                           op::StatesTupleSTL const q,
-                                           ScalarType const event);
-    friend bool op::ExistTransitionReal(DESystem const &aSys0,
-                                        cldes_size_t const &x,
-                                        ScalarType const &event);
+                                                    cldes_size_t const &q,
+                                                    ScalarType const &event);
+    friend void op::RemoveBadStates(
+        DESystem &aVirtualSys, DESystem const &aP, DESystem const &aE,
+        op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
+        op::StatesTableSTL &C, cldes_size_t const &q,
+        std::unordered_set<ScalarType> const &s_non_contr);
     friend DESystem op::SupervisorSynth(
-        DESystem &aP, DESystem &aE,
+        DESystem const &aP, DESystem const &aE,
         std::unordered_set<ScalarType> const &non_contr);
 
     /*! \brief Graph represented by an adjascency matrix
@@ -295,6 +298,13 @@ private:
     /*! \brief Vector containing a events hash table per state
      */
     StatesEventsTable states_events_;
+
+    /*! \brief Vector containing a events hash table per state
+     *
+     * It represents the transitions of the inverted graph for the supervisor
+     * synthesis.
+     */
+    StatesEventsTable inv_states_events_;
 
     /*! \brief Method for caching the graph
      *

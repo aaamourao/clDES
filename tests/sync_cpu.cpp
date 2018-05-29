@@ -84,35 +84,29 @@ int main() {
     PrintGraph(g2.GetGraph(), "g2");
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    auto stage1 = cldes::op::SynchronizeStage1(g1, g2);
+    auto syncsys = cldes::op::SynchronizeStage1(g1, g2);
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
     std::cout << "SynchronizeStage1 time: " << duration << " microseconds"
               << std::endl;
 
-    for (auto p : stage1) {
-        auto s = std::get<1>(p);
-        std::cout << "(" << std::get<0>(s) << ", " << std::get<1>(s) << ")"
-                  << std::endl;
-    }
-
     t1 = high_resolution_clock::now();
-    auto sync_sys = cldes::op::SynchronizeStage2(stage1, g1, g2);
+    cldes::op::SynchronizeStage2(syncsys, g1, g2);
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<microseconds>(t2 - t1).count();
 
     std::ostringstream expected_result;
 
-    expected_result << "0 5 0 2 0 0 " << std::endl;
-    expected_result << "0 0 1 0 0 2 " << std::endl;
-    expected_result << "4 0 1 0 0 0 " << std::endl;
-    expected_result << "0 1 0 2 0 4 " << std::endl;
-    expected_result << "0 0 1 4 0 0 " << std::endl;
-    expected_result << "0 0 1 0 0 2 " << std::endl;
+    expected_result << "0 2 5 0 0 0 " << std::endl;
+    expected_result << "0 2 1 4 0 0 " << std::endl;
+    expected_result << "0 0 0 2 0 1 " << std::endl;
+    expected_result << "0 0 0 2 0 1 " << std::endl;
+    expected_result << "0 4 0 0 0 1 " << std::endl;
+    expected_result << "4 0 0 0 0 1 " << std::endl;
     expected_result << ">" << std::endl;
-    ProcessResult(sync_sys.GetGraph(), "< Sync graph",
+    ProcessResult(syncsys.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());
     std::cout << "SynchronizeStage2 time: " << duration << " microseconds"
               << std::endl;

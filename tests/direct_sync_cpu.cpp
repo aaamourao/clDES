@@ -87,12 +87,12 @@ int main() {
 
     std::ostringstream expected_result;
 
-    expected_result << "0 5 0 2 0 0 " << std::endl;
-    expected_result << "0 0 1 0 0 2 " << std::endl;
-    expected_result << "4 0 1 0 0 0 " << std::endl;
-    expected_result << "0 1 0 2 0 4 " << std::endl;
-    expected_result << "0 0 1 4 0 0 " << std::endl;
-    expected_result << "0 0 1 0 0 2 " << std::endl;
+    expected_result << "0 2 5 0 0 0 " << std::endl;
+    expected_result << "0 2 1 4 0 0 " << std::endl;
+    expected_result << "0 0 0 2 0 1 " << std::endl;
+    expected_result << "0 0 0 2 0 1 " << std::endl;
+    expected_result << "0 4 0 0 0 1 " << std::endl;
+    expected_result << "4 0 0 0 0 1 " << std::endl;
     expected_result << ">" << std::endl;
     ProcessResult(sync_sys.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());

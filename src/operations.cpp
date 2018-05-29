@@ -35,6 +35,7 @@
 #include "des/desystem.hpp"
 // #include "des/desystemcl.hpp"
 #include "des/transition_proxy.hpp"
+#include <boost/numeric/ublas/matrix_proxy.hpp>
 
 using namespace cldes;
 
@@ -115,24 +116,64 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
 */
 
 DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
-    auto stage1 = SynchronizeStage1(aSys0, aSys1);
-
-    return SynchronizeStage2(stage1, aSys0, aSys1);
+    auto syncsys = SynchronizeStage1(aSys0, aSys1);
+    SynchronizeStage2(syncsys, aSys0, aSys1);
+    return syncsys;
 }
 
-op::StatesTableSTL op::SynchronizeStage1(DESystem const &aSys0,
-                                         DESystem const &aSys1) {
-    // Get the result and saves it on host memory
-    StatesTableSTL states_table;
+DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
+    auto in_both = aSys0.events_ & aSys1.events_;
+    auto only_in_0 = aSys0.events_ ^ in_both;
+    auto only_in_1 = aSys1.events_ ^ in_both;
 
-    for (auto ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
-        for (auto ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
-            states_table[ix1 * aSys0.states_number_ + ix0] =
-                std::make_pair(ix0, ix1);
+    // New system params
+    auto estimated_transitions = 0;
+    DESystem::EventsSet events = 0ull;
+    DESystem::StatesEventsTable states_events;
+    DESystem::StatesEventsTable inv_states_events;
+    states_events.reserve(aSys0.states_number_ * aSys1.states_number_);
+    inv_states_events.reserve(aSys0.states_number_ * aSys1.states_number_);
+
+    // Calculate params
+    for (auto ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
+        for (auto ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
+            auto key = ix1 * aSys0.states_number_ + ix0;
+
+            states_events[key] =
+                (aSys0.states_events_.at(ix0) & aSys1.states_events_.at(ix1)) |
+                (aSys0.states_events_.at(ix0) & only_in_0) |
+                (aSys1.states_events_.at(ix1) & only_in_1);
+            inv_states_events[key] =
+                (aSys0.inv_states_events_.at(ix0) &
+                 aSys1.inv_states_events_.at(ix1)) |
+                (aSys0.inv_states_events_.at(ix0) & only_in_0) |
+                (aSys1.inv_states_events_.at(ix1) & only_in_1);
+
+            estimated_transitions += states_events[key].count();
+            events |= states_events[key];
         }
     }
 
-    return states_table;
+    // Calculate new marked states
+    DESystem::StatesSet marked_states;
+    for (auto s0 : aSys0.marked_states_) {
+        for (auto s1 : aSys1.marked_states_) {
+            marked_states.emplace(s1 * aSys0.states_number_ + s0);
+        }
+    }
+
+    // Create new system without transitions
+    DESystem virtualsys{
+        aSys0.states_number_ * aSys1.states_number_,
+        aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_,
+        marked_states};
+
+    // Set private params
+    virtualsys.events_ = events;
+    virtualsys.states_events_ = states_events;
+    virtualsys.inv_states_events_ = inv_states_events;
+
+    return virtualsys;
 }
 
 /*
@@ -226,38 +267,68 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
 }
 */
 
-DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
-                               DESystem &aSys0, DESystem &aSys1) {
-    std::set<cldes_size_t> markedstates_sync;
+void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
+                           DESystem const &aSys1) {
+    /*
+    std::vector<std::pair(StatesTupleSTL, cldes_size_t)> stable;
+    for (auto sit = aVirtualSys.states_events_.begin();
+         sit != aVirtualSys.states_events_.end(); ++sit) {
+        cldes_size_t pos =
+            std::distance(aVirtualStates.states_events_.begin(), sit);
+        stable.push_back(
+            std::make_pair(std::make_pair(sit->first % aSys0.states_number_,
+                                          sit->first / aSys0.states_number_),
+                           pos));
+    }
+    */
 
-    DESystem result{aTable.size(), 0, markedstates_sync};
+    // Make it const to avoid eventual re-hashes due to the insertion of
+    // transitions
+    std::map<cldes_size_t, EventsBitArray> virtualse;
+    std::copy(aVirtualSys.states_events_.begin(),
+              aVirtualSys.states_events_.end(),
+              std::inserter(virtualse, virtualse.begin()));
+    std::cout << "Size " << virtualse.size() << std::endl;
 
-    auto sync_events = aSys0.events_ | aSys1.events_;
+    // Delete states_events_, it will be remapped
+    aVirtualSys.states_events_.clear();
+    aVirtualSys.inv_states_events_.clear();
 
-    for (auto q_ref = aTable.begin(); q_ref != aTable.end(); ++q_ref) {
+    // Resize adj matrices if necessary
+    if (aVirtualSys.states_number_ != virtualse.size()) {
+        aVirtualSys.graph_.resize(virtualse.size(), virtualse.size(), false);
+        aVirtualSys.bit_graph_.resize(virtualse.size(), virtualse.size(),
+                                      false);
+        aVirtualSys.states_number_ = virtualse.size();
+
+        // Initialize bit graph with Identity
+        for (auto s = 0u; s < aVirtualSys.states_number_; ++s) {
+            aVirtualSys.bit_graph_(s, s) = true;
+        }
+    }
+
+    // Calculate transitions
+    for (auto q_ref = virtualse.begin(); q_ref != virtualse.end(); ++q_ref) {
+        auto q = std::make_pair(q_ref->first % aSys0.states_number_,
+                                q_ref->first / aSys0.states_number_);
+        auto sync_events_iter = aVirtualSys.events_;
         auto event = 0u;
-        auto q = q_ref->second;
-        auto sync_events_iter = sync_events;
         while (sync_events_iter != 0) {
             if (sync_events_iter[0]) {
-                bool const is_in_p = aSys0.events_[event];
-                bool const is_in_e = aSys1.events_[event];
+                if (q_ref->second[event]) {
+                    auto index0 = std::distance(virtualse.begin(), q_ref);
 
-                bool const is_in_x = (aSys0.states_events_[q.first])[event];
-                bool const is_in_y = (aSys1.states_events_[q.second])[event];
+                    int xto;
+                    int yto;
 
-                if ((is_in_x && is_in_y) || (is_in_x && !is_in_e) ||
-                    (is_in_y && !is_in_p)) {
-                    int xid = -1;
-                    int yid;
+                    bool const is_in_p = aSys0.events_[event];
+                    bool const is_in_e = aSys1.events_[event];
 
-                    auto index0 = std::distance(aTable.begin(), q_ref);
-
-                    if (is_in_x) {
+                    if (is_in_p) {
                         /*
-                         * TODO: ublas::compressed_matrix<>::iterator1 does not
-                         * have operators + and += implemented. Report bug and
-                         * remove the following workaround.
+                         * TODO: ublas::compressed_matrix<>::iterator1 does
+                         * not have operators + and += implemented. Report
+                         * bug and remove the following workaround.
                          */
                         auto p_row = aSys0.graph_.begin1();
                         for (auto i = 0; i < q.first; ++i) {
@@ -268,15 +339,15 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                         for (auto elem = p_row.begin(); elem != p_row.end();
                              ++elem) {
                             if ((*elem)[event]) {
-                                xid = elem.index2();
+                                xto = elem.index2();
                                 if (!is_in_e) {
-                                    yid = q.second;
-                                    auto index1_iter = aTable.find(
-                                        yid * aSys0.states_number_ + xid);
-                                    if (index1_iter != aTable.end()) {
+                                    yto = q.second;
+                                    auto index1_iter = virtualse.find(
+                                        yto * aSys0.states_number_ + xto);
+                                    if (index1_iter != virtualse.end()) {
                                         size_t index1 = std::distance(
-                                            aTable.begin(), index1_iter);
-                                        result(index0, index1) = event;
+                                            virtualse.begin(), index1_iter);
+                                        aVirtualSys(index0, index1) = event;
                                     }
                                     break;
                                 }
@@ -284,11 +355,11 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                         }
                     }
 
-                    if (is_in_y) {
+                    if (is_in_e) {
                         /*
-                         * TODO: ublas::compressed_matrix<>::iterator1 does not
-                         * have operators + and += implemented. Report bug and
-                         * remove the following workaround.
+                         * TODO: ublas::compressed_matrix<>::iterator1 does
+                         * not have operators + and += implemented. Report
+                         * bug and remove the following workaround.
                          */
                         auto e_row = aSys1.graph_.begin1();
                         for (auto i = 0; i < q.second; ++i) {
@@ -300,15 +371,15 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
                              ++elem) {
                             if ((*elem)[event]) {
                                 if (!is_in_p) {
-                                    xid = q.first;
+                                    xto = q.first;
                                 }
-                                yid = elem.index2();
-                                auto index1_iter = aTable.find(
-                                    yid * aSys0.states_number_ + xid);
-                                if (index1_iter != aTable.end()) {
+                                yto = elem.index2();
+                                auto index1_iter = virtualse.find(
+                                    yto * aSys0.states_number_ + xto);
+                                if (index1_iter != virtualse.end()) {
                                     size_t index1 = std::distance(
-                                        aTable.begin(), index1_iter);
-                                    result(index0, index1) = event;
+                                        virtualse.begin(), index1_iter);
+                                    aVirtualSys(index0, index1) = event;
                                 }
                                 break;
                             }
@@ -321,25 +392,26 @@ DESystem op::SynchronizeStage2(op::StatesTableSTL const &aTable,
         }
     }
 
+    // Remap marked states
+    aVirtualSys.marked_states_.clear();
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
-            auto s_it = aTable.find(s1 * aSys0.states_number_ + s0);
-            if (s_it != aTable.end()) {
-                auto marked_state = std::distance(aTable.begin(), s_it);
-                markedstates_sync.emplace(marked_state);
-            }
+            auto marked_state_it =
+                virtualse.find(s1 * aSys0.states_number_ + s0);
+            size_t marked_state =
+                std::distance(virtualse.begin(), marked_state_it);
+            aVirtualSys.marked_states_.emplace(marked_state);
         }
     }
-    result.marked_states_ = markedstates_sync;
 
-    auto init_state_sync_iter = aTable.find(
+    // Remap initial state
+    auto init_state_sync_iter = virtualse.find(
         aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_);
-    auto init_state_sync = std::distance(aTable.begin(), init_state_sync_iter);
-    result.init_state_ = init_state_sync;
-
-    return result;
+    size_t init_state = std::distance(virtualse.begin(), init_state_sync_iter);
+    aVirtualSys.init_state_ = init_state;
 }
 
+/*
 bool op::ExistTransitionVirtual(DESystem const &aSys0, DESystem const &aSys1,
                                 op::StatesTupleSTL const q,
                                 ScalarType const event) {
@@ -358,30 +430,32 @@ bool op::ExistTransitionVirtual(DESystem const &aSys0, DESystem const &aSys1,
 
     return exist_transition;
 }
+    */
 
-op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
+op::StatesTupleSTL op::TransitionVirtual(DESystem &aVirtualSys,
+                                         DESystem const &aSys0,
                                          DESystem const &aSys1,
-                                         op::StatesTupleSTL const q,
-                                         ScalarType const event) {
+                                         cldes_size_t const &q,
+                                         ScalarType const &event) {
     bool const is_in_p = aSys0.events_[event];
     bool const is_in_e = aSys1.events_[event];
 
-    bool const is_in_x = (aSys0.states_events_[q.first])[event];
-    bool const is_in_y = (aSys1.states_events_[q.second])[event];
+    auto qx = q % aSys0.states_number_;
+    auto qy = q / aSys0.states_number_;
 
-    int xid = -1;
+    int xid;
     int yid;
 
     StatesTupleSTL ret;
 
-    if (is_in_x) {
+    if (is_in_p) {
         /*
          * TODO: ublas::compressed_matrix<>::iterator1 does not
          * have operators + and += implemented. Report bug and
          * remove the following workaround.
          */
         auto p_row = aSys0.graph_.begin1();
-        for (auto i = 0; i < q.first; ++i) {
+        for (auto i = 0; i < qx; ++i) {
             ++p_row;
         }
         // TODO: End of the workaround
@@ -390,7 +464,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
             if ((*elem)[event]) {
                 xid = elem.index2();
                 if (!is_in_e) {
-                    yid = q.second;
+                    yid = qy;
                     ret.first = xid;
                     ret.second = yid;
                     return ret;
@@ -399,14 +473,14 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
         }
     }
 
-    if (is_in_y) {
+    if (is_in_e) {
         /*
          * TODO: ublas::compressed_matrix<>::iterator1 does not have
          * operators + and += implemented. Report bug and remove the
          * following workaround.
          */
         auto e_row = aSys1.graph_.begin1();
-        for (auto i = 0; i < q.second; ++i) {
+        for (auto i = 0; i < qy; ++i) {
             ++e_row;
         }
         // TODO: End of the workaround
@@ -414,7 +488,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
         for (auto elem = e_row.begin(); elem != e_row.end(); ++elem) {
             if ((*elem)[event]) {
                 if (!is_in_p) {
-                    xid = q.first;
+                    xid = qx;
                 }
                 yid = elem.index2();
                 ret.first = xid;
@@ -423,30 +497,16 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
             }
         }
     }
-
     return ret;
 }
 
-bool op::ExistTransitionReal(DESystem const &aSys, cldes_size_t const &x,
-                             ScalarType const &event) {
-    bool const is_in_x = (aSys.states_events_[x])[event];
-    return is_in_x;
-}
-
-template <class EventsType, class GraphType>
-static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
-                                                 EventsType const &aEventsE,
-                                                 GraphType const &aInvGraphP,
-                                                 GraphType const &aInvGraphE,
-                                                 op::StatesTupleSTL const q,
-                                                 ScalarType const event) {
-    bool const is_in_p = aEventsP[event];
-    bool const is_in_e = aEventsE[event];
-
-    op::StatesTableSTL ret;
-    if (!is_in_p && !is_in_e) {
-        return ret;
-    }
+template <class EventsType>
+static op::StatesTableSTL __TransitionVirtualInv(
+    EventsType const &aEventsP, EventsType const &aEventsE,
+    op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
+    cldes_size_t const &q, ScalarType const &event) {
+    auto qx = q % aInvGraphP.size1();
+    auto qy = q / aInvGraphP.size1();
 
     /*
      * TODO: ublas::compressed_matrix<>::iterator1 does not have
@@ -454,29 +514,33 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
      * following workaround.
      */
     auto p_row = aInvGraphP.begin1();
-    for (auto i = 0; i < q.first; ++i) {
+    for (auto i = 0; i < qx; ++i) {
         ++p_row;
     }
     auto e_row = aInvGraphE.begin1();
-    for (auto i = 0; i < q.second; ++i) {
+    for (auto i = 0; i < qy; ++i) {
         ++e_row;
     }
     // TODO: End of the workaround
+
+    bool const is_in_p = aEventsP[event];
+    bool const is_in_e = aEventsE[event];
+
+    op::StatesTableSTL ret;
+    ret.reserve(aEventsP.size());
 
     if (is_in_p) {
         for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
             if ((*elem)[event]) {
                 if (!is_in_e) {
-                    auto key = q.second * aInvGraphP.size1() + elem.index2();
-                    ret[key] = std::make_pair(elem.index2(), q.second);
+                    ret.emplace(qy * aInvGraphP.size1() + elem.index2());
                 } else {
                     for (auto elemg2 = e_row.begin(); elemg2 != e_row.end();
                          ++elemg2) {
                         if ((*elemg2)[event]) {
                             auto key = elemg2.index2() * aInvGraphP.size1() +
                                        elem.index2();
-                            ret[key] =
-                                std::make_pair(elem.index2(), elemg2.index2());
+                            ret.emplace(key);
                         }
                     }
                 }
@@ -485,8 +549,7 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
     } else {  // Is only on e: !is_in_p && is_in_e
         for (auto elemg2 = e_row.begin(); elemg2 != e_row.end(); ++elemg2) {
             if ((*elemg2)[event]) {
-                auto key = elemg2.index2() * aInvGraphP.size1() + q.first;
-                ret[key] = std::make_pair(q.first, elemg2.index2());
+                ret.emplace(elemg2.index2() * aInvGraphP.size1() + qx);
             }
         }
     }
@@ -494,115 +557,200 @@ static op::StatesTableSTL __TransitionVirtualInv(EventsType const &aEventsP,
     return ret;
 }
 
-template <class EventsType, class GraphType>
-static void __RemoveBadStates(EventsType const &aEventsP,
-                              EventsType const &aEventsE,
-                              GraphType const &aInvGraphP,
-                              GraphType const &aInvGraphE,
-                              op::StatesTableSTL &C,
-                              op::StatesTupleSTL const &q,
-                              std::unordered_set<ScalarType> const &s_non_contr,
-                              op::StatesTableSTL &aRemovedStates) {
-    op::StatesTableSTL f;
-    f[q.second * aInvGraphP.size1() + q.first] = q;
-    aRemovedStates[q.second * aInvGraphP.size1() + q.first] = q;
+void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
+                         DESystem const &aE, op::GraphType const &aInvGraphP,
+                         op::GraphType const &aInvGraphE, op::StatesTableSTL &C,
+                         cldes_size_t const &q,
+                         std::unordered_set<ScalarType> const &s_non_contr) {
+    StatesTableSTL f;
+    f.reserve(aVirtualSys.states_number_);
+    f.emplace(q);
 
     while (f.size() != 0) {
-        op::StatesTupleSTL x = std::get<1>(*(f.begin()));
-        C.erase(x.second * aInvGraphP.size1() + x.first);
-        f.erase(f.begin());
-        for (auto e : s_non_contr) {
-            auto finv = __TransitionVirtualInv(aEventsP, aEventsE, aInvGraphP,
-                                               aInvGraphE, x, e);
-            if (finv.size() != 0) {
-                f.insert(finv.begin(), finv.end());
-                aRemovedStates.insert(finv.begin(), finv.end());
+        cldes_size_t const x = *(f.begin());
+
+        C.erase(x);
+        f.erase(x);
+
+        auto is_in_sys = aVirtualSys.states_events_.find(x) !=
+                         aVirtualSys.states_events_.end();
+
+        if (is_in_sys) {
+            auto events_iter = aVirtualSys.inv_states_events_.at(x);
+            auto event = 0u;
+            while (events_iter != 0) {
+                if (events_iter[0]) {
+                    auto finv = __TransitionVirtualInv(aP.events_, aE.events_,
+                                                       aInvGraphP, aInvGraphE,
+                                                       x, event);
+                    auto is_non_contr =
+                        s_non_contr.find(event) != s_non_contr.end();
+
+                    if (is_non_contr) {
+                        for (auto s : finv) {
+                            if (aVirtualSys.states_events_.find(s) !=
+                                aVirtualSys.states_events_.end()) {
+                                // Add transitions to remove set
+                                f.insert(s);
+                            }
+                        }
+                    } else {
+                        // Remove transitions to removed state
+                        for (auto s : finv) {
+                            if (aVirtualSys.states_events_.find(s) !=
+                                aVirtualSys.states_events_.end()) {
+                                aVirtualSys.states_events_.at(s)[event] = false;
+                            }
+                        }
+                    }
+                }
+                ++event;
+                events_iter >>= 1u;
             }
+            // Remove states from hash table
+            aVirtualSys.states_events_.erase(x);
+            aVirtualSys.inv_states_events_.erase(x);
         }
     }
 
     return;
 }
 
-DESystem op::SupervisorSynth(DESystem &aP, DESystem &aE,
+DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                              std::unordered_set<ScalarType> const &non_contr) {
-    auto s_events = aP.events_ | aE.events_;
+    auto const p_invgraph = boost::numeric::ublas::trans(aP.graph_);
+    auto const e_invgraph = boost::numeric::ublas::trans(aE.graph_);
 
-    auto const p_inversedgraph = boost::numeric::ublas::trans(aP.graph_);
-    auto const e_inversedgraph = boost::numeric::ublas::trans(aE.graph_);
+    auto virtualsys = SynchronizeStage1(aP, aE);
 
-    auto states_table = SynchronizeStage1(aP, aE);
-
-    auto init_state_sync_key =
-        aE.init_state_ * aP.states_number_ + aP.init_state_;
-    auto init_state_sync_iter = states_table.find(init_state_sync_key);
-
-    StatesTableSTL f;
-
-    if (init_state_sync_iter != states_table.end()) {
-        f[init_state_sync_key] = std::make_pair(aP.init_state_, aE.init_state_);
+    std::unordered_set<ScalarType> s_non_contr;
+    for (auto eu : non_contr) {
+        if (virtualsys.events_[eu]) {
+            s_non_contr.emplace(eu);
+        }
     }
 
-    StatesTableSTL s_states;
-    StatesTableSTL removed_states;
+    StatesTableSTL c;
+    StatesTableSTL f;
+    c.reserve(virtualsys.states_number_);
+    f.reserve(virtualsys.states_number_);
+
+    f.emplace(virtualsys.init_state_);
 
     while (f.size() != 0) {
-        auto q = std::get<1>(*(f.begin()));
-        s_states[q.second * aP.states_number_ + q.first] = q;
-        f.erase(f.begin());
-        auto event = 0u;
-        auto s_events_iter = s_events;
-        while (s_events_iter != 0) {
-            if (s_events_iter[0]) {
-                bool const is_non_contr =
-                    non_contr.find(event) != non_contr.end();
-                auto is_fp = ExistTransitionReal(aP, q.first, event);
-                auto is_fs_qevent = ExistTransitionVirtual(aP, aE, q, event);
-                StatesTupleSTL fs_qevent;
-                if (is_fs_qevent) {
-                    fs_qevent = TransitionVirtual(aP, aE, q, event);
-                    if (removed_states.find(
-                            fs_qevent.second * aP.states_number_ +
-                            fs_qevent.first) != removed_states.end()) {
-                        is_fs_qevent = false;
+        auto q = *(f.begin());
+        f.erase(q);
+
+        if (virtualsys.states_events_.find(q) !=
+            virtualsys.states_events_.end()) {
+            c.emplace(q);
+
+            // q = (qx, qy)
+            auto qx = q % aP.states_number_;
+
+            auto event = 0u;
+            auto s_events_iter = virtualsys.events_;
+            while (s_events_iter != 0) {
+                if (s_events_iter[0]) {
+                    bool const is_non_contr =
+                        s_non_contr.find(event) != s_non_contr.end();
+                    auto is_fp = aP.states_events_.at(qx)[event];
+                    auto is_fs_qevent = virtualsys.states_events_.at(q)[event];
+
+                    if (is_non_contr && !is_fs_qevent && is_fp) {
+                        RemoveBadStates(virtualsys, aP, aE, p_invgraph,
+                                        e_invgraph, c, q, s_non_contr);
+                        break;
+                    } else if (is_fs_qevent) {
+                        auto fs_qevent =
+                            TransitionVirtual(virtualsys, aP, aE, q, event);
+                        auto fsqe_key = fs_qevent.second * aP.states_number_ +
+                                        fs_qevent.first;
+
+                        auto is_in_f = f.find(fsqe_key) != f.end();
+                        auto is_in_c = c.find(fsqe_key) != c.end();
+
+                        if (!is_in_c && !is_in_f) {
+                            f.emplace(fsqe_key);
+                        }
                     }
                 }
-                if (is_non_contr && !is_fs_qevent && is_fp) {
-                    __RemoveBadStates(aP.events_, aE.events_, p_inversedgraph,
-                                      e_inversedgraph, s_states, q, non_contr,
-                                      removed_states);
-                    break;
-                } else if (is_fs_qevent) {
-                    auto key =
-                        fs_qevent.second * aP.states_number_ + fs_qevent.first;
-                    auto is_in_f = f.find(key) != f.end();
-                    auto is_in_s_states = s_states.find(key) != s_states.end();
-                    if (!is_in_s_states && !is_in_f) {
-                        f[key] = fs_qevent;
-                    }
-                }
+                ++event;
+                s_events_iter >>= 1u;
             }
-            ++event;
-            s_events_iter >>= 1u;
         }
     }
 
-    auto supervisor = SynchronizeStage2(s_states, aP, aE);
+    auto const syscopy = virtualsys.states_events_;
+    for (auto st = syscopy.begin(); st != syscopy.end(); ++st) {
+        if (c.find(st->first) == c.end()) {
+            virtualsys.states_events_.erase(st->first);
+        }
+    }
 
-    for (auto st : states_table) {
-        auto s = st.second;
-        std::cout << "(" << s.first << ", " << s.second << "): ";
-        for (auto e = 0; e < 64; ++e) {
-            auto finv = __TransitionVirtualInv(
-                aP.events_, aE.events_, p_inversedgraph, e_inversedgraph, s, e);
+    // Make virtualsys a real sys
+    SynchronizeStage2(virtualsys, aP, aE);
+
+    /*
+    DESystem::StatesSet bla;
+    DESystem test{6, 0, bla};
+    test(0, 1) = 1;
+    test(0, 2) = 0;
+    test(0, 2) = 2;
+    test(1, 1) = 1;
+    test(1, 2) = 0;
+    test(1, 3) = 2;
+    test(2, 3) = 1;
+    test(2, 4) = 0;
+    test(3, 3) = 1;
+    test(3, 4) = 0;
+    test(4, 0) = 2;
+    test(4, 4) = 0;
+    test(5, 1) = 2;
+    test(5, 4) = 0;
+
+    cldes::DESystem g1{3, 0, bla};
+
+    g1(0, 0) = 0;
+    g1(0, 2) = 2;
+    g1(1, 0) = 0;
+    g1(1, 1) = 1;
+    g1(2, 1) = 0;
+    g1(2, 1) = 2;
+    g1(2, 2) = 1;
+
+    cldes::DESystem g2{2, 0, bla};
+
+    g2(0, 0) = 1;
+    g2(0, 1) = 0;
+    g2(1, 0) = 1;
+    g2(1, 1) = 0;
+
+    // for (auto st : states_table) {
+    //    auto s = st.second;
+    // std::cout << "(" << s.first << ", " << s.second << "): ";
+    for (auto s0 = g1.states_events_.begin(); s0 != g1.states_events_.end();
+         ++s0) {
+        for (auto s1 = g2.states_events_.begin(); s1 != g2.states_events_.end();
+             ++s1) {
+            auto i = s1->first * g1.states_number_ + s0->first;
+            std::cout << i << ": ";
+            // for (auto e = 0; e < 64; ++e) {
+            auto finv = __TransitionVirtualInv(g1.events_, g2.events_,
+                                               ublas::trans(g1.graph_),
+                                               ublas::trans(g2.graph_), i, 0);
             for (auto qt : finv) {
-                auto q = qt.second;
-                std::cout << "((" << q.first << ", " << q.second << "), " << e
-                          << ") ";
+                // auto qx = qt % 3;
+                // auto qy = qt / 3;
+                // std::cout << "((" << qx << ", " << qy << "), 0) ";
+                std::cout << qt << ":0 ";
             }
+            //    }
+            std::cout << std::endl;
+            //}
         }
-        std::cout << std::endl;
     }
+*/
 
-    return supervisor.Trim();
+    return virtualsys.Trim();
 }

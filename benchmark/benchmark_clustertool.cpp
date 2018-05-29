@@ -85,9 +85,6 @@ int main(int argc, char *argv[]) {
     }
     t2 = high_resolution_clock::now();
 
-    spec = spec.Trim();
-    plant = plant.Trim();
-
     duration = duration_cast<microseconds>(t2 - t1).count();
     std::cout << "Specs sync time spent: " << duration << " microseconds"
               << std::endl;
@@ -103,7 +100,7 @@ int main(int argc, char *argv[]) {
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    auto supervisor = cldes::op::Synchronize(plant, spec);
+    auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<microseconds>(t2 - t1).count();

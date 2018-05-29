@@ -40,21 +40,41 @@ TransitionProxy::TransitionProxy(DESystem *const aSysPtr,
 
 TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
     if (aEventPos > g_max_events) {
-        throw "ValueError: Max transition value = 64";
+        std::string error = "ValueError: Max transition value = " +
+                            std::to_string(g_max_events);
+        throw error;
     }
 
-    // Add transition to the system and to the state
+    // Add transition to the system
     sys_ptr_->events_[aEventPos] = true;
-    (sys_ptr_->states_events_[lin_])[aEventPos] = true;
+
+    // Create a unsigned long long representing the event
+    DESystem::EventsSet event_ull;
+    event_ull[aEventPos] = 1ull;
+
+    // Add transition to the state events hash table
+    if (sys_ptr_->states_events_.find(lin_) != sys_ptr_->states_events_.end()) {
+        sys_ptr_->states_events_[lin_] =
+            sys_ptr_->states_events_[lin_] | event_ull;
+    } else {
+        sys_ptr_->states_events_[lin_] = event_ull;
+    }
+
+    // Add transition to the state events inverted hash table
+    if (sys_ptr_->inv_states_events_.find(col_) !=
+        sys_ptr_->inv_states_events_.end()) {
+        sys_ptr_->inv_states_events_[col_] =
+            sys_ptr_->inv_states_events_[col_] | event_ull;
+    } else {
+        sys_ptr_->inv_states_events_[col_] = event_ull;
+    }
 
     // Add transition to graph
-    std::bitset<g_max_events> event_l;
-    event_l[aEventPos] = true;
     if ((sys_ptr_->graph_)(lin_, col_) == 0) {
-        (sys_ptr_->graph_)(lin_, col_) = event_l;
+        (sys_ptr_->graph_)(lin_, col_) = event_ull;
     } else {
-        std::bitset<g_max_events> last_value = ((sys_ptr_->graph_)(lin_, col_));
-        (sys_ptr_->graph_)(lin_, col_) = last_value | event_l;
+        DESystem::EventsSet last_value = (sys_ptr_->graph_)(lin_, col_);
+        (sys_ptr_->graph_)(lin_, col_) = last_value | event_ull;
     }
 
     // Add transition to bit graph, which is transposed

@@ -31,6 +31,7 @@
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
@@ -42,6 +43,9 @@ namespace cldes {
 class DESystem;
 
 namespace op {
+
+using GraphType =
+    boost::numeric::ublas::compressed_matrix<cldes::EventsBitArray>;
 
 typedef struct StatesTuple {
     cl_uint x0;
@@ -61,7 +65,7 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 
 /*! \brief Hash table of tuples representing a virtual synch (stage 1)
  */
-using StatesTableSTL = std::unordered_map<cldes_size_t, StatesTupleSTL>;
+using StatesTableSTL = std::unordered_set<cldes_size_t>;
 
 /*
 template <class KernelType>
@@ -86,8 +90,8 @@ StatesTable *SynchronizeStage1(cldes::DESystemCL const &aSys0,
                                cldes::DESystemCL const &aSys1);
 */
 
-StatesTableSTL SynchronizeStage1(cldes::DESystem const &aSys0,
-                                 cldes::DESystem const &aSys1);
+cldes::DESystem SynchronizeStage1(cldes::DESystem const &aSys0,
+                                  cldes::DESystem const &aSys1);
 
 /*
 cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
@@ -95,26 +99,24 @@ cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
                                     cldes::DESystemCL &aSys1);
 */
 
-cldes::DESystem SynchronizeStage2(StatesTableSTL const &aTable,
-                                  cldes::DESystem &aSys0,
-                                  cldes::DESystem &aSys1);
+void SynchronizeStage2(cldes::DESystem &aVirtualSys,
+                       cldes::DESystem const &aSys0,
+                       cldes::DESystem const &aSys1);
 
-StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
+StatesTupleSTL TransitionVirtual(cldes::DESystem &aVirtualSystem,
+                                 cldes::DESystem const &aSys0,
                                  cldes::DESystem const &aSys1,
-                                 StatesTupleSTL const q,
-                                 cldes::ScalarType const event);
+                                 cldes::cldes_size_t const &q,
+                                 cldes::ScalarType const &event);
 
-bool ExistTransitionVirtual(cldes::DESystem const &aSys0,
-                            cldes::DESystem const &aSys1,
-                            StatesTupleSTL const q,
-                            cldes::ScalarType const event);
-
-bool ExistTransitionReal(cldes::DESystem const &aSys,
-                         cldes::cldes_size_t const &x,
-                         cldes::ScalarType const &event);
+void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
+                     cldes::DESystem const &aE, GraphType const &aInvGraphP,
+                     GraphType const &aInvGraphE, op::StatesTableSTL &C,
+                     cldes_size_t const &q,
+                     std::unordered_set<ScalarType> const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(
-    cldes::DESystem &aP, cldes::DESystem &aS,
+    cldes::DESystem const &aP, cldes::DESystem const &aS,
     std::unordered_set<cldes::ScalarType> const &non_contr);
 }  // namespace op
 }  // namespace cldes

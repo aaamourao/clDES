@@ -48,15 +48,20 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
     marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
-    graph_ = DESystem::GraphHostData(states_number_, states_number_);
-    bit_graph_ = DESystem::BitGraphHostData(states_number_, states_number_,
-                                            states_number_);
 
-    DESystem::EventsSet events;
+    // Resize graphs and do not preserve elements
+    graph_.resize(states_number_, states_number_, false);
+    bit_graph_.resize(states_number_, states_number_, false);
+
+    // Initialize bit graph with Identity
+    bit_graph_.reserve(states_number_);
     for (auto s = 0u; s < states_number_; ++s) {
-        states_events_.push_back(events);
         bit_graph_(s, s) = true;
     }
+
+    // Reserve mem for hash tables for avoiding re-hashing
+    states_events_.reserve(states_number_);
+    inv_states_events_.reserve(states_number_);
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
@@ -64,6 +69,7 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
     }
 }
 
+/*
 DESystem::DESystem(DESystem const &aSys) {
     init_state_ = cldes_size_t{aSys.init_state_};
     states_number_ = cldes_size_t{aSys.states_number_};
@@ -74,7 +80,9 @@ DESystem::DESystem(DESystem const &aSys) {
     graph_ = GraphHostData{aSys.graph_};
     bit_graph_ = BitGraphHostData{aSys.bit_graph_};
     states_events_ = StatesEventsTable{aSys.states_events_};
+    inv_states_events_ = StatesEventsTable{aSys.inv_states_events_};
 }
+*/
 
 DESystem::GraphHostData DESystem::GetGraph() const { return graph_; }
 
