@@ -16,6 +16,8 @@ such as the parallel composition.
 
 ### Available operations
 
+> Only CPU operations are available now. The *OpenCL* code is being refactored.
+
 The following operations are going to be available on **clDES-1.0.0**:
 
 Automata operation | Implementation | Status
@@ -26,7 +28,7 @@ Trim | `cldes::DESystem::Trim()` | **Implemented**
 Synchronization: parallel composition | `cldes::op::Synchronize()` | **Implemented**
 Virtual parallel composition | `cldes::op::SynchronizeStage1()` | **Implemented**
 Real parallel composition | `cldes::op::SynchronizeStage2()` | **Implemented**
-Controller Synthesis | `cldes::op::SupervisorSynth()` | **in progress**
+Controller Synthesis | `cldes::op::SupervisorSynth()` | **Implemented**
 
 The following operations are going to be available on **clDES-1.1.0**:
 
