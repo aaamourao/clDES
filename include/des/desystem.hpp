@@ -163,7 +163,7 @@ public:
      *
      * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    DESystem Trim(bool const &aDevCacheEnabled = true);
+    void Trim();
 
     /*! \brief Returns value of the specified transition
      *

@@ -295,7 +295,6 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         transitions_number(virtualse.size()) = st.value().count();
         virtualse[st.key()] = st.value();
     }
-    std::cout << "Size " << virtualse.size() << std::endl;
 
     // Delete states_events_, it will be remapped
     aVirtualSys.states_events_.clear();
@@ -696,6 +695,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 */
+    virtualsys.Trim();
 
     return virtualsys;
 }

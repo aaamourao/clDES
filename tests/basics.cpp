@@ -137,7 +137,7 @@ int main() {
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    auto new_trimsys = new_sys.Trim();
+    new_sys.Trim();
     t2 = high_resolution_clock::now();
     duration = duration_cast<microseconds>(t2 - t1).count();
 

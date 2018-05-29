@@ -184,7 +184,7 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     }
 
     auto accessed_states = new StatesSet[n_initial_nodes];
-    for (auto s = 0l; s < y.rows(); ++s) {
+    for (auto s = 0l; s < y.cols(); ++s) {
         for (RowIterator e(y, s); e; ++e) {
             accessed_states[e.col()].emplace(e.row());
         }
@@ -259,80 +259,76 @@ delete[] paccessed_states;
     return trimstates;
 }
 
-DESystem DESystem::Trim(bool const &aDevCacheEnabled) {
+using RowIteratorGraph = Eigen::InnerIterator<DESystem::GraphHostData>;
+
+void DESystem::Trim() {
     auto trimstates = this->TrimStates();
 
     if (trimstates.size() == static_cast<unsigned long>(graph_.rows())) {
-        return *this;
+        return;
     }
 
-    DESystem::StatesSet states_to_remove;
+    // Copy graph and resize it
+    auto old_graph = graph_;
+    graph_.resize(static_cast<long>(trimstates.size()),
+                  static_cast<long>(trimstates.size()));
+    bit_graph_.resize(static_cast<long>(trimstates.size()),
+                      static_cast<long>(trimstates.size()));
+    graph_.setZero();
+    bit_graph_.setZero();
+
+    // Clear states hash tables
+    states_events_.clear();
+    inv_states_events_.clear();
+    events_.reset();
+
+    // States map: old state pos -> new state pos
+    QHash<long, long> st_map;
+
     {
-        DESystem::StatesSet all_states;
-        for (auto i = 0ul; i < states_number_; ++i) {
-            all_states.emplace(i);
+        // Calculate the sparsity pattern
+        Eigen::VectorXi transitions_number(trimstates.size());
+        for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
+            transitions_number(std::distance(trimstates.begin(), sit)) =
+                states_events_[*sit].count();
+            st_map[*sit] = std::distance(trimstates.begin(), sit);
         }
-        std::set_difference(
-            all_states.begin(), all_states.end(), trimstates.begin(),
-            trimstates.end(),
-            std::inserter(states_to_remove, states_to_remove.begin()));
+
+        // Reserve mem space to store nnz
+        graph_.reserve(transitions_number);
+        bit_graph_.reserve(transitions_number);
     }
 
-    /*
-    // First remove rows of non-trim states
-    {
-        auto removed_rows = 0ul;
-        cldes_size_t num_cols = graph_.cols();
-        for (auto s : states_to_remove) {
-            cldes_size_t num_rows = graph_.rows() - 1ul;
+    // Build new graph_ slice by slice
+    for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {
+        auto row_id = std::distance(trimstates.begin(), st);
 
-            cldes_size_t r = s - removed_rows;
+        for (RowIteratorGraph e(old_graph, *st); e; ++e) {
+            if (st_map.find(e.col()) != st_map.end()) {
+                auto col_id = st_map[e.col()];
 
-            if (r < num_rows) {
-                graph_.block(r, 0, num_rows - r, num_cols) =
-                    graph_.block(r + 1, 0, num_rows - r, num_cols);
+                graph_.coeffRef(row_id, col_id) = e.value();
+                bit_graph_.coeffRef(col_id, row_id) = true;
+                events_ |= e.value();
+                states_events_[row_id] |= e.value();
+                inv_states_events_[col_id] |= e.value();
             }
-
-            graph_.conservativeResize(num_rows, num_cols);
-
-            ++removed_rows;
         }
     }
 
-    // Now remove the non-trim columns
-    {
-        auto removed_cols = 0ul;
-        cldes_size_t num_rows = graph_.rows();
-        for (auto s : states_to_remove) {
-            cldes_size_t num_cols = graph_.cols() - 1ul;
+    // Remove non used space
+    graph_.makeCompressed();
+    bit_graph_.makeCompressed();
 
-            cldes_size_t c = s - removed_cols;
-
-            if (r < num_rows) {
-                graph_.block(0, c, num_rows, num_cols - c) =
-                    graph_.block(0, c + 1, num_rows, num_cols - c);
-            }
-
-            graph_.conservativeResize(num_rows, num_cols);
-
-            ++removed_cols;
+    // Calculate new marked states
+    auto old_marked = marked_states_;
+    for (auto s : old_marked) {
+        if (st_map.find(s) != st_map.end()) {
+            marked_states_.emplace(st_map[s]);
         }
     }
-    */
-    StatesSet trim_marked_states;
-    std::set_intersection(
-        marked_states_.begin(), marked_states_.end(), trimstates.begin(),
-        trimstates.end(),
-        std::inserter(trim_marked_states, trim_marked_states.begin()));
 
-    DESystem trim_system{trimstates.size(), init_state_, trim_marked_states,
-                         aDevCacheEnabled};
-
-    // trim_system.graph_ = trim_graph;
-
-    // TODO: Assign bit_graph_
-
-    return trim_system;
+    return;
 }
 
 void DESystem::InsertEvents(DESystem::EventsSet const &aEvents) {
