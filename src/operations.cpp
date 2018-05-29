@@ -586,9 +586,6 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     while (f.size() != 0) {
         auto q = *(f.begin());
         f.remove(q);
-
-        // std::cout << "State " << q << std::endl;
-
         c.insert(q);
 
         // q = (qx, qy)
@@ -600,14 +597,14 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
             if (s_events_iter[0]) {
                 bool const is_non_contr =
                     s_non_contr.find(event) != s_non_contr.end();
-                auto is_fp = aP.states_events_[qx][event];
-                auto is_fs_qevent = virtualsys.states_events_[q][event];
+                auto is_there_fp = aP.states_events_[qx][event];
+                auto is_there_fsqe = virtualsys.states_events_[q][event];
 
-                if (is_non_contr && !is_fs_qevent && is_fp) {
+                if (is_non_contr && !is_there_fsqe && is_there_fp) {
                     RemoveBadStates(virtualsys, aP, aE, p_invgraph, e_invgraph,
                                     c, f, q, s_non_contr);
                     break;
-                } else if (is_fs_qevent) {
+                } else if (is_there_fsqe) {
                     auto fs_qevent = TransitionVirtual(aP, aE, q, event);
                     auto fsqe_key =
                         fs_qevent.second * aP.states_number_ + fs_qevent.first;
