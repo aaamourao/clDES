@@ -7,6 +7,14 @@ cmake_minimum_required (VERSION 3.10)
 project (clDES VERSION 0.1.0 DESCRIPTION
     "Discrete Event Systems implementation and operations")
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 include(ExternalProject)
 set (CMAKE_CXX_STANDARD 11)
 
@@ -18,6 +26,8 @@ set (clDES_VERSION_PATCH 0)
 # OpenCL and Boost packages are required
 find_package(OpenCL 1.2 REQUIRED)
 find_package(Boost 1.64 REQUIRED)
+find_package(Qt5Core REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # Vars for configuring outputs dir
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libclDES)

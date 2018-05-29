@@ -32,15 +32,15 @@
 
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
-#include <CL/cl.hpp>
+//#include <CL/cl.hpp>
 #include <bitset>
 
 namespace cldes {
 // Host adjascency matrix base type which represents an array of bits
-using ScalarType = unsigned long long;
+using ScalarType = unsigned long;
 
 // clDES base type for indexing matrices and arrays
-using cldes_size_t = cl_uint;
+using cldes_size_t = unsigned long;
 
 // Max number of events
 cldes_size_t const g_max_events = 100;

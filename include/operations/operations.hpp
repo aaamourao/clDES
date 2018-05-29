@@ -32,9 +32,9 @@
 #define OPERATIONS_HPP
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <qt5/QtCore/QHash>
+#include <qt5/QtCore/QSet>
 #include <tuple>
-#include <unordered_map>
-#include <unordered_set>
 #include "constants.hpp"
 
 namespace cldes {
@@ -47,6 +47,7 @@ namespace op {
 using GraphType =
     boost::numeric::ublas::compressed_matrix<cldes::EventsBitArray>;
 
+/*
 typedef struct StatesTuple {
     cl_uint x0;
     cl_uint x1;
@@ -56,6 +57,7 @@ typedef struct StatesTable {
     cl_uint tsize;
     StatesTuple *table;
 } StatesTable;
+*/
 
 /*! \brief tuple representing a state of a virtual synch (stage 1)
  *
@@ -65,7 +67,7 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 
 /*! \brief Hash table of tuples representing a virtual synch (stage 1)
  */
-using StatesTableSTL = std::unordered_set<cldes_size_t>;
+using StatesTableSTL = QSet<cldes_size_t>;
 
 /*
 template <class KernelType>
@@ -103,8 +105,7 @@ void SynchronizeStage2(cldes::DESystem &aVirtualSys,
                        cldes::DESystem const &aSys0,
                        cldes::DESystem const &aSys1);
 
-StatesTupleSTL TransitionVirtual(cldes::DESystem &aVirtualSystem,
-                                 cldes::DESystem const &aSys0,
+StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
                                  cldes::DESystem const &aSys1,
                                  cldes::cldes_size_t const &q,
                                  cldes::ScalarType const &event);
@@ -112,12 +113,12 @@ StatesTupleSTL TransitionVirtual(cldes::DESystem &aVirtualSystem,
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
                      GraphType const &aInvGraphE, op::StatesTableSTL &C,
-                     cldes_size_t const &q,
-                     std::unordered_set<ScalarType> const &s_non_contr);
+                     op::StatesTableSTL &fs, cldes_size_t const &q,
+                     QSet<ScalarType> const &s_non_contr);
 
-cldes::DESystem SupervisorSynth(
-    cldes::DESystem const &aP, cldes::DESystem const &aS,
-    std::unordered_set<cldes::ScalarType> const &non_contr);
+cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
+                                cldes::DESystem const &aS,
+                                QSet<cldes::ScalarType> const &non_contr);
 }  // namespace op
 }  // namespace cldes
 #endif  // DESYSTEM_HPP

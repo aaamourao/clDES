@@ -37,10 +37,10 @@
 #endif
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <qt5/QtCore/QHash>
+#include <qt5/QtCore/QSet>
 #include <set>
 #include <tuple>
-#include <unordered_map>
-#include <unordered_set>
 #include "constants.hpp"
 
 namespace cldes {
@@ -74,7 +74,7 @@ struct StatesTable;
 struct StatesTuple;
 
 using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
-using StatesTableSTL = std::unordered_set<cldes_size_t>;
+using StatesTableSTL = QSet<cldes_size_t>;
 
 cldes::DESystem SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
 
@@ -82,8 +82,7 @@ void SynchronizeStage2(cldes::DESystem &aVirtualSys,
                        cldes::DESystem const &aSys0,
                        cldes::DESystem const &aSys1);
 
-StatesTupleSTL TransitionVirtual(cldes::DESystem &aVirtualSys,
-                                 cldes::DESystem const &aSys0,
+StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
                                  cldes::DESystem const &aSys1,
                                  cldes::cldes_size_t const &q,
                                  cldes::ScalarType const &event);
@@ -91,12 +90,12 @@ StatesTupleSTL TransitionVirtual(cldes::DESystem &aVirtualSys,
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
                      GraphType const &aInvGraphE, op::StatesTableSTL &C,
-                     cldes_size_t const &q,
-                     std::unordered_set<ScalarType> const &s_non_contr);
+                     op::StatesTableSTL &fs, cldes_size_t const &q,
+                     QSet<ScalarType> const &s_non_contr);
 
-cldes::DESystem SupervisorSynth(
-    cldes::DESystem const &aP, cldes::DESystem const &aS,
-    std::unordered_set<ScalarType> const &non_contr);
+cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
+                                cldes::DESystem const &aS,
+                                QSet<ScalarType> const &non_contr);
 }  // namespace op
 
 class DESystem {
@@ -106,7 +105,7 @@ public:
     using StatesSet = std::set<cldes_size_t>;
     using StatesVector = ublas::compressed_matrix<bool>;
     using EventsSet = EventsBitArray;
-    using StatesEventsTable = std::unordered_map<cldes_size_t, EventsSet>;
+    using StatesEventsTable = QHash<cldes_size_t, EventsSet>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -226,19 +225,17 @@ private:
     friend void op::SynchronizeStage2(DESystem &aVirtualSys,
                                       DESystem const &aSys0,
                                       DESystem const &aSys1);
-    friend op::StatesTupleSTL op::TransitionVirtual(DESystem &aVirtualSys,
-                                                    DESystem const &aSys0,
+    friend op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
                                                     DESystem const &aSys1,
                                                     cldes_size_t const &q,
                                                     ScalarType const &event);
     friend void op::RemoveBadStates(
         DESystem &aVirtualSys, DESystem const &aP, DESystem const &aE,
         op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
-        op::StatesTableSTL &C, cldes_size_t const &q,
-        std::unordered_set<ScalarType> const &s_non_contr);
-    friend DESystem op::SupervisorSynth(
-        DESystem const &aP, DESystem const &aE,
-        std::unordered_set<ScalarType> const &non_contr);
+        op::StatesTableSTL &fs, op::StatesTableSTL &C, cldes_size_t const &q,
+        QSet<ScalarType> const &s_non_contr);
+    friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
+                                        QSet<ScalarType> const &non_contr);
 
     /*! \brief Graph represented by an adjascency matrix
      *

@@ -17,8 +17,8 @@
  You should have received a copy of the GNU General Public License
  along with clDES.  If not, see <http://www.gnu.org/licenses/>.
 
- Copyright (c) 2018 - Adriano Mourao <adrianomourao@protonmail.com>
-                      madc0ww @ [https://github.com/madc0ww]
+ Copyright (c) 20ul18 - Adriano Mourao <adrianomourao@protonmail.com>
+                      madc0ulww @ [https://github.com/madc0ulww]
 
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
@@ -51,10 +51,10 @@ std::string ReadResult(ublas_matrix const &aOpResult,
     std::ostringstream result;
 
     result << aHeader << ":" << std::endl;
-    for (auto it1 = 0; it1 != aOpResult.size1(); ++it1) {
-        for (auto it2 = 0; it2 != aOpResult.size2(); ++it2) {
+    for (auto it1 = 0ul; it1 != aOpResult.size1(); ++it1) {
+        for (auto it2 = 0ul; it2 != aOpResult.size2(); ++it2) {
             auto events = aOpResult(it1, it2);
-            if (events != 0) {
+            if (events != 0ul) {
                 result << events.to_ulong() << " ";
             } else {
                 result << "0 ";
@@ -84,10 +84,10 @@ void ProcessResult(T const &aOpResult, StringType const aHeader,
 template <typename GraphType, typename StringType>
 void PrintGraph(GraphType const &aGraph, StringType const &aGraphName) {
     std::cout << aGraphName << std::endl;
-    for (auto it1 = 0; it1 != aGraph.size1(); ++it1) {
-        for (auto it2 = 0; it2 != aGraph.size2(); ++it2) {
+    for (auto it1 = 0ul; it1 != aGraph.size1(); ++it1) {
+        for (auto it2 = 0ul; it2 != aGraph.size2(); ++it2) {
             auto events = aGraph(it1, it2);
-            if (events != 0) {
+            if (events != 0ul) {
                 std::cout << events.to_ulong() << " ";
             } else {
                 std::cout << "0 ";

@@ -31,7 +31,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <unordered_set>
 #include <sstream>
 #include <string>
 #include "cldes.hpp"
@@ -48,7 +47,7 @@ int main() {
     cldes::ScalarType const b0 = 2;
     cldes::ScalarType const b1 = 3;
 
-    std::unordered_set<cldes::ScalarType> non_contr = {b0, b1};
+    QSet<cldes::ScalarType> non_contr = {b0, b1};
 
     std::set<cldes::cldes_size_t> plant_marked_states = {0};
 

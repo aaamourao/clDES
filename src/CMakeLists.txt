@@ -26,6 +26,7 @@ set_target_properties(libclDES PROPERTIES VERSION ${PROJECT_VERSION})
 
 # Link OpenCL library
 # target_link_libraries(libclDES OpenCL::OpenCL)
+target_link_libraries(libclDES Qt5::Core)
 
 
 # Add install targets

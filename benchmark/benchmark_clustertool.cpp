@@ -31,7 +31,6 @@
 
 #include <chrono>
 #include <cstdlib>
-#include <unordered_set>
 #include <vector>
 #include "des/desystem.hpp"
 #include "operations/operations.hpp"
@@ -39,10 +38,10 @@
 
 using namespace std::chrono;
 
-void ClusterTool(unsigned int const &aNClusters,
+void ClusterTool(unsigned long const &aNClusters,
                  std::vector<cldes::DESystem> &aPlants,
                  std::vector<cldes::DESystem> &aSpecs,
-                 std::unordered_set<cldes::ScalarType> &non_contr);
+                 QSet<cldes::ScalarType> &non_contr);
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -51,7 +50,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<cldes::DESystem> plants;
     std::vector<cldes::DESystem> specs;
-    std::unordered_set<cldes::ScalarType> non_contr;
+    QSet<cldes::ScalarType> non_contr;
 
     std::cout << "Generating ClusterTool(" << std::atoi(argv[1]) << ")"
               << std::endl;
@@ -59,13 +58,13 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Synchronizing plants" << std::endl;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    auto last_result = plants[0];
+    auto last_result = plants[0ul];
     auto plant = last_result;
     PrintGraph(plants[0].GetGraph(), "plants[0]");
-    for (auto i = 1; i < plants.size(); ++i) {
+    for (auto i = 1ul; i < plants.size(); ++i) {
         plant = cldes::op::Synchronize(last_result, plants[i]);
         last_result = plant;
-    PrintGraph(plants[i].GetGraph(), "plants[i]");
+        PrintGraph(plants[i].GetGraph(), "plants[i]");
     }
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
@@ -78,10 +77,10 @@ int main(int argc, char *argv[]) {
     last_result = specs[0];
     PrintGraph(specs[0].GetGraph(), "spec[0]");
     auto spec = last_result;
-    for (auto i = 1; i < specs.size(); ++i) {
+    for (auto i = 1ul; i < specs.size(); ++i) {
         spec = cldes::op::Synchronize(last_result, specs[i]);
         last_result = spec;
-    PrintGraph(specs[i].GetGraph(), "spec[i]");
+        PrintGraph(specs[i].GetGraph(), "spec[i]");
     }
     t2 = high_resolution_clock::now();
 

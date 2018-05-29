@@ -150,12 +150,12 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     std::function<void(cldes_size_t const &, cldes_size_t const &)> const
         &aBfsVisit,
     std::vector<cldes_size_t> const *const aStatesMap) {
-    cl_uint n_initial_nodes = aHostX.size2();
+    cldes_size_t n_initial_nodes = aHostX.size2();
 
     // Executes BFS
     StatesVector y{states_number_, n_initial_nodes};
-    auto n_accessed_states = 0l;
-    for (auto i = 0; i < states_number_; ++i) {
+    auto n_accessed_states = 0ul;
+    for (auto i = 0ul; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
         ublas::sparse_prod(bit_graph_, aHostX, y, true);
