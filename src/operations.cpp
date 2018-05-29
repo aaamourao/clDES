@@ -34,8 +34,8 @@
 // #include "backend/oclbackend.hpp"
 #include "des/desystem.hpp"
 // #include "des/desystemcl.hpp"
-#include "des/transition_proxy.hpp"
 #include <boost/numeric/ublas/matrix_proxy.hpp>
+#include "des/transition_proxy.hpp"
 
 using namespace cldes;
 
@@ -330,16 +330,20 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                          * not have operators + and += implemented. Report
                          * bug and remove the following workaround.
                          */
+                        /*
                         auto p_row = aSys0.graph_.begin1();
                         for (auto i = 0; i < q.first; ++i) {
                             ++p_row;
                         }
+                        */
+                        ublas::matrix_row<DESystem::GraphHostData const> p_row(
+                            aSys0.graph_, q.first);
                         // TODO: End of the workaround
 
                         for (auto elem = p_row.begin(); elem != p_row.end();
                              ++elem) {
                             if ((*elem)[event]) {
-                                xto = elem.index2();
+                                xto = elem.index();
                                 if (!is_in_e) {
                                     yto = q.second;
                                     auto index1_iter = virtualse.find(
@@ -361,10 +365,14 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                          * not have operators + and += implemented. Report
                          * bug and remove the following workaround.
                          */
+                        /*
                         auto e_row = aSys1.graph_.begin1();
                         for (auto i = 0; i < q.second; ++i) {
                             ++e_row;
                         }
+                        */
+                        ublas::matrix_row<DESystem::GraphHostData const> e_row(
+                            aSys1.graph_, q.second);
                         // TODO: End of the workaround
 
                         for (auto elem = e_row.begin(); elem != e_row.end();
@@ -373,7 +381,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                                 if (!is_in_p) {
                                     xto = q.first;
                                 }
-                                yto = elem.index2();
+                                yto = elem.index();
                                 auto index1_iter = virtualse.find(
                                     yto * aSys0.states_number_ + xto);
                                 if (index1_iter != virtualse.end()) {
@@ -454,21 +462,25 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem &aVirtualSys,
          * have operators + and += implemented. Report bug and
          * remove the following workaround.
          */
+        /*
         auto p_row = aSys0.graph_.begin1();
         for (auto i = 0; i < qx; ++i) {
             ++p_row;
         }
+        */
+        ublas::matrix_row<DESystem::GraphHostData const> p_row(aSys0.graph_, qx);
         // TODO: End of the workaround
 
         for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
             if ((*elem)[event]) {
-                xid = elem.index2();
+                xid = elem.index();
                 if (!is_in_e) {
                     yid = qy;
                     ret.first = xid;
                     ret.second = yid;
                     return ret;
                 }
+                break;
             }
         }
     }
@@ -479,10 +491,13 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem &aVirtualSys,
          * operators + and += implemented. Report bug and remove the
          * following workaround.
          */
+        /*
         auto e_row = aSys1.graph_.begin1();
         for (auto i = 0; i < qy; ++i) {
             ++e_row;
         }
+        */
+        ublas::matrix_row<DESystem::GraphHostData const> e_row(aSys1.graph_, qy);
         // TODO: End of the workaround
 
         for (auto elem = e_row.begin(); elem != e_row.end(); ++elem) {
@@ -490,7 +505,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem &aVirtualSys,
                 if (!is_in_p) {
                     xid = qx;
                 }
-                yid = elem.index2();
+                yid = elem.index();
                 ret.first = xid;
                 ret.second = yid;
                 return ret;
@@ -500,6 +515,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem &aVirtualSys,
     return ret;
 }
 
+// This function assumes that there is an inverse transition.
 template <class EventsType>
 static op::StatesTableSTL __TransitionVirtualInv(
     EventsType const &aEventsP, EventsType const &aEventsE,
@@ -513,6 +529,7 @@ static op::StatesTableSTL __TransitionVirtualInv(
      * operators + and += implemented. Report bug and remove the
      * following workaround.
      */
+    /*
     auto p_row = aInvGraphP.begin1();
     for (auto i = 0; i < qx; ++i) {
         ++p_row;
@@ -521,6 +538,9 @@ static op::StatesTableSTL __TransitionVirtualInv(
     for (auto i = 0; i < qy; ++i) {
         ++e_row;
     }
+    */
+    ublas::matrix_row<op::GraphType const> p_row(aInvGraphP, qx);
+    ublas::matrix_row<op::GraphType const> e_row(aInvGraphE, qy);
     // TODO: End of the workaround
 
     bool const is_in_p = aEventsP[event];
@@ -529,27 +549,29 @@ static op::StatesTableSTL __TransitionVirtualInv(
     op::StatesTableSTL ret;
     ret.reserve(aEventsP.size());
 
-    if (is_in_p) {
+    if (is_in_p && is_in_e) {
         for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
             if ((*elem)[event]) {
-                if (!is_in_e) {
-                    ret.emplace(qy * aInvGraphP.size1() + elem.index2());
-                } else {
-                    for (auto elemg2 = e_row.begin(); elemg2 != e_row.end();
-                         ++elemg2) {
-                        if ((*elemg2)[event]) {
-                            auto key = elemg2.index2() * aInvGraphP.size1() +
-                                       elem.index2();
-                            ret.emplace(key);
-                        }
+                for (auto elemg2 = e_row.begin(); elemg2 != e_row.end();
+                     ++elemg2) {
+                    if ((*elemg2)[event]) {
+                        auto key = elemg2.index() * aInvGraphP.size1() +
+                                   elem.index();
+                        ret.emplace(key);
                     }
                 }
             }
         }
-    } else {  // Is only on e: !is_in_p && is_in_e
+    } else if (is_in_p) {  // Is only in p: is_in_p && !is_in_e
+        for (auto elem = p_row.begin(); elem != p_row.end(); ++elem) {
+            if ((*elem)[event]) {
+                ret.emplace(qy * aInvGraphP.size1() + elem.index());
+            }
+        }
+    } else {  // Is only in e: !is_in_p && is_in_e
         for (auto elemg2 = e_row.begin(); elemg2 != e_row.end(); ++elemg2) {
             if ((*elemg2)[event]) {
-                ret.emplace(elemg2.index2() * aInvGraphP.size1() + qx);
+                ret.emplace(elemg2.index() * aInvGraphP.size1() + qx);
             }
         }
     }
@@ -752,5 +774,5 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     }
 */
 
-    return virtualsys.Trim();
+    return virtualsys;
 }

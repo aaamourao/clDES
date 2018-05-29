@@ -90,12 +90,12 @@ int main() {
 
     std::ostringstream expected_result;
 
-    expected_result << "0 0 4 0 0 0 " << std::endl;
-    expected_result << "1 0 0 0 0 0 " << std::endl;
-    expected_result << "0 0 0 2 0 0 " << std::endl;
-    expected_result << "0 8 0 0 1 0 " << std::endl;
-    expected_result << "8 0 0 0 0 4 " << std::endl;
-    expected_result << "0 0 8 0 0 0 " << std::endl;
+    expected_result << "0 1 0 0 0 0 " << std::endl;
+    expected_result << "0 0 0 0 4 0 " << std::endl;
+    expected_result << "8 0 0 1 0 0 " << std::endl;
+    expected_result << "0 8 0 0 0 4 " << std::endl;
+    expected_result << "0 0 2 0 0 0 " << std::endl;
+    expected_result << "0 0 0 0 8 0 " << std::endl;
     expected_result << ">" << std::endl;
     ProcessResult(supervisor.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());

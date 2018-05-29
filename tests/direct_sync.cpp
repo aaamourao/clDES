@@ -103,12 +103,12 @@ int main() {
 
     std::ostringstream expected_result;
 
-    expected_result << "0 0 5 2 0 0 " << std::endl;
-    expected_result << "0 3 0 2 0 0 " << std::endl;
-    expected_result << "0 5 3 0 2 0 " << std::endl;
-    expected_result << "0 0 0 2 0 5 " << std::endl;
-    expected_result << "0 3 0 2 0 0 " << std::endl;
-    expected_result << "0 0 3 0 10 0 " << std::endl;
+    expected_result << "0 0 4 1 0 0 " << std::endl;
+    expected_result << "0 2 0 1 0 0 " << std::endl;
+    expected_result << "0 4 2 0 1 0 " << std::endl;
+    expected_result << "0 0 0 1 0 4 " << std::endl;
+    expected_result << "0 2 0 1 0 0 " << std::endl;
+    expected_result << "0 0 2 0 5 0 " << std::endl;
     expected_result << ">";
     ProcessResult(sync_sys.GetGraph(), "< Sync graph",
                   expected_result.str().c_str());
