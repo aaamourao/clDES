@@ -362,9 +362,9 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                         }
                     }
 
-                    auto key = yto * aSys0.states_number_ + xto;
+                    auto const key = yto * aSys0.states_number_ + xto;
                     if (statesmap.find(key) != statesmap.end()) {
-                        size_t index1 = statesmap[key];
+                        size_t const index1 = statesmap[key];
                         aVirtualSys(index0, index1) = event;
                     }
                 }
@@ -382,14 +382,23 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.marked_states_.clear();
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
-            aVirtualSys.marked_states_.insert(
-                statesmap[s1 * aSys1.states_number_ + s0]);
+            auto const key = s1 * aSys1.states_number_ + s0;
+            if (statesmap.find(key) != statesmap.end()) {
+                aVirtualSys.marked_states_.insert(
+                    statesmap[s1 * aSys1.states_number_ + s0]);
+            }
         }
     }
 
     // Remap initial state
-    aVirtualSys.init_state_ =
-        statesmap[aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_];
+    auto const init_state_key =
+        aSys1.init_state_ + aSys0.states_number_ + aSys0.init_state_;
+    if (statesmap.find(init_state_key) != statesmap.end()) {
+        aVirtualSys.init_state_ = statesmap[init_state_key];
+    } else {
+        // Set init state to an invalid state
+        aVirtualSys.init_state_ = aVirtualSys.states_number_;
+    }
 }
 
 /*
@@ -420,8 +429,8 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
     bool const is_in_p = aSys0.events_[event];
     bool const is_in_e = aSys1.events_[event];
 
-    auto qx = q % aSys0.states_number_;
-    auto qy = q / aSys0.states_number_;
+    auto const qx = q % aSys0.states_number_;
+    auto const qy = q / aSys0.states_number_;
 
     int xid;
     int yid;
@@ -465,8 +474,8 @@ static op::StatesTableSTL __TransitionVirtualInv(
     EventsType const &aEventsP, EventsType const &aEventsE,
     op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
     cldes_size_t const &q, ScalarType const &event) {
-    auto qx = q % aInvGraphP.rows();
-    auto qy = q / aInvGraphP.rows();
+    auto const qx = q % aInvGraphP.rows();
+    auto const qy = q / aInvGraphP.rows();
 
     bool const is_in_p = aEventsP[event];
     bool const is_in_e = aEventsE[event];
@@ -479,7 +488,7 @@ static op::StatesTableSTL __TransitionVirtualInv(
             if (pe.value()[event]) {
                 for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
                     if (ee.value()[event]) {
-                        auto key = ee.col() * aInvGraphP.rows() + pe.col();
+                        auto const key = ee.col() * aInvGraphP.rows() + pe.col();
                         ret.insert(key);
                     }
                 }
@@ -520,9 +529,9 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
         auto event = 0u;
         while (events_iter != 0) {
             if (events_iter[0]) {
-                auto finv = __TransitionVirtualInv(
+                auto const finv = __TransitionVirtualInv(
                     aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
-                auto is_non_contr =
+                auto const is_non_contr =
                     s_non_contr.find(event) != s_non_contr.end();
 
                 if (is_non_contr) {
@@ -579,7 +588,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         c.insert(q);
 
         // q = (qx, qy)
-        auto qx = q % aP.states_number_;
+        auto const qx = q % aP.states_number_;
 
         auto event = 0u;
         auto s_events_iter = virtualsys.events_;
@@ -587,20 +596,20 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
             if (s_events_iter[0]) {
                 bool const is_non_contr =
                     s_non_contr.find(event) != s_non_contr.end();
-                auto is_there_fp = aP.states_events_[qx][event];
-                auto is_there_fsqe = virtualsys.states_events_[q][event];
+                auto const is_there_fp = aP.states_events_[qx][event];
+                auto const is_there_fsqe = virtualsys.states_events_[q][event];
 
                 if (is_non_contr && !is_there_fsqe && is_there_fp) {
                     RemoveBadStates(virtualsys, aP, aE, p_invgraph, e_invgraph,
                                     c, f, q, s_non_contr);
                     break;
                 } else if (is_there_fsqe) {
-                    auto fs_qevent = TransitionVirtual(aP, aE, q, event);
-                    auto fsqe_key =
+                    auto const fs_qevent = TransitionVirtual(aP, aE, q, event);
+                    auto const fsqe_key =
                         fs_qevent.second * aP.states_number_ + fs_qevent.first;
 
-                    auto is_in_f = f.indexOf(fsqe_key) != -1;
-                    auto is_in_c = c.find(fsqe_key) != c.end();
+                    auto const is_in_f = f.indexOf(fsqe_key) != -1;
+                    auto const is_in_c = c.find(fsqe_key) != c.end();
 
                     if (!is_in_c && !is_in_f) {
                         f.push(fsqe_key);
