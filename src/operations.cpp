@@ -129,7 +129,6 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
     auto only_in_1 = aSys1.events_ ^ in_both;
 
     // New system params
-    auto estimated_transitions = 0;
     DESystem::EventsSet events = 0ull;
     DESystem::StatesEventsTable states_events;
     DESystem::StatesEventsTable inv_states_events;
@@ -151,7 +150,6 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
                 (aSys0.inv_states_events_[ix0] & only_in_0) |
                 (aSys1.inv_states_events_[ix1] & only_in_1);
 
-            estimated_transitions += states_events[key].count();
             events |= states_events[key];
         }
     }
@@ -286,17 +284,15 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     }
     */
 
-    // Make it const to avoid eventual re-hashes due to the insertion of
-    // transitions
+    // Calculate sparcity pattern and create efficient data structures for
+    // searching states
     Eigen::VectorXi transitions_number(aVirtualSys.states_events_.size());
-    std::map<cldes_size_t, EventsBitArray> virtualse;
     std::set<cldes_size_t> states;
-    for (auto st = aVirtualSys.states_events_.constBegin();
-         st != aVirtualSys.states_events_.constEnd(); ++st) {
-        virtualse[st.key()] = st.value();
-        states.emplace(st.key());
+    foreach (cldes_size_t key, aVirtualSys.states_events_.keys()) {
+        states.emplace(key);
     }
     QHash<cldes_size_t, cldes_size_t> statesmap;
+    statesmap.reserve(states.size());
     for (auto st = states.begin(); st != states.end(); ++st) {
         size_t const mapped_state = std::distance(states.begin(), st);
         transitions_number(mapped_state) =
@@ -304,12 +300,14 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         statesmap[*st] = mapped_state;
     }
 
+    auto const virtualse = aVirtualSys.states_events_;
+
     // Delete states_events_, it will be remapped
     aVirtualSys.states_events_.clear();
     aVirtualSys.inv_states_events_.clear();
 
     // Resize adj matrices if necessary
-    if (aVirtualSys.states_number_ != virtualse.size()) {
+    if (static_cast<long>(aVirtualSys.states_number_) != virtualse.size()) {
         aVirtualSys.graph_.resize(virtualse.size(), virtualse.size());
         aVirtualSys.bit_graph_.resize(virtualse.size(), virtualse.size());
         aVirtualSys.states_number_ = virtualse.size();
@@ -323,17 +321,17 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.bit_graph_.reserve(transitions_number);
 
     // Calculate transitions
-    for (auto q_ref = virtualse.begin(); q_ref != virtualse.end(); ++q_ref) {
-        auto q = std::make_pair(q_ref->first % aSys0.states_number_,
-                                q_ref->first / aSys0.states_number_);
+    for (auto s : states) {
+        auto const q =
+            std::make_pair(s % aSys0.states_number_, s / aSys0.states_number_);
 
-        auto index0 = std::distance(virtualse.begin(), q_ref);
+        auto const index0 = statesmap[s];
 
         auto sync_events_iter = aVirtualSys.events_;
         auto event = 0u;
         while (sync_events_iter != 0) {
             if (sync_events_iter[0]) {
-                if (q_ref->second[event]) {
+                if (virtualse[s][event]) {
                     int xto;
                     int yto;
 
@@ -364,11 +362,9 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                         }
                     }
 
-                    auto index1_iter =
-                        virtualse.find(yto * aSys0.states_number_ + xto);
-                    if (index1_iter != virtualse.end()) {
-                        size_t index1 =
-                            std::distance(virtualse.begin(), index1_iter);
+                    auto key = yto * aSys0.states_number_ + xto;
+                    if (statesmap.find(key) != statesmap.end()) {
+                        size_t index1 = statesmap[key];
                         aVirtualSys(index0, index1) = event;
                     }
                 }
@@ -386,19 +382,14 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.marked_states_.clear();
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
-            auto marked_state_it =
-                virtualse.find(s1 * aSys0.states_number_ + s0);
-            size_t marked_state =
-                std::distance(virtualse.begin(), marked_state_it);
-            aVirtualSys.marked_states_.insert(marked_state);
+            aVirtualSys.marked_states_.insert(
+                statesmap[s1 * aSys1.states_number_ + s0]);
         }
     }
 
     // Remap initial state
-    auto init_state_sync_iter = virtualse.find(
-        aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_);
-    size_t init_state = std::distance(virtualse.begin(), init_state_sync_iter);
-    aVirtualSys.init_state_ = init_state;
+    aVirtualSys.init_state_ =
+        statesmap[aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_];
 }
 
 /*
