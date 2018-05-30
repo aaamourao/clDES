@@ -390,6 +390,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         }
     }
 
+    /*
     // Remap initial state
     auto const init_state_key =
         aSys1.init_state_ + aSys0.states_number_ + aSys0.init_state_;
@@ -399,6 +400,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         // Set init state to an invalid state
         aVirtualSys.init_state_ = aVirtualSys.states_number_;
     }
+    */
 }
 
 /*
@@ -435,17 +437,12 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
     int xid;
     int yid;
 
-    StatesTupleSTL ret;
-
     if (is_in_p) {
         for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
             if (pe.value()[event]) {
                 xid = pe.col();
                 if (!is_in_e) {
                     yid = qy;
-                    ret.first = xid;
-                    ret.second = yid;
-                    return ret;
                 }
                 break;
             }
@@ -459,12 +456,13 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
                     xid = qx;
                 }
                 yid = ee.col();
-                ret.first = xid;
-                ret.second = yid;
-                return ret;
+                break;
             }
         }
     }
+    StatesTupleSTL ret;
+    ret.first = xid;
+    ret.second = yid;
     return ret;
 }
 
@@ -488,7 +486,8 @@ static op::StatesTableSTL __TransitionVirtualInv(
             if (pe.value()[event]) {
                 for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
                     if (ee.value()[event]) {
-                        auto const key = ee.col() * aInvGraphP.rows() + pe.col();
+                        auto const key =
+                            ee.col() * aInvGraphP.rows() + pe.col();
                         ret.insert(key);
                     }
                 }
@@ -535,7 +534,7 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                     s_non_contr.find(event) != s_non_contr.end();
 
                 if (is_non_contr) {
-                    for (auto s : finv) {
+                    foreach (cldes_size_t s, finv) {
                         if (aVirtualSys.states_events_.find(s) !=
                             aVirtualSys.states_events_.end()) {
                             // Add transitions to remove set
@@ -544,9 +543,10 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                     }
                 } else {
                     // Remove transitions to removed state
-                    for (auto s : finv) {
+                    foreach (cldes_size_t s, finv) {
                         if (aVirtualSys.states_events_.find(s) !=
                             aVirtualSys.states_events_.end()) {
+                            // Remove transition to removed state
                             aVirtualSys.states_events_[s][event] = false;
                         }
                     }
@@ -621,10 +621,10 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
-    auto const syscopy = virtualsys.states_events_;
-    for (auto st = syscopy.constBegin(); st != syscopy.constEnd(); ++st) {
-        if (c.find(st.key()) == c.end()) {
-            virtualsys.states_events_.remove(st.key());
+    auto const syscopykeys = virtualsys.states_events_.keys();
+    foreach (cldes_size_t key, syscopykeys) {
+        if (c.find(key) == c.end()) {
+            virtualsys.states_events_.remove(key);
         }
     }
 
