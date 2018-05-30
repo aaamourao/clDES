@@ -35,6 +35,7 @@
 #include "des/desystem.hpp"
 // #include "des/desystemcl.hpp"
 #include <eigen3/Eigen/Sparse>
+#include <qt5/QtCore/QVector>
 #include "des/transition_proxy.hpp"
 
 #include <iostream>
@@ -124,9 +125,9 @@ DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
 }
 
 DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
-    auto in_both = aSys0.events_ & aSys1.events_;
-    auto only_in_0 = aSys0.events_ ^ in_both;
-    auto only_in_1 = aSys1.events_ ^ in_both;
+    auto const in_both = aSys0.events_ & aSys1.events_;
+    auto const only_in_0 = aSys0.events_ ^ in_both;
+    auto const only_in_1 = aSys1.events_ ^ in_both;
 
     // New system params
     DESystem::EventsSet events = 0ull;
@@ -138,7 +139,7 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
     // Calculate params
     for (auto ix0 = 0ul; ix0 < aSys0.states_number_; ++ix0) {
         for (auto ix1 = 0ul; ix1 < aSys1.states_number_; ++ix1) {
-            auto key = ix1 * aSys0.states_number_ + ix0;
+            auto const key = ix1 * aSys0.states_number_ + ix0;
 
             states_events[key] =
                 (aSys0.states_events_[ix0] & aSys1.states_events_[ix1]) |
@@ -300,9 +301,8 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         statesmap[*st] = mapped_state;
     }
 
+    // Copy and delete states_events_, it will be remapped
     auto const virtualse = aVirtualSys.states_events_;
-
-    // Delete states_events_, it will be remapped
     aVirtualSys.states_events_.clear();
     aVirtualSys.inv_states_events_.clear();
 
@@ -390,6 +390,9 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         }
     }
 
+    // It only works for init_state = 0;
+    aVirtualSys.init_state_ =
+        aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_;
     /*
     // Remap initial state
     auto const init_state_key =
@@ -466,43 +469,51 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
     return ret;
 }
 
+using StatesArray = QVector<cldes_size_t>;
+
 // This function assumes that there is an inverse transition.
 template <class EventsType>
-static op::StatesTableSTL __TransitionVirtualInv(
-    EventsType const &aEventsP, EventsType const &aEventsE,
-    op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
-    cldes_size_t const &q, ScalarType const &event) {
+static StatesArray __TransitionVirtualInv(EventsType const &aEventsP,
+                                          EventsType const &aEventsE,
+                                          op::GraphType const &aInvGraphP,
+                                          op::GraphType const &aInvGraphE,
+                                          cldes_size_t const &q,
+                                          ScalarType const &event) {
     auto const qx = q % aInvGraphP.rows();
     auto const qy = q / aInvGraphP.rows();
 
     bool const is_in_p = aEventsP[event];
     bool const is_in_e = aEventsE[event];
 
-    op::StatesTableSTL ret;
-    ret.reserve(aEventsP.size());
+    StatesArray ret;
+    //ret.reserve(cldes::g_max_events);
+
+    auto const p_size = aInvGraphP.rows();
 
     if (is_in_p && is_in_e) {
+        StatesArray pstates;
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
             if (pe.value()[event]) {
-                for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
-                    if (ee.value()[event]) {
-                        auto const key =
-                            ee.col() * aInvGraphP.rows() + pe.col();
-                        ret.insert(key);
-                    }
+                pstates.push_back(pe.col());
+            }
+        }
+        for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
+            if (ee.value()[event]) {
+                foreach (cldes_size_t sp, pstates) {
+                    ret.push_back(ee.col() * p_size + sp);
                 }
             }
         }
     } else if (is_in_p) {  // Is only in p: is_in_p && !is_in_e
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
             if (pe.value()[event]) {
-                ret.insert(qy * aInvGraphP.rows() + pe.col());
+                ret.push_back(qy * p_size + pe.col());
             }
         }
     } else {  // Is only in e: !is_in_p && is_in_e
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
             if (ee.value()[event]) {
-                ret.insert(ee.col() * aInvGraphP.rows() + qx);
+                ret.push_back(ee.col() * p_size + qx);
             }
         }
     }

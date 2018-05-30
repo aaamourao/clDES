@@ -43,7 +43,7 @@ using ScalarType = unsigned long;
 using cldes_size_t = unsigned long;
 
 // Max number of events
-cldes_size_t const g_max_events = 100;
+cldes_size_t const g_max_events = 32;
 
 // Host array of events represented by one bit each
 using EventsBitArray = std::bitset<g_max_events>;
