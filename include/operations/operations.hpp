@@ -34,6 +34,7 @@
 #include <eigen3/Eigen/Sparse>
 #include <qt5/QtCore/QHash>
 #include <qt5/QtCore/QSet>
+#include <qt5/QtCore/QStack>
 #include <tuple>
 #include "constants.hpp"
 
@@ -67,6 +68,8 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 /*! \brief Hash table of tuples representing a virtual synch (stage 1)
  */
 using StatesTableSTL = QSet<cldes_size_t>;
+
+using StatesStack = QStack<cldes_size_t>;
 
 /*
 template <class KernelType>
@@ -111,8 +114,8 @@ StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
 
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
-                     GraphType const &aInvGraphE, op::StatesTableSTL &C,
-                     op::StatesTableSTL &fs, cldes_size_t const &q,
+                     GraphType const &aInvGraphE, StatesTableSTL &C,
+                     StatesStack &fs, cldes_size_t const &q,
                      QSet<ScalarType> const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,

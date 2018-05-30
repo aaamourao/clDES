@@ -514,18 +514,16 @@ static op::StatesTableSTL __TransitionVirtualInv(
 void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                          DESystem const &aE, op::GraphType const &aInvGraphP,
                          op::GraphType const &aInvGraphE, op::StatesTableSTL &C,
-                         op::StatesTableSTL &fs, cldes_size_t const &q,
+                         op::StatesStack &fs, cldes_size_t const &q,
                          QSet<ScalarType> const &s_non_contr) {
-    StatesTableSTL f;
-    f.reserve(aVirtualSys.states_number_);
-    f.insert(q);
+    StatesStack f;
+    f.push(q);
 
-    while (f.size() != 0) {
-        cldes_size_t const x = *(f.begin());
+    while (!f.isEmpty()) {
+        cldes_size_t const x = f.pop();
 
         C.remove(x);
-        f.remove(x);
-        fs.remove(x);
+        fs.removeOne(x);
 
         auto events_iter = aVirtualSys.inv_states_events_[x];
         auto event = 0u;
@@ -541,7 +539,7 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                         if (aVirtualSys.states_events_.find(s) !=
                             aVirtualSys.states_events_.end()) {
                             // Add transitions to remove set
-                            f.insert(s);
+                            f.push(s);
                         }
                     }
                 } else {
@@ -580,15 +578,13 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     }
 
     StatesTableSTL c;
-    StatesTableSTL f;
     c.reserve(virtualsys.states_number_);
-    f.reserve(virtualsys.states_number_);
 
-    f.insert(virtualsys.init_state_);
+    StatesStack f;
+    f.push(virtualsys.init_state_);
 
-    while (f.size() != 0) {
-        auto q = *(f.begin());
-        f.remove(q);
+    while (!f.isEmpty()) {
+        auto q = f.pop();
         c.insert(q);
 
         // q = (qx, qy)
@@ -612,11 +608,11 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                     auto fsqe_key =
                         fs_qevent.second * aP.states_number_ + fs_qevent.first;
 
-                    auto is_in_f = f.find(fsqe_key) != f.end();
+                    auto is_in_f = f.indexOf(fsqe_key) != -1;
                     auto is_in_c = c.find(fsqe_key) != c.end();
 
                     if (!is_in_c && !is_in_f) {
-                        f.insert(fsqe_key);
+                        f.push(fsqe_key);
                     }
                 }
             }

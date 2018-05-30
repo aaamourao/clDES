@@ -39,6 +39,7 @@
 #include <eigen3/Eigen/Sparse>
 #include <qt5/QtCore/QHash>
 #include <qt5/QtCore/QSet>
+#include <qt5/QtCore/QStack>
 #include <set>
 #include <tuple>
 #include "constants.hpp"
@@ -72,6 +73,7 @@ struct StatesTuple;
 
 using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 using StatesTableSTL = QSet<cldes_size_t>;
+using StatesStack = QStack<cldes_size_t>;
 
 cldes::DESystem SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
 
@@ -86,8 +88,8 @@ StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
 
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
-                     GraphType const &aInvGraphE, op::StatesTableSTL &C,
-                     op::StatesTableSTL &fs, cldes_size_t const &q,
+                     GraphType const &aInvGraphE, StatesTableSTL &C,
+                     StatesStack &fs, cldes_size_t const &q,
                      QSet<ScalarType> const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
@@ -226,11 +228,13 @@ private:
                                                     DESystem const &aSys1,
                                                     cldes_size_t const &q,
                                                     ScalarType const &event);
-    friend void op::RemoveBadStates(
-        DESystem &aVirtualSys, DESystem const &aP, DESystem const &aE,
-        op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
-        op::StatesTableSTL &fs, op::StatesTableSTL &C, cldes_size_t const &q,
-        QSet<ScalarType> const &s_non_contr);
+    friend void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
+                                    DESystem const &aE,
+                                    op::GraphType const &aInvGraphP,
+                                    op::GraphType const &aInvGraphE,
+                                    op::StatesTableSTL &C, op::StatesStack &fs,
+                                    cldes_size_t const &q,
+                                    QSet<ScalarType> const &s_non_contr);
     friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                                         QSet<ScalarType> const &non_contr);
 
