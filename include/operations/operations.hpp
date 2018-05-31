@@ -31,10 +31,10 @@
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
-#include <eigen3/Eigen/Sparse>
-#include <qt5/QtCore/QHash>
-#include <qt5/QtCore/QSet>
-#include <qt5/QtCore/QStack>
+#include <Eigen/Sparse>
+#include <QtCore/QHash>
+#include <QtCore/QSet>
+#include <QtCore/QStack>
 #include <tuple>
 #include "constants.hpp"
 

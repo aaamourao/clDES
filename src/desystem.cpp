@@ -311,11 +311,9 @@ void DESystem::Trim() {
                   static_cast<long>(states_number_));
     bit_graph_.resize(static_cast<long>(states_number_),
                       static_cast<long>(states_number_));
-    graph_.setZero();
-    bit_graph_.setZero();
 
     // States map: old state pos -> new state pos
-    std::vector<long> statesmap(states_number_, -1);
+    std::vector<long> statesmap(old_states_number, -1);
 
     {
         // Calculate the sparsity pattern
@@ -323,8 +321,8 @@ void DESystem::Trim() {
         Eigen::RowVectorXi bitsparcitypattern(states_number_);
         for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
             auto const d = std::distance(trimstates.begin(), sit);
-            sparcitypattern.coeffRef(d) = old_graph.row(*sit).nonZeros();
-            bitsparcitypattern.coeffRef(states_number_ - d - 1) =
+            sparcitypattern(d) = old_graph.row(*sit).nonZeros();
+            bitsparcitypattern(states_number_ - d - 1) =
                 old_graph.row(old_states_number - *sit - 1).nonZeros();
             statesmap[*sit] = d;
         }
@@ -333,15 +331,6 @@ void DESystem::Trim() {
         graph_.reserve(sparcitypattern);
         bit_graph_.reserve(bitsparcitypattern);
     }
-
-    // Clear states hash tables
-    states_events_.clear();
-    inv_states_events_.clear();
-    events_.reset();
-
-    // Reserve space for hash tables
-    states_events_.reserve(static_cast<long>(states_number_));
-    inv_states_events_.reserve(static_cast<long>(states_number_));
 
     // Build new graph_ slice by slice
     for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {

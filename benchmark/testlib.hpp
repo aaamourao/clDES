@@ -28,7 +28,7 @@
  =========================================================================
 */
 
-#include <eigen3/Eigen/Sparse>
+#include <Eigen/Sparse>
 #include <iostream>
 
 template <typename T, typename StringType>

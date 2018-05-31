@@ -36,10 +36,10 @@
 #define VIENNACL_WITH_OPENCL
 #endif
 
-#include <eigen3/Eigen/Sparse>
-#include <qt5/QtCore/QHash>
-#include <qt5/QtCore/QSet>
-#include <qt5/QtCore/QStack>
+#include <Eigen/Sparse>
+#include <QtCore/QHash>
+#include <QtCore/QSet>
+#include <QtCore/QStack>
 #include <set>
 #include <tuple>
 #include "constants.hpp"

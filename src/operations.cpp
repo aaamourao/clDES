@@ -34,8 +34,8 @@
 // #include "backend/oclbackend.hpp"
 #include "des/desystem.hpp"
 // #include "des/desystemcl.hpp"
-#include <eigen3/Eigen/Sparse>
-#include <qt5/QtCore/QVector>
+#include <Eigen/Sparse>
+#include <QtCore/QVector>
 #include "des/transition_proxy.hpp"
 
 #include <iostream>
@@ -281,16 +281,13 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
     auto pos = 0l;
     foreach (cldes_size_t s, states) {
-        sparcitypattern.coeffRef(pos) =
-            aVirtualSys.states_events_.value(s).count();
+        sparcitypattern(pos) = aVirtualSys.states_events_.value(s).count();
         statesmap[s] = pos;
         ++pos;
     }
 
-    // Copy and delete states_events_, it will be remapped
+    // Copy states_events_, it will be remapped
     auto const virtualse = aVirtualSys.states_events_;
-    aVirtualSys.states_events_.clear();
-    aVirtualSys.inv_states_events_.clear();
 
     // Resize adj matrices if necessary
     if (static_cast<long>(aVirtualSys.states_number_) != nstates) {
@@ -299,14 +296,12 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         aVirtualSys.states_number_ = nstates;
     }
 
+    // Initialize bit graph with Identity
+    aVirtualSys.bit_graph_.setIdentity();
+
     // Reserve space for transitions
     aVirtualSys.graph_.reserve(sparcitypattern);
     aVirtualSys.bit_graph_.reserve(sparcitypattern);
-    aVirtualSys.states_events_.reserve(nstates);
-    aVirtualSys.inv_states_events_.reserve(nstates);
-
-    // Initialize bit graph with Identity
-    aVirtualSys.bit_graph_.setIdentity();
 
     // Calculate transitions
     foreach (cldes_size_t s, states) {
@@ -350,8 +345,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
                 auto const key = yto * aSys0.states_number_ + xto;
                 if (statesmap[key] != -1) {
-                    aVirtualSys(statesmap[s], statesmap[key]) =
-                        event;
+                    aVirtualSys(statesmap[s], statesmap[key]) = event;
                 }
             }
             ++event;
@@ -378,17 +372,6 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     // It only works for init_state = 0;
     aVirtualSys.init_state_ =
         aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_;
-    /*
-    // Remap initial state
-    auto const init_state_key =
-        aSys1.init_state_ + aSys0.states_number_ + aSys0.init_state_;
-    if (statesmap.find(init_state_key) != statesmap.end()) {
-        aVirtualSys.init_state_ = statesmap[init_state_key];
-    } else {
-        // Set init state to an invalid state
-        aVirtualSys.init_state_ = aVirtualSys.states_number_;
-    }
-    */
 }
 
 /*

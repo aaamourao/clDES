@@ -46,64 +46,65 @@ void ClusterTool(unsigned long const &aNClusters,
     marked_states.emplace(0);
 
     for (auto i = 0ul; i < aNClusters; ++i) {
-        for (auto k = 0ul; k <= 9ul; ++k) {
-            auto index = i * 10ul + k;
-            if (k % 2ul == 0ul) {
-                non_contr.insert(index);
-            }
-        }
-    }
+        auto const istart = i * 8ul;
 
-    for (auto i = 0ul; i < aNClusters; ++i) {
         if (i != aNClusters - 1ul) {
             cldes::DESystem r_i{4, 0, marked_states};
-            r_i(0, 1) = i * 10ul + 1ul;
-            r_i(1, 0) = i * 10ul + 2ul;
-            r_i(0, 2) = i * 10ul + 3ul;
-            r_i(2, 0) = i * 10ul + 4ul;
-            r_i(0, 3) = i * 10ul + 5ul;
-            r_i(3, 0) = i * 10ul + 6ul;
+            r_i(0, 1) = istart;  // k
+            r_i(1, 0) = istart + 1ul;  // k
+            r_i(0, 2) = istart + 2ul;  // k
+            r_i(2, 0) = istart + 3ul;  // k
+            r_i(0, 3) = istart + 4ul;  // k
+            r_i(3, 0) = istart + 5ul;  // k
+
+            non_contr.insert(istart + 5ul);
 
             aPlants.push_back(r_i);
         } else {
             cldes::DESystem r_i{3, 0, marked_states};
-            r_i(0, 1) = i * 10ul + 1ul;
-            r_i(1, 0) = i * 10ul + 2ul;
-            r_i(0, 2) = i * 10ul + 5ul;
-            r_i(2, 0) = i * 10ul + 4ul;
+            r_i(0, 1) = istart;  // k
+            r_i(1, 0) = istart + 1ul;  // k
+            r_i(0, 2) = istart + 4ul;  // k
+            r_i(2, 0) = istart + 3ul;  // k
 
             aPlants.push_back(r_i);
         }
 
+        non_contr.insert(istart + 1ul);
+        non_contr.insert(istart + 3ul);
+
         cldes::DESystem c_i{2, 0, marked_states};
-        c_i(0, 1) = i * 10ul + 7ul;
-        c_i(1, 0) = i * 10ul + 8ul;
+        c_i(0, 1) = istart + 6ul;  // k
+        c_i(1, 0) = istart + 7ul;  // k
+
+        non_contr.insert(istart + 7ul);
 
         aPlants.push_back(c_i);
 
         cldes::DESystem e_i{3, 0, marked_states};
-        e_i(0, 1) = i * 10ul + 2ul;
-        e_i(1, 0) = i * 10ul + 7ul;
-        e_i(0, 2) = i * 10ul + 8ul;
-        e_i(2, 0) = i * 10ul + 5ul;
+        e_i(0, 1) = istart + 1ul;  // k
+        e_i(1, 0) = istart + 6ul;  // k
+        e_i(0, 2) = istart + 7ul;  // k
+        e_i(2, 0) = istart + 4ul;  // k
 
         aSpecs.push_back(e_i);
     }
 
-    auto event_index_begin = 10 * aNClusters;
 
     for (auto i = 0ul; i < (aNClusters - 1); ++i) {
+        auto const istart = 8ul * aNClusters + i * 4;
+
         cldes::DESystem e_ij{3, 0, marked_states};
 
-        e_ij(0, 1) = event_index_begin + i * 4ul * aNClusters + 1ul;
-        non_contr.insert(event_index_begin + i * 4ul * aNClusters + 1ul);
+        e_ij(0, 1) = istart;
+        non_contr.insert(istart);
 
-        e_ij(1, 0) = event_index_begin + i * 4ul * aNClusters + 2ul;
+        e_ij(1, 0) = istart + 1ul;
 
-        e_ij(0, 2) = event_index_begin + i * 4ul * aNClusters + 3ul;
-        non_contr.insert(event_index_begin + i * 4ul * aNClusters + 3ul);
+        e_ij(0, 2) = istart + 2ul;
+        non_contr.insert(istart + 2ul);
 
-        e_ij(2, 0) = event_index_begin + i * 4ul * aNClusters + 4ul;
+        e_ij(2, 0) = istart + 3ul;
 
         aSpecs.push_back(e_ij);
     }

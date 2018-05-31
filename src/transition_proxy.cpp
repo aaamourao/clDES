@@ -39,43 +39,23 @@ TransitionProxy::TransitionProxy(DESystem *const aSysPtr,
     : sys_ptr_{aSysPtr}, lin_{aLin}, col_{aCol} {}
 
 TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
-    if (aEventPos > g_max_events) {
-        std::string error = "ValueError: Max transition value = " +
-                            std::to_string(g_max_events);
-        throw error;
-    }
-
     // Add transition to the system
     sys_ptr_->events_[aEventPos] = true;
 
     // Create a unsigned long long representing the event
-    DESystem::EventsSet event_ull;
-    event_ull[aEventPos] = 1ull;
+    DESystem::EventsSet const event_ull = 1ul << aEventPos;
 
     // Add transition to the state events hash table
-    if (sys_ptr_->states_events_.find(lin_) != sys_ptr_->states_events_.end()) {
-        sys_ptr_->states_events_[lin_] =
-            sys_ptr_->states_events_[lin_] | event_ull;
-    } else {
-        sys_ptr_->states_events_[lin_] = event_ull;
-    }
+    sys_ptr_->states_events_[lin_] =
+        sys_ptr_->states_events_.value(lin_) | event_ull;
 
     // Add transition to the state events inverted hash table
-    if (sys_ptr_->inv_states_events_.find(col_) !=
-        sys_ptr_->inv_states_events_.end()) {
-        sys_ptr_->inv_states_events_[col_] =
-            sys_ptr_->inv_states_events_[col_] | event_ull;
-    } else {
-        sys_ptr_->inv_states_events_[col_] = event_ull;
-    }
+    sys_ptr_->inv_states_events_[col_] =
+        sys_ptr_->inv_states_events_.value(col_) | event_ull;
 
     // Add transition to graph
-    if (sys_ptr_->graph_.coeff(lin_, col_) == 0) {
-        sys_ptr_->graph_.coeffRef(lin_, col_) = event_ull;
-    } else {
-        DESystem::EventsSet last_value = sys_ptr_->graph_.coeff(lin_, col_);
-        sys_ptr_->graph_.coeffRef(lin_, col_) = last_value | event_ull;
-    }
+    DESystem::EventsSet const last_value = sys_ptr_->graph_.coeff(lin_, col_);
+    sys_ptr_->graph_.coeffRef(lin_, col_) = last_value | event_ull;
 
     // Add transition to bit graph, which is transposed
     sys_ptr_->bit_graph_.coeffRef(col_, lin_) = true;
