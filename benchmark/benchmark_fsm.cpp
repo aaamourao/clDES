@@ -206,6 +206,26 @@ int main() {
               << spec.GetGraph().nonZeros() << std::endl
               << std::endl;
 
+    std::cout << "{plant, spec}.Trim()" << std::endl;
+    t1 = high_resolution_clock::now();
+    plant.Trim();
+    spec.Trim();
+    t2 = high_resolution_clock::now();
+
+    duration = duration_cast<microseconds>(t2 - t1).count();
+    std::cout << "Trim time spent: " << duration << " microseconds"
+              << std::endl;
+
+    std::cout << std::endl
+              << "Number of states of plant: " << plant.Size() << std::endl;
+    std::cout << "Number of transitions of the plant "
+              << plant.GetGraph().nonZeros() << std::endl;
+    std::cout << "Computing the supervisor" << std::endl;
+    std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
+    std::cout << "Number of transitions of the spec "
+              << spec.GetGraph().nonZeros() << std::endl
+              << std::endl;
+
     t1 = high_resolution_clock::now();
     auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
     t2 = high_resolution_clock::now();

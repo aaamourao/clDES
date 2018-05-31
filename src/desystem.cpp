@@ -305,43 +305,51 @@ void DESystem::Trim() {
 
     // Copy graph and resize it
     auto old_graph = graph_;
-    graph_.resize(static_cast<long>(trimstates.size()),
-                  static_cast<long>(trimstates.size()));
-    bit_graph_.resize(static_cast<long>(trimstates.size()),
-                      static_cast<long>(trimstates.size()));
+    auto const old_states_number = states_number_;
+    states_number_ = trimstates.size();
+    graph_.resize(static_cast<long>(states_number_),
+                  static_cast<long>(states_number_));
+    bit_graph_.resize(static_cast<long>(states_number_),
+                      static_cast<long>(states_number_));
     graph_.setZero();
     bit_graph_.setZero();
+
+    // States map: old state pos -> new state pos
+    std::vector<long> statesmap(states_number_, -1);
+
+    {
+        // Calculate the sparsity pattern
+        Eigen::RowVectorXi sparcitypattern(states_number_);
+        Eigen::RowVectorXi bitsparcitypattern(states_number_);
+        for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
+            auto const d = std::distance(trimstates.begin(), sit);
+            sparcitypattern.coeffRef(d) = old_graph.row(*sit).nonZeros();
+            bitsparcitypattern.coeffRef(states_number_ - d - 1) =
+                old_graph.row(old_states_number - *sit - 1).nonZeros();
+            statesmap[*sit] = d;
+        }
+
+        // Reserve mem space to store nnz
+        graph_.reserve(sparcitypattern);
+        bit_graph_.reserve(bitsparcitypattern);
+    }
 
     // Clear states hash tables
     states_events_.clear();
     inv_states_events_.clear();
     events_.reset();
 
-    // States map: old state pos -> new state pos
-    QHash<long, long> st_map;
-    st_map.reserve(trimstates.size());
-
-    {
-        // Calculate the sparsity pattern
-        Eigen::VectorXi transitions_number(trimstates.size());
-        for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
-            transitions_number(std::distance(trimstates.begin(), sit)) =
-                states_events_[*sit].count();
-            st_map[*sit] = std::distance(trimstates.begin(), sit);
-        }
-
-        // Reserve mem space to store nnz
-        graph_.reserve(transitions_number);
-        bit_graph_.reserve(transitions_number);
-    }
+    // Reserve space for hash tables
+    states_events_.reserve(static_cast<long>(states_number_));
+    inv_states_events_.reserve(static_cast<long>(states_number_));
 
     // Build new graph_ slice by slice
     for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {
         auto row_id = std::distance(trimstates.begin(), st);
 
         for (RowIteratorGraph e(old_graph, *st); e; ++e) {
-            if (st_map.find(e.col()) != st_map.end()) {
-                auto col_id = st_map[e.col()];
+            if (statesmap[e.col()] != -1) {
+                auto col_id = statesmap[e.col()];
 
                 graph_.coeffRef(row_id, col_id) = e.value();
                 bit_graph_.coeffRef(col_id, row_id) = true;
@@ -353,14 +361,15 @@ void DESystem::Trim() {
     }
 
     // Remove non used space
-    graph_.makeCompressed();
-    bit_graph_.makeCompressed();
+    graph_.pruned();
+    bit_graph_.pruned();
 
     // Calculate new marked states
-    auto old_marked = marked_states_;
+    auto const old_marked = marked_states_;
+    marked_states_.clear();
     for (auto s : old_marked) {
-        if (st_map.find(s) != st_map.end()) {
-            marked_states_.emplace(st_map[s]);
+        if (statesmap[s] != -1) {
+            marked_states_.emplace(statesmap[s]);
         }
     }
 

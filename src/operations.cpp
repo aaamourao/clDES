@@ -269,31 +269,17 @@ using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
 
 void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                            DESystem const &aSys1) {
-    /*
-    std::vector<std::pair(StatesTupleSTL, cldes_size_t)> stable;
-    for (auto sit = aVirtualSys.states_events_.begin();
-         sit != aVirtualSys.states_events_.end(); ++sit) {
-        cldes_size_t pos =
-            std::distance(aVirtualStates.states_events_.begin(), sit);
-        stable.push_back(
-            std::make_pair(std::make_pair(sit->first % aSys0.states_number_,
-                                          sit->first / aSys0.states_number_),
-                           pos));
-    }
-    */
-
+    auto const nstates = aVirtualSys.states_events_.size();
     // Calculate sparcity pattern and create efficient data structures for
     // searching states
-    QList<cldes_size_t> states;
-    QHash<cldes_size_t, cldes_size_t> statesmap;
-    Eigen::VectorXi sparcitypattern(aVirtualSys.states_events_.size());
+    Eigen::RowVectorXi sparcitypattern(nstates);
 
-    aVirtualSys.states_events_.keys().swap(states);
+    std::vector<long> statesmap(aVirtualSys.states_number_, -1);
+
+    auto states = aVirtualSys.states_events_.keys();
     qSort(states);
 
-    statesmap.reserve(states.size());
-
-    auto pos = 0ul;
+    auto pos = 0l;
     foreach (cldes_size_t s, states) {
         sparcitypattern.coeffRef(pos) =
             aVirtualSys.states_events_.value(s).count();
@@ -307,17 +293,17 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.inv_states_events_.clear();
 
     // Resize adj matrices if necessary
-    if (static_cast<long>(aVirtualSys.states_number_) != states.size()) {
-        aVirtualSys.graph_.resize(states.size(), states.size());
-        aVirtualSys.bit_graph_.resize(states.size(), states.size());
-        aVirtualSys.states_number_ = states.size();
+    if (static_cast<long>(aVirtualSys.states_number_) != nstates) {
+        aVirtualSys.graph_.resize(nstates, nstates);
+        aVirtualSys.bit_graph_.resize(nstates, nstates);
+        aVirtualSys.states_number_ = nstates;
     }
 
     // Reserve space for transitions
     aVirtualSys.graph_.reserve(sparcitypattern);
     aVirtualSys.bit_graph_.reserve(sparcitypattern);
-    aVirtualSys.states_events_.reserve(states.size());
-    aVirtualSys.inv_states_events_.reserve(states.size());
+    aVirtualSys.states_events_.reserve(nstates);
+    aVirtualSys.inv_states_events_.reserve(nstates);
 
     // Initialize bit graph with Identity
     aVirtualSys.bit_graph_.setIdentity();
@@ -363,8 +349,8 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                 }
 
                 auto const key = yto * aSys0.states_number_ + xto;
-                if (statesmap.contains(key)) {
-                    aVirtualSys(statesmap.value(s), statesmap.value(key)) =
+                if (statesmap[key] != -1) {
+                    aVirtualSys(statesmap[s], statesmap[key]) =
                         event;
                 }
             }
@@ -374,17 +360,17 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     }
 
     // Remove aditional space
-    aVirtualSys.graph_.makeCompressed();
-    aVirtualSys.bit_graph_.makeCompressed();
+    aVirtualSys.graph_.pruned();
+    aVirtualSys.bit_graph_.pruned();
 
     // Remap marked states
     aVirtualSys.marked_states_.clear();
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
             auto const key = s1 * aSys1.states_number_ + s0;
-            if (statesmap.contains(key)) {
+            if (statesmap[key] != -1) {
                 aVirtualSys.marked_states_.insert(
-                    statesmap.value(s1 * aSys1.states_number_ + s0));
+                    statesmap[s1 * aSys1.states_number_ + s0]);
             }
         }
     }
