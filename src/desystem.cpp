@@ -203,58 +203,93 @@ DESystem::StatesSet DESystem::AccessiblePart() {
 }
 
 DESystem::StatesSet DESystem::CoaccessiblePart() {
-    StatesSet searching_nodes;
-    // Initialize initial_nodes with all states, but marked states
+    DESystem::BitGraphHostData const invgraph = bit_graph_.transpose();
+
+    Eigen::Index const n_marked =
+        static_cast<Eigen::Index>(marked_states_.size());
+    StatesVector x{static_cast<Eigen::Index>(states_number_), n_marked};
+    x.reserve(marked_states_.size());
+
     {
-        StatesSet all_nodes(
-            boost::counting_iterator<cldes_size_t>(0),
-            boost::counting_iterator<cldes_size_t>(states_number_));
-        std::set_difference(
-            all_nodes.begin(), all_nodes.end(), marked_states_.begin(),
-            marked_states_.end(),
-            std::inserter(searching_nodes, searching_nodes.begin()));
+        auto pos = 0ul;
+        for (auto state : marked_states_) {
+            x.coeffRef(state, pos) = true;
+            ++pos;
+        }
     }
 
-    StatesSet coaccessible_states = marked_states_;
-    auto paccessed_states = Bfs_(
-        searching_nodes,
-        [this, &coaccessible_states](cldes_size_t const &aInitialState,
-                                     cldes_size_t const &aAccessedState) {
-            bool const is_marked = this->marked_states_.find(aAccessedState) !=
-                                   this->marked_states_.end();
-            if (is_marked) {
-                coaccessible_states.emplace(aInitialState);
-            }
-            // TODO: If all states are marked, the search is done
-        });
-    delete[] paccessed_states;
+    StatesVector y{static_cast<Eigen::Index>(states_number_), n_marked};
+    auto n_accessed_states = 0l;
+    for (auto i = 0ul; i < states_number_; ++i) {
+        y = (invgraph * x).pruned();
+
+        if (n_accessed_states == y.nonZeros()) {
+            break;
+        } else {
+            n_accessed_states = y.nonZeros();
+        }
+
+        x = y;
+    }
+
+    y.pruned();
+
+    StatesSet coaccessible_states;
+    for (auto s = 0; s < y.outerSize(); ++s) {
+        for (RowIteratorConst e(y, s); e; ++e) {
+            coaccessible_states.emplace(e.row());
+        }
+    }
 
     return coaccessible_states;
 }
 
 DESystem::StatesSet DESystem::TrimStates() {
-    StatesSet accpart = AccessiblePart();
-    StatesSet coapart = CoaccessiblePart();
+    StatesSet const accpartstl = AccessiblePart();
+    QSet<cldes_size_t> accpart;
+    for (auto s : accpartstl) {
+        accpart.insert(s);
+    }
 
-    StatesSet trimstates;
-    std::set_intersection(accpart.begin(), accpart.end(), coapart.begin(),
-                          coapart.end(),
-                          std::inserter(trimstates, trimstates.begin()));
-    /*
-StatesSet searching_nodes = accpart;
-auto paccessed_states = Bfs_(
-    searching_nodes,
-    [this, &trimstates](cldes_size_t const &aInitialState,
-                        cldes_size_t const &aAccessedState) {
-        bool const is_marked = this->marked_states_.find(aAccessedState) !=
-                               this->marked_states_.end();
-        if (is_marked) {
-            trimstates.emplace(aInitialState);
+    DESystem::BitGraphHostData const invgraph = bit_graph_.transpose();
+
+    Eigen::Index const n_marked =
+        static_cast<Eigen::Index>(marked_states_.size());
+    StatesVector x{static_cast<Eigen::Index>(states_number_), n_marked};
+    x.reserve(marked_states_.size());
+
+    {
+        auto pos = 0ul;
+        for (auto state : marked_states_) {
+            x.coeffRef(state, pos) = true;
+            ++pos;
+        }
+    }
+
+    StatesVector y{static_cast<Eigen::Index>(states_number_), n_marked};
+    auto n_accessed_states = 0l;
+    for (auto i = 0ul; i < states_number_; ++i) {
+        y = (invgraph * x).pruned();
+
+        if (n_accessed_states == y.nonZeros()) {
+            break;
+        } else {
+            n_accessed_states = y.nonZeros();
         }
 
-    });
-delete[] paccessed_states;
-*/
+        x = y;
+    }
+
+    y.pruned();
+
+    StatesSet trimstates;
+    for (auto s = 0; s < y.outerSize(); ++s) {
+        for (RowIteratorConst e(y, s); e; ++e) {
+            if (accpart.contains(e.row())) {
+                trimstates.emplace(e.row());
+            }
+        }
+    }
 
     return trimstates;
 }
@@ -284,6 +319,7 @@ void DESystem::Trim() {
 
     // States map: old state pos -> new state pos
     QHash<long, long> st_map;
+    st_map.reserve(trimstates.size());
 
     {
         // Calculate the sparsity pattern
