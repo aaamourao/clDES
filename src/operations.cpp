@@ -130,7 +130,6 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
     auto const only_in_1 = aSys1.events_ ^ in_both;
 
     // New system params
-    DESystem::EventsSet events = 0ull;
     DESystem::StatesEventsTable states_events;
     DESystem::StatesEventsTable inv_states_events;
     states_events.reserve(aSys0.states_number_ * aSys1.states_number_);
@@ -141,17 +140,15 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
         for (auto ix1 = 0ul; ix1 < aSys1.states_number_; ++ix1) {
             auto const key = ix1 * aSys0.states_number_ + ix0;
 
-            states_events[key] =
-                (aSys0.states_events_[ix0] & aSys1.states_events_[ix1]) |
-                (aSys0.states_events_[ix0] & only_in_0) |
-                (aSys1.states_events_[ix1] & only_in_1);
+            states_events[key] = (aSys0.states_events_.value(ix0) &
+                                  aSys1.states_events_.value(ix1)) |
+                                 (aSys0.states_events_.value(ix0) & only_in_0) |
+                                 (aSys1.states_events_.value(ix1) & only_in_1);
             inv_states_events[key] =
-                (aSys0.inv_states_events_[ix0] &
-                 aSys1.inv_states_events_[ix1]) |
-                (aSys0.inv_states_events_[ix0] & only_in_0) |
-                (aSys1.inv_states_events_[ix1] & only_in_1);
-
-            events |= states_events[key];
+                (aSys0.inv_states_events_.value(ix0) &
+                 aSys1.inv_states_events_.value(ix1)) |
+                (aSys0.inv_states_events_.value(ix0) & only_in_0) |
+                (aSys1.inv_states_events_.value(ix1) & only_in_1);
         }
     }
 
@@ -170,9 +167,9 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
         marked_states};
 
     // Set private params
-    virtualsys.events_ = events;
-    virtualsys.states_events_ = states_events;
-    virtualsys.inv_states_events_ = inv_states_events;
+    virtualsys.events_ = aSys0.events_ | aSys1.events_;
+    states_events.swap(virtualsys.states_events_);
+    inv_states_events.swap(virtualsys.inv_states_events_);
 
     return virtualsys;
 }
@@ -287,18 +284,21 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
     // Calculate sparcity pattern and create efficient data structures for
     // searching states
-    Eigen::VectorXi transitions_number(aVirtualSys.states_events_.size());
-    std::set<cldes_size_t> states;
-    foreach (cldes_size_t key, aVirtualSys.states_events_.keys()) {
-        states.emplace(key);
-    }
+    QList<cldes_size_t> states;
     QHash<cldes_size_t, cldes_size_t> statesmap;
-    statesmap.reserve(states.size());
-    for (auto st = states.begin(); st != states.end(); ++st) {
-        size_t const mapped_state = std::distance(states.begin(), st);
-        transitions_number(mapped_state) =
-            aVirtualSys.states_events_[*st].count();
-        statesmap[*st] = mapped_state;
+    Eigen::VectorXi sparcitypattern(aVirtualSys.states_events_.size());
+
+    aVirtualSys.states_events_.keys().swap(states);
+    qSort(states);
+
+    statesmap.reserve(aVirtualSys.states_number_);
+
+    auto pos = 0ul;
+    foreach (cldes_size_t s, states) {
+        sparcitypattern.coeffRef(pos) =
+            aVirtualSys.states_events_.value(s).count();
+        statesmap[s] = pos;
+        ++pos;
     }
 
     // Copy and delete states_events_, it will be remapped
@@ -307,70 +307,69 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.inv_states_events_.clear();
 
     // Resize adj matrices if necessary
-    if (static_cast<long>(aVirtualSys.states_number_) != virtualse.size()) {
-        aVirtualSys.graph_.resize(virtualse.size(), virtualse.size());
-        aVirtualSys.bit_graph_.resize(virtualse.size(), virtualse.size());
-        aVirtualSys.states_number_ = virtualse.size();
-
-        // Initialize bit graph with Identity
-        aVirtualSys.bit_graph_.setIdentity();
+    if (static_cast<long>(aVirtualSys.states_number_) != states.size()) {
+        aVirtualSys.graph_.resize(states.size(), states.size());
+        aVirtualSys.bit_graph_.resize(states.size(), states.size());
+        aVirtualSys.states_number_ = states.size();
     }
 
     // Reserve space for transitions
-    aVirtualSys.graph_.reserve(transitions_number);
-    aVirtualSys.bit_graph_.reserve(transitions_number);
+    aVirtualSys.graph_.reserve(sparcitypattern);
+    aVirtualSys.bit_graph_.reserve(sparcitypattern);
+    aVirtualSys.states_events_.reserve(states.size());
+    aVirtualSys.inv_states_events_.reserve(states.size());
+
+    // Initialize bit graph with Identity
+    aVirtualSys.bit_graph_.setIdentity();
 
     // Calculate transitions
-    for (auto s : states) {
-        auto const q =
-            std::make_pair(s % aSys0.states_number_, s / aSys0.states_number_);
+    foreach (cldes_size_t s, states) {
+        auto const qx = s % aSys0.states_number_;
+        auto const qy = s / aSys0.states_number_;
 
-        auto const index0 = statesmap[s];
+        auto q_events = virtualse.value(s);
 
-        auto sync_events_iter = aVirtualSys.events_;
-        auto event = 0u;
-        while (sync_events_iter != 0) {
-            if (sync_events_iter[0]) {
-                if (virtualse[s][event]) {
-                    int xto;
-                    int yto;
+        auto event = 0ul;
+        while (q_events.any()) {
+            if (q_events.test(0)) {
+                int xto;
+                int yto;
 
-                    bool const is_in_p = aSys0.events_[event];
-                    bool const is_in_e = aSys1.events_[event];
+                bool const is_in_p = aSys0.events_.test(event);
+                bool const is_in_e = aSys1.events_.test(event);
 
-                    if (is_in_p) {
-                        for (RowIterator pe(aSys0.graph_, q.first); pe; ++pe) {
-                            if (pe.value()[event]) {
-                                xto = pe.col();
-                                if (!is_in_e) {
-                                    yto = q.second;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (is_in_e) {
-                        for (RowIterator ee(aSys1.graph_, q.second); ee; ++ee) {
-                            if (ee.value()[event]) {
-                                if (!is_in_p) {
-                                    xto = q.first;
-                                }
-                                yto = ee.col();
+                if (is_in_p) {
+                    for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
+                        if (pe.value().test(event)) {
+                            xto = pe.col();
+                            if (!is_in_e) {
+                                yto = qy;
                                 break;
                             }
                         }
                     }
+                }
 
-                    auto const key = yto * aSys0.states_number_ + xto;
-                    if (statesmap.find(key) != statesmap.end()) {
-                        size_t const index1 = statesmap[key];
-                        aVirtualSys(index0, index1) = event;
+                if (is_in_e) {
+                    for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
+                        if (ee.value().test(event)) {
+                            if (!is_in_p) {
+                                xto = qx;
+                            }
+                            yto = ee.col();
+                            break;
+                        }
                     }
+                }
+
+                auto const key = yto * aSys0.states_number_ + xto;
+                if (statesmap.contains(key)) {
+                    aVirtualSys(statesmap.value(s), statesmap.value(key)) =
+                        event;
                 }
             }
             ++event;
-            sync_events_iter >>= 1u;
+            q_events >>= 1ul;
         }
     }
 
@@ -383,9 +382,9 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
             auto const key = s1 * aSys1.states_number_ + s0;
-            if (statesmap.find(key) != statesmap.end()) {
+            if (statesmap.contains(key)) {
                 aVirtualSys.marked_states_.insert(
-                    statesmap[s1 * aSys1.states_number_ + s0]);
+                    statesmap.value(s1 * aSys1.states_number_ + s0));
             }
         }
     }
@@ -431,8 +430,8 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
                                          DESystem const &aSys1,
                                          cldes_size_t const &q,
                                          ScalarType const &event) {
-    bool const is_in_p = aSys0.events_[event];
-    bool const is_in_e = aSys1.events_[event];
+    bool const is_in_p = aSys0.events_.test(event);
+    bool const is_in_e = aSys1.events_.test(event);
 
     auto const qx = q % aSys0.states_number_;
     auto const qy = q / aSys0.states_number_;
@@ -442,7 +441,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
 
     if (is_in_p) {
         for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
-            if (pe.value()[event]) {
+            if (pe.value().test(event)) {
                 xid = pe.col();
                 if (!is_in_e) {
                     yid = qy;
@@ -454,7 +453,7 @@ op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
 
     if (is_in_e) {
         for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
-            if (ee.value()[event]) {
+            if (ee.value().test(event)) {
                 if (!is_in_p) {
                     xid = qx;
                 }
@@ -482,23 +481,23 @@ static StatesArray __TransitionVirtualInv(EventsType const &aEventsP,
     auto const qx = q % aInvGraphP.rows();
     auto const qy = q / aInvGraphP.rows();
 
-    bool const is_in_p = aEventsP[event];
-    bool const is_in_e = aEventsE[event];
+    bool const is_in_p = aEventsP.test(event);
+    bool const is_in_e = aEventsE.test(event);
 
     StatesArray ret;
-    //ret.reserve(cldes::g_max_events);
+    // ret.reserve(cldes::g_max_events);
 
     auto const p_size = aInvGraphP.rows();
 
     if (is_in_p && is_in_e) {
         StatesArray pstates;
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
-            if (pe.value()[event]) {
+            if (pe.value().test(event)) {
                 pstates.push_back(pe.col());
             }
         }
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
-            if (ee.value()[event]) {
+            if (ee.value().test(event)) {
                 foreach (cldes_size_t sp, pstates) {
                     ret.push_back(ee.col() * p_size + sp);
                 }
@@ -506,13 +505,13 @@ static StatesArray __TransitionVirtualInv(EventsType const &aEventsP,
         }
     } else if (is_in_p) {  // Is only in p: is_in_p && !is_in_e
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
-            if (pe.value()[event]) {
+            if (pe.value().test(event)) {
                 ret.push_back(qy * p_size + pe.col());
             }
         }
     } else {  // Is only in e: !is_in_p && is_in_e
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
-            if (ee.value()[event]) {
+            if (ee.value().test(event)) {
                 ret.push_back(ee.col() * p_size + qx);
             }
         }
@@ -535,40 +534,21 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
         C.remove(x);
         fs.removeOne(x);
 
-        auto events_iter = aVirtualSys.inv_states_events_[x];
-        auto event = 0u;
-        while (events_iter != 0) {
-            if (events_iter[0]) {
+        auto const q_events = aVirtualSys.inv_states_events_.value(x);
+
+        foreach (ScalarType event, s_non_contr) {
+            if (q_events.test(event)) {
                 auto const finv = __TransitionVirtualInv(
                     aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
-                auto const is_non_contr =
-                    s_non_contr.find(event) != s_non_contr.end();
 
-                if (is_non_contr) {
-                    foreach (cldes_size_t s, finv) {
-                        if (aVirtualSys.states_events_.find(s) !=
-                            aVirtualSys.states_events_.end()) {
-                            // Add transitions to remove set
-                            f.push(s);
-                        }
-                    }
-                } else {
-                    // Remove transitions to removed state
-                    foreach (cldes_size_t s, finv) {
-                        if (aVirtualSys.states_events_.find(s) !=
-                            aVirtualSys.states_events_.end()) {
-                            // Remove transition to removed state
-                            aVirtualSys.states_events_[s][event] = false;
-                        }
+                foreach (cldes_size_t s, finv) {
+                    if (aVirtualSys.states_events_.contains(s)) {
+                        f.push(s);
                     }
                 }
             }
-            ++event;
-            events_iter >>= 1u;
         }
-        // Remove states from hash table
         aVirtualSys.states_events_.remove(x);
-        aVirtualSys.inv_states_events_.remove(x);
     }
 
     return;
@@ -581,10 +561,13 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
 
     auto virtualsys = SynchronizeStage1(aP, aE);
 
-    QSet<ScalarType> s_non_contr;
-    for (auto eu : non_contr) {
-        if (virtualsys.events_[eu]) {
-            s_non_contr.insert(eu);
+    QSet<ScalarType> s_non_contr = non_contr;
+    EventsBitArray non_contr_bit;
+    foreach (ScalarType event, non_contr) {
+        if (!virtualsys.events_.test(event)) {
+            s_non_contr.remove(event);
+        } else {
+            non_contr_bit.set(event);
         }
     }
 
@@ -601,16 +584,15 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         // q = (qx, qy)
         auto const qx = q % aP.states_number_;
 
-        auto event = 0u;
-        auto s_events_iter = virtualsys.events_;
-        while (s_events_iter != 0) {
-            if (s_events_iter[0]) {
-                bool const is_non_contr =
-                    s_non_contr.find(event) != s_non_contr.end();
-                auto const is_there_fp = aP.states_events_[qx][event];
-                auto const is_there_fsqe = virtualsys.states_events_[q][event];
+        auto event = 0ul;
+        auto event_it = virtualsys.states_events_.value(q) | non_contr_bit;
+        while (event_it.any()) {
+            if (event_it.test(0)) {
+                auto const is_there_fsqe =
+                    virtualsys.states_events_.value(q).test(event);
 
-                if (is_non_contr && !is_there_fsqe && is_there_fp) {
+                if (s_non_contr.contains(event) && !is_there_fsqe &&
+                    aP.states_events_.value(qx).test(event)) {
                     RemoveBadStates(virtualsys, aP, aE, p_invgraph, e_invgraph,
                                     c, f, q, s_non_contr);
                     break;
@@ -619,22 +601,19 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                     auto const fsqe_key =
                         fs_qevent.second * aP.states_number_ + fs_qevent.first;
 
-                    auto const is_in_f = f.indexOf(fsqe_key) != -1;
-                    auto const is_in_c = c.find(fsqe_key) != c.end();
-
-                    if (!is_in_c && !is_in_f) {
+                    if (!c.contains(fsqe_key) && !f.contains(fsqe_key)) {
                         f.push(fsqe_key);
                     }
                 }
             }
             ++event;
-            s_events_iter >>= 1u;
+            event_it >>= 1ul;
         }
     }
 
     auto const syscopykeys = virtualsys.states_events_.keys();
     foreach (cldes_size_t key, syscopykeys) {
-        if (c.find(key) == c.end()) {
+        if (!c.contains(key)) {
             virtualsys.states_events_.remove(key);
         }
     }
@@ -642,66 +621,6 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     // Make virtualsys a real sys
     SynchronizeStage2(virtualsys, aP, aE);
 
-    /*
-    DESystem::StatesSet bla;
-    DESystem test{6, 0, bla};
-    test(0, 1) = 1;
-    test(0, 2) = 0;
-    test(0, 2) = 2;
-    test(1, 1) = 1;
-    test(1, 2) = 0;
-    test(1, 3) = 2;
-    test(2, 3) = 1;
-    test(2, 4) = 0;
-    test(3, 3) = 1;
-    test(3, 4) = 0;
-    test(4, 0) = 2;
-    test(4, 4) = 0;
-    test(5, 1) = 2;
-    test(5, 4) = 0;
-
-    cldes::DESystem g1{3, 0, bla};
-
-    g1(0, 0) = 0;
-    g1(0, 2) = 2;
-    g1(1, 0) = 0;
-    g1(1, 1) = 1;
-    g1(2, 1) = 0;
-    g1(2, 1) = 2;
-    g1(2, 2) = 1;
-
-    cldes::DESystem g2{2, 0, bla};
-
-    g2(0, 0) = 1;
-    g2(0, 1) = 0;
-    g2(1, 0) = 1;
-    g2(1, 1) = 0;
-
-    // for (auto st : states_table) {
-    //    auto s = st.second;
-    // std::cout << "(" << s.first << ", " << s.second << "): ";
-    for (auto s0 = g1.states_events_.begin(); s0 != g1.states_events_.end();
-         ++s0) {
-        for (auto s1 = g2.states_events_.begin(); s1 != g2.states_events_.end();
-             ++s1) {
-            auto i = s1->first * g1.states_number_ + s0->first;
-            std::cout << i << ": ";
-            // for (auto e = 0; e < 64; ++e) {
-            auto finv = __TransitionVirtualInv(g1.events_, g2.events_,
-                                               ublas::trans(g1.graph_),
-                                               ublas::trans(g2.graph_), i, 0);
-            for (auto qt : finv) {
-                // auto qx = qt % 3;
-                // auto qy = qt / 3;
-                // std::cout << "((" << qx << ", " << qy << "), 0) ";
-                std::cout << qt << ":0 ";
-            }
-            //    }
-            std::cout << std::endl;
-            //}
-        }
-    }
-*/
     virtualsys.Trim();
 
     return virtualsys;
