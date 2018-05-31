@@ -88,8 +88,9 @@ StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
 
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
-                     GraphType const &aInvGraphE, StatesTableSTL &C,
-                     StatesStack &fs, cldes_size_t const &q,
+                     GraphType const &aInvGraphE,
+                     QHash<cldes_size_t, EventsBitArray> &C, StatesStack &fs,
+                     cldes_size_t const &q,
                      QSet<ScalarType> const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
@@ -232,8 +233,8 @@ private:
                                     DESystem const &aE,
                                     op::GraphType const &aInvGraphP,
                                     op::GraphType const &aInvGraphE,
-                                    op::StatesTableSTL &C, op::StatesStack &fs,
-                                    cldes_size_t const &q,
+                                    QHash<cldes_size_t, EventsBitArray> &C,
+                                    op::StatesStack &fs, cldes_size_t const &q,
                                     QSet<ScalarType> const &s_non_contr);
     friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                                         QSet<ScalarType> const &non_contr);
