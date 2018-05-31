@@ -291,7 +291,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.states_events_.keys().swap(states);
     qSort(states);
 
-    statesmap.reserve(aVirtualSys.states_number_);
+    statesmap.reserve(states.size());
 
     auto pos = 0ul;
     foreach (cldes_size_t s, states) {
@@ -522,7 +522,8 @@ static StatesArray __TransitionVirtualInv(EventsType const &aEventsP,
 
 void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                          DESystem const &aE, op::GraphType const &aInvGraphP,
-                         op::GraphType const &aInvGraphE, op::StatesTableSTL &C,
+                         op::GraphType const &aInvGraphE,
+                         QHash<cldes_size_t, EventsBitArray> &C,
                          op::StatesStack &fs, cldes_size_t const &q,
                          QSet<ScalarType> const &s_non_contr) {
     StatesStack f;
@@ -571,15 +572,15 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
-    StatesTableSTL c;
-    c.reserve(virtualsys.states_number_);
+    DESystem::StatesEventsTable c;
+    c.reserve(virtualsys.states_number_ * 3 / 100);
 
     StatesStack f;
     f.push(virtualsys.init_state_);
 
     while (!f.isEmpty()) {
-        auto q = f.pop();
-        c.insert(q);
+        auto const q = f.pop();
+        c[q] = virtualsys.states_events_.value(q);
 
         // q = (qx, qy)
         auto const qx = q % aP.states_number_;
@@ -611,12 +612,8 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
-    auto const syscopykeys = virtualsys.states_events_.keys();
-    foreach (cldes_size_t key, syscopykeys) {
-        if (!c.contains(key)) {
-            virtualsys.states_events_.remove(key);
-        }
-    }
+    c.swap(virtualsys.states_events_);
+    virtualsys.states_events_.squeeze();
 
     // Make virtualsys a real sys
     SynchronizeStage2(virtualsys, aP, aE);
