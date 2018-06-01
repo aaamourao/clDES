@@ -323,45 +323,60 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         auto event = 0ul;
         while (q_events.any()) {
             if (q_events.test(0)) {
-                int xto;
-                int yto;
+                int qto;
 
-                bool const is_in_p = aSys0.events_.test(event);
-                bool const is_in_e = aSys1.events_.test(event);
+                auto const qpair = std::make_pair(s, event);
+                if (aVirtualSys.transtriplet_.contains(qpair)) {
+                    qto = aVirtualSys.transtriplet_.value(
+                        std::make_pair(s, event));
+                } else {
+                    int xto = -1;
+                    int yto = -1;
 
-                if (is_in_p) {
-                    for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
-                        if (pe.value().test(event)) {
-                            xto = pe.col();
-                            if (!is_in_e) {
+                    bool const is_in_p = aSys0.events_.test(event);
+                    bool const is_in_e = aSys1.events_.test(event);
+
+                    if (is_in_p && is_in_e) {
+                        for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
+                            if (pe.value().test(event)) {
+                                xto = pe.col();
+                                break;
+                            }
+                        }
+                        for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
+                            if (ee.value().test(event)) {
+                                yto = ee.col();
+                                break;
+                            }
+                        }
+                    } else if (is_in_e) {
+                        for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
+                            if (ee.value().test(event)) {
+                                xto = qx;
+                                yto = ee.col();
+                                break;
+                            }
+                        }
+                    } else {
+                        for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
+                            if (pe.value().test(event)) {
+                                xto = pe.col();
                                 yto = qy;
                                 break;
                             }
                         }
                     }
+                    qto = yto * aSys0.states_number_ + xto;
                 }
 
-                if (is_in_e) {
-                    for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
-                        if (ee.value().test(event)) {
-                            if (!is_in_p) {
-                                xto = qx;
-                            }
-                            yto = ee.col();
-                            break;
-                        }
-                    }
-                }
-
-                auto const key = yto * aSys0.states_number_ + xto;
-                if (statesmap[key] != -1) {
+                if (statesmap[qto] != -1) {
                     auto const event_ul = 1ul << event;
                     triplet.push_back(
-                        Triplet(statesmap[s], statesmap[key], 1ul << event));
+                        Triplet(statesmap[s], statesmap[qto], 1ul << event));
                     bittriplet.push_back(
-                        BitTriplet(statesmap[key], statesmap[s], true));
+                        BitTriplet(statesmap[qto], statesmap[s], true));
                     aVirtualSys.states_events_[statesmap[s]] |= event_ul;
-                    aVirtualSys.inv_states_events_[statesmap[key]] |= event_ul;
+                    aVirtualSys.inv_states_events_[statesmap[qto]] |= event_ul;
                     aVirtualSys.events_[event] = true;
                 }
             }
@@ -414,46 +429,50 @@ bool op::ExistTransitionVirtual(DESystem const &aSys0, DESystem const &aSys1,
 }
     */
 
-op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
-                                         DESystem const &aSys1,
-                                         cldes_size_t const &q,
-                                         ScalarType const &event) {
+cldes_size_t op::TransitionVirtual(DESystem const &aSys0, DESystem const &aSys1,
+                                   cldes_size_t const &q,
+                                   ScalarType const &event) {
     bool const is_in_p = aSys0.events_.test(event);
     bool const is_in_e = aSys1.events_.test(event);
 
     auto const qx = q % aSys0.states_number_;
     auto const qy = q / aSys0.states_number_;
 
-    int xid;
-    int yid;
+    int xid = -1;
+    int yid = -1;
 
-    if (is_in_p) {
+    if (is_in_p && is_in_e) {
         for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
             if (pe.value().test(event)) {
                 xid = pe.col();
-                if (!is_in_e) {
-                    yid = qy;
-                }
                 break;
             }
         }
-    }
-
-    if (is_in_e) {
         for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
             if (ee.value().test(event)) {
-                if (!is_in_p) {
-                    xid = qx;
-                }
                 yid = ee.col();
                 break;
             }
         }
+    } else if (is_in_e) {
+        for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
+            if (ee.value().test(event)) {
+                xid = qx;
+                yid = ee.col();
+                break;
+            }
+        }
+    } else {
+        for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
+            if (pe.value().test(event)) {
+                xid = pe.col();
+                yid = qy;
+                break;
+            }
+        }
     }
-    StatesTupleSTL ret;
-    ret.first = xid;
-    ret.second = yid;
-    return ret;
+
+    return yid * aSys0.states_number_ + xid;
 }
 
 using StatesArray = QVector<cldes_size_t>;
@@ -522,22 +541,34 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
         C.remove(x);
         fs.removeOne(x);
 
-        auto const q_events = aVirtualSys.inv_states_events_[x];
-
-        foreach (ScalarType event, s_non_contr) {
-            if (q_events.test(event)) {
+        // foreach (ScalarType event, s_non_contr) {
+        auto event = 0ul;
+        auto q_events = aVirtualSys.inv_states_events_[x];
+        while (q_events.any()) {
+            if (q_events.test(0)) {
                 auto const finv = __TransitionVirtualInv(
                     aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
 
-                foreach (cldes_size_t s, finv) {
-                    if (aVirtualSys.virtual_states_.contains(s)) {
-                        f.push(s);
+                if (s_non_contr.contains(event)) {
+                    foreach (cldes_size_t s, finv) {
+                        if (aVirtualSys.virtual_states_.contains(s)) {
+                            f.push(s);
+                        }
+                    }
+                } else {
+                    if (!finv.isEmpty()) {
+                        foreach (cldes_size_t s, finv) {
+                            aVirtualSys.states_events_[s].reset(event);
+                        }
                     }
                 }
             }
+            ++event;
+            q_events >>= 1ul;
         }
         aVirtualSys.virtual_states_.remove(x);
         aVirtualSys.states_events_[x] = 0ul;
+        aVirtualSys.inv_states_events_[x] = 0ul;
     }
 
     return;
@@ -562,6 +593,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
 
     DESystem::StatesTable c;
     c.reserve(virtualsys.states_number_ * 3 / 100);
+    virtualsys.transtriplet_.reserve(virtualsys.states_number_ / 30);
 
     StatesStack f;
     f.push(virtualsys.init_state_);
@@ -586,12 +618,13 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                                     c, f, q, s_non_contr);
                     break;
                 } else if (is_there_fsqe) {
-                    auto const fs_qevent = TransitionVirtual(aP, aE, q, event);
-                    auto const fsqe_key =
-                        fs_qevent.second * aP.states_number_ + fs_qevent.first;
+                    auto const fsqe = TransitionVirtual(aP, aE, q, event);
 
-                    if (!c.contains(fsqe_key) && !f.contains(fsqe_key)) {
-                        f.push(fsqe_key);
+                    if (!c.contains(fsqe) && !f.contains(fsqe) &&
+                        virtualsys.virtual_states_.contains(fsqe)) {
+                        virtualsys.transtriplet_.insert(
+                            std::make_pair(q, event), fsqe);
+                        f.push(fsqe);
                     }
                 }
             }

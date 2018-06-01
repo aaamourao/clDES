@@ -81,10 +81,10 @@ void SynchronizeStage2(cldes::DESystem &aVirtualSys,
                        cldes::DESystem const &aSys0,
                        cldes::DESystem const &aSys1);
 
-StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
-                                 cldes::DESystem const &aSys1,
-                                 cldes::cldes_size_t const &q,
-                                 cldes::ScalarType const &event);
+cldes::cldes_size_t TransitionVirtual(cldes::DESystem const &aSys0,
+                                      cldes::DESystem const &aSys1,
+                                      cldes::cldes_size_t const &q,
+                                      cldes::ScalarType const &event);
 
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
@@ -225,10 +225,10 @@ private:
     friend void op::SynchronizeStage2(DESystem &aVirtualSys,
                                       DESystem const &aSys0,
                                       DESystem const &aSys1);
-    friend op::StatesTupleSTL op::TransitionVirtual(DESystem const &aSys0,
-                                                    DESystem const &aSys1,
-                                                    cldes_size_t const &q,
-                                                    ScalarType const &event);
+    friend cldes_size_t op::TransitionVirtual(DESystem const &aSys0,
+                                              DESystem const &aSys1,
+                                              cldes_size_t const &q,
+                                              ScalarType const &event);
     friend void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                                     DESystem const &aE,
                                     op::GraphType const &aInvGraphP,
@@ -299,6 +299,8 @@ private:
     StatesEventsTable states_events_;
 
     StatesTable virtual_states_;
+
+    QHash<std::pair<cldes_size_t, cldes_size_t>, cldes_size_t> transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
      *

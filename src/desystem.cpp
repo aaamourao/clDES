@@ -303,17 +303,17 @@ void DESystem::Trim() {
         return;
     }
 
+    // States map: old state pos -> new state pos
+    std::vector<long> statesmap(states_number_, -1);
+
     // Copy graph and resize it
-    auto old_graph = graph_;
-    auto const old_states_number = states_number_;
+    auto const old_graph = graph_;
     states_number_ = trimstates.size();
     graph_.resize(static_cast<long>(states_number_),
                   static_cast<long>(states_number_));
     bit_graph_.resize(static_cast<long>(states_number_),
                       static_cast<long>(states_number_));
 
-    // States map: old state pos -> new state pos
-    std::vector<long> statesmap(old_states_number, -1);
 
     states_events_.erase(states_events_.begin() + states_number_,
                          states_events_.end());

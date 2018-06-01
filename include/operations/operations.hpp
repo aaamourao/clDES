@@ -107,10 +107,10 @@ void SynchronizeStage2(cldes::DESystem &aVirtualSys,
                        cldes::DESystem const &aSys0,
                        cldes::DESystem const &aSys1);
 
-StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
-                                 cldes::DESystem const &aSys1,
-                                 cldes::cldes_size_t const &q,
-                                 cldes::ScalarType const &event);
+cldes::cldes_size_t TransitionVirtual(cldes::DESystem const &aSys0,
+                                      cldes::DESystem const &aSys1,
+                                      cldes::cldes_size_t const &q,
+                                      cldes::ScalarType const &event);
 
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
