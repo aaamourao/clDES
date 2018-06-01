@@ -48,4 +48,11 @@ cldes_size_t const g_max_events = 32;
 // Host array of events represented by one bit each
 using EventsBitArray = std::bitset<g_max_events>;
 }  // namespace cldes
+
+namespace std {
+using BitArray = std::bitset<cldes::g_max_events>;
+inline BitArray operator+(BitArray const &rhs, BitArray const &lhs) {
+    return rhs | lhs;
+}
+}  // namespace std
 #endif  // CLDES_CONSTANTS_HPP

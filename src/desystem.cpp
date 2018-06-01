@@ -315,33 +315,33 @@ void DESystem::Trim() {
     // States map: old state pos -> new state pos
     std::vector<long> statesmap(old_states_number, -1);
 
-    {
-        // Calculate the sparsity pattern
-        Eigen::RowVectorXi sparcitypattern(states_number_);
-        Eigen::RowVectorXi bitsparcitypattern(states_number_);
-        for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
-            auto const d = std::distance(trimstates.begin(), sit);
-            sparcitypattern(d) = old_graph.row(*sit).nonZeros();
-            bitsparcitypattern(states_number_ - d - 1) =
-                old_graph.row(old_states_number - *sit - 1).nonZeros();
-            statesmap[*sit] = d;
-        }
-
-        // Reserve mem space to store nnz
-        graph_.reserve(sparcitypattern);
-        bit_graph_.reserve(bitsparcitypattern);
+    // Calculate the sparsity pattern
+    auto sparcitypattern = 0ul;
+    for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
+        auto const d = std::distance(trimstates.begin(), sit);
+        sparcitypattern += old_graph.row(*sit).nonZeros();
+        statesmap[*sit] = d;
     }
+
+    using Triplet = Eigen::Triplet<EventsBitArray>;
+    using BitTriplet = Eigen::Triplet<bool>;
+
+    std::vector<Triplet> triplet;
+    std::vector<BitTriplet> bittriplet;
+
+    triplet.reserve(sparcitypattern);
+    bittriplet.reserve(sparcitypattern);
 
     // Build new graph_ slice by slice
     for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {
-        auto row_id = std::distance(trimstates.begin(), st);
+        auto const row_id = std::distance(trimstates.begin(), st);
 
         for (RowIteratorGraph e(old_graph, *st); e; ++e) {
             if (statesmap[e.col()] != -1) {
-                auto col_id = statesmap[e.col()];
+                auto const col_id = statesmap[e.col()];
 
-                graph_.coeffRef(row_id, col_id) = e.value();
-                bit_graph_.coeffRef(col_id, row_id) = true;
+                triplet.push_back(Triplet(row_id, col_id, e.value()));
+                bittriplet.push_back(BitTriplet(col_id, row_id, true));
                 events_ |= e.value();
                 states_events_[row_id] |= e.value();
                 inv_states_events_[col_id] |= e.value();
@@ -349,9 +349,9 @@ void DESystem::Trim() {
         }
     }
 
-    // Remove non used space
-    graph_.pruned();
-    bit_graph_.pruned();
+    // Remove aditional space
+    graph_.setFromTriplets(triplet.begin(), triplet.end());
+    bit_graph_.setFromTriplets(bittriplet.begin(), bittriplet.end());
 
     // Calculate new marked states
     auto const old_marked = marked_states_;

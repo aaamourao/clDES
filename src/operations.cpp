@@ -41,6 +41,7 @@
 #include <iostream>
 
 using namespace cldes;
+using BitArray = std::bitset<cldes::g_max_events>;
 
 /*
 DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
@@ -272,7 +273,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     auto const nstates = aVirtualSys.states_events_.size();
     // Calculate sparcity pattern and create efficient data structures for
     // searching states
-    Eigen::RowVectorXi sparcitypattern(nstates);
+    // Eigen::RowVectorXi sparcitypattern(nstates);
 
     std::vector<long> statesmap(aVirtualSys.states_number_, -1);
 
@@ -280,8 +281,10 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     qSort(states);
 
     auto pos = 0l;
+    auto sparcitypattern = 0ul;
     foreach (cldes_size_t s, states) {
-        sparcitypattern(pos) = aVirtualSys.states_events_.value(s).count();
+        // sparcitypattern(pos) = aVirtualSys.states_events_.value(s).count();
+        sparcitypattern += aVirtualSys.states_events_.value(s).count();
         statesmap[s] = pos;
         ++pos;
     }
@@ -296,12 +299,17 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         aVirtualSys.states_number_ = nstates;
     }
 
-    // Initialize bit graph with Identity
-    aVirtualSys.bit_graph_.setIdentity();
-
     // Reserve space for transitions
-    aVirtualSys.graph_.reserve(sparcitypattern);
-    aVirtualSys.bit_graph_.reserve(sparcitypattern);
+    // aVirtualSys.graph_.reserve(sparcitypattern);
+    // aVirtualSys.bit_graph_.reserve(sparcitypattern);
+    using Triplet = Eigen::Triplet<BitArray>;
+    using BitTriplet = Eigen::Triplet<bool>;
+
+    std::vector<Triplet> triplet;
+    std::vector<BitTriplet> bittriplet;
+
+    triplet.reserve(sparcitypattern);
+    bittriplet.reserve(sparcitypattern);
 
     // Calculate transitions
     foreach (cldes_size_t s, states) {
@@ -345,17 +353,26 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
                 auto const key = yto * aSys0.states_number_ + xto;
                 if (statesmap[key] != -1) {
-                    aVirtualSys(statesmap[s], statesmap[key]) = event;
+                    auto const event_ul = 1ul << event;
+                    triplet.push_back(
+                        Triplet(statesmap[s], statesmap[key], 1ul << event));
+                    bittriplet.push_back(
+                        BitTriplet(statesmap[key], statesmap[s], true));
+                    aVirtualSys.states_events_[statesmap[s]] |= event_ul;
+                    aVirtualSys.inv_states_events_[statesmap[key]] |= event_ul;
+                    aVirtualSys.events_[event] = true;
                 }
             }
+            bittriplet.push_back(BitTriplet(statesmap[s], statesmap[s], true));
             ++event;
             q_events >>= 1ul;
         }
     }
 
     // Remove aditional space
-    aVirtualSys.graph_.pruned();
-    aVirtualSys.bit_graph_.pruned();
+    aVirtualSys.graph_.setFromTriplets(triplet.begin(), triplet.end());
+    aVirtualSys.bit_graph_.setFromTriplets(bittriplet.begin(),
+                                           bittriplet.end());
 
     // Remap marked states
     aVirtualSys.marked_states_.clear();
