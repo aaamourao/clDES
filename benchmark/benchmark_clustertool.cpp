@@ -37,7 +37,6 @@
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
-
 using namespace std::chrono;
 
 void ClusterTool(unsigned long const &aNClusters,
@@ -64,10 +63,6 @@ void ClusterTool(unsigned long const &aNClusters,
             r_i(0, 3) = istart + 4ul;  // k
             r_i(3, 0) = istart + 5ul;  // k
 
-            non_contr.insert(istart + 1ul);
-            non_contr.insert(istart + 3ul);
-            non_contr.insert(istart + 5ul);
-
             aPlants.push_back(r_i);
         } else {
             cldes::DESystem r_i{3, 0, marked_states};
@@ -77,10 +72,11 @@ void ClusterTool(unsigned long const &aNClusters,
             r_i(2, 0) = istart + 3ul;  // k
 
             aPlants.push_back(r_i);
-
-            non_contr.insert(istart + 1ul);
-            non_contr.insert(istart + 3ul);
         }
+
+        non_contr.insert(istart + 1ul);
+        non_contr.insert(istart + 3ul);
+        non_contr.insert(istart + 5ul);
 
         cldes::DESystem c_i{2, 0, marked_states};
         c_i(0, 1) = istart + 6ul;  // k
@@ -99,20 +95,18 @@ void ClusterTool(unsigned long const &aNClusters,
         aSpecs.push_back(e_i);
     }
 
-    for (auto i = 0ul; i < (aNClusters - 1); ++i) {
-        auto const istart = 8ul * aNClusters + i * 4;
+    for (auto i = 1ul; i < aNClusters; ++i) {
+        auto const istart = (i - 1) * 8ul;
 
         cldes::DESystem e_ij{3, 0, marked_states};
 
-        e_ij(0, 1) = istart;
-        non_contr.insert(istart);
+        e_ij(0, 1) = istart + 5ul;
+        e_ij(1, 0) = istart + 8ul;
+        e_ij(0, 2) = istart + 8ul + 3ul;
+        e_ij(2, 0) = istart + 2ul;
 
-        e_ij(1, 0) = istart + 1ul;
-
-        e_ij(0, 2) = istart + 2ul;
-        non_contr.insert(istart + 2ul);
-
-        e_ij(2, 0) = istart + 3ul;
+        non_contr.insert(istart + 5ul);
+        non_contr.insert(istart + 8ul + 3ul);
 
         aSpecs.push_back(e_ij);
     }
@@ -163,11 +157,11 @@ int main(int argc, char *argv[]) {
 
     std::cout << std::endl
               << "Number of states of plant: " << plant.Size() << std::endl;
-    std::cout << "Number of transitions of the plant " << plant.GetGraph().nonZeros()
-              << std::endl;
+    std::cout << "Number of transitions of the plant "
+              << plant.GetGraph().nonZeros() << std::endl;
     std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
-    std::cout << "Number of transitions of the spec " << spec.GetGraph().nonZeros()
-              << std::endl
+    std::cout << "Number of transitions of the spec "
+              << spec.GetGraph().nonZeros() << std::endl
               << std::endl;
 
     std::cout << "{plant, spec}.Trim()" << std::endl;
@@ -178,11 +172,11 @@ int main(int argc, char *argv[]) {
 
     std::cout << std::endl
               << "Number of states of plant: " << plant.Size() << std::endl;
-    std::cout << "Number of transitions of the plant " << plant.GetGraph().nonZeros()
-              << std::endl;
+    std::cout << "Number of transitions of the plant "
+              << plant.GetGraph().nonZeros() << std::endl;
     std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
-    std::cout << "Number of transitions of the spec " << spec.GetGraph().nonZeros()
-              << std::endl
+    std::cout << "Number of transitions of the spec "
+              << spec.GetGraph().nonZeros() << std::endl
               << std::endl;
 
     duration = duration_cast<microseconds>(t2 - t1).count();
