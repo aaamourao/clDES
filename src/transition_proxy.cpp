@@ -46,12 +46,10 @@ TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
     DESystem::EventsSet const event_ull = 1ul << aEventPos;
 
     // Add transition to the state events hash table
-    sys_ptr_->states_events_[lin_] =
-        sys_ptr_->states_events_.value(lin_) | event_ull;
+    sys_ptr_->states_events_[lin_] |= event_ull;
 
     // Add transition to the state events inverted hash table
-    sys_ptr_->inv_states_events_[col_] =
-        sys_ptr_->inv_states_events_.value(col_) | event_ull;
+    sys_ptr_->inv_states_events_[col_] |= event_ull;
 
     // Add transition to graph
     DESystem::EventsSet const last_value = sys_ptr_->graph_.coeff(lin_, col_);

@@ -59,8 +59,8 @@ DESystem::DESystem(cldes_size_t const &aStatesNumber,
     bit_graph_.setIdentity();
 
     // Reserve mem for hash tables for avoiding re-hashing
-    states_events_.reserve(states_number_);
-    inv_states_events_.reserve(states_number_);
+    states_events_ = StatesEventsTable(states_number_);
+    inv_states_events_ = StatesEventsTable(states_number_);
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {

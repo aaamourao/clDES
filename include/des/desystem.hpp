@@ -88,9 +88,8 @@ StatesTupleSTL TransitionVirtual(cldes::DESystem const &aSys0,
 
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
-                     GraphType const &aInvGraphE,
-                     QHash<cldes_size_t, EventsBitArray> &C, StatesStack &fs,
-                     cldes_size_t const &q,
+                     GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
+                     StatesStack &fs, cldes_size_t const &q,
                      QSet<ScalarType> const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
@@ -105,7 +104,8 @@ public:
     using StatesSet = std::set<cldes_size_t>;
     using StatesVector = Eigen::SparseMatrix<bool>;
     using EventsSet = EventsBitArray;
-    using StatesEventsTable = QHash<cldes_size_t, EventsSet>;
+    using StatesEventsTable = std::vector<EventsSet>;
+    using StatesTable = QSet<cldes_size_t>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -233,8 +233,8 @@ private:
                                     DESystem const &aE,
                                     op::GraphType const &aInvGraphP,
                                     op::GraphType const &aInvGraphE,
-                                    QHash<cldes_size_t, EventsBitArray> &C,
-                                    op::StatesStack &fs, cldes_size_t const &q,
+                                    QSet<cldes_size_t> &C, op::StatesStack &fs,
+                                    cldes_size_t const &q,
                                     QSet<ScalarType> const &s_non_contr);
     friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                                         QSet<ScalarType> const &non_contr);
@@ -297,6 +297,8 @@ private:
     /*! \brief Vector containing a events hash table per state
      */
     StatesEventsTable states_events_;
+
+    StatesTable virtual_states_;
 
     /*! \brief Vector containing a events hash table per state
      *

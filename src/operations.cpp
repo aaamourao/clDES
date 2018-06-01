@@ -130,29 +130,6 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
     auto const only_in_0 = aSys0.events_ ^ in_both;
     auto const only_in_1 = aSys1.events_ ^ in_both;
 
-    // New system params
-    DESystem::StatesEventsTable states_events;
-    DESystem::StatesEventsTable inv_states_events;
-    states_events.reserve(aSys0.states_number_ * aSys1.states_number_);
-    inv_states_events.reserve(aSys0.states_number_ * aSys1.states_number_);
-
-    // Calculate params
-    for (auto ix0 = 0ul; ix0 < aSys0.states_number_; ++ix0) {
-        for (auto ix1 = 0ul; ix1 < aSys1.states_number_; ++ix1) {
-            auto const key = ix1 * aSys0.states_number_ + ix0;
-
-            states_events[key] = (aSys0.states_events_.value(ix0) &
-                                  aSys1.states_events_.value(ix1)) |
-                                 (aSys0.states_events_.value(ix0) & only_in_0) |
-                                 (aSys1.states_events_.value(ix1) & only_in_1);
-            inv_states_events[key] =
-                (aSys0.inv_states_events_.value(ix0) &
-                 aSys1.inv_states_events_.value(ix1)) |
-                (aSys0.inv_states_events_.value(ix0) & only_in_0) |
-                (aSys1.inv_states_events_.value(ix1) & only_in_1);
-        }
-    }
-
     // Calculate new marked states
     DESystem::StatesSet marked_states;
     for (auto s0 : aSys0.marked_states_) {
@@ -167,10 +144,33 @@ DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
         aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_,
         marked_states};
 
+    // New system params
+    virtualsys.states_events_.reserve(aSys0.states_number_ *
+                                      aSys1.states_number_);
+    virtualsys.inv_states_events_.reserve(aSys0.states_number_ *
+                                          aSys1.states_number_);
+
+    // Calculate params
+    for (auto ix0 = 0ul; ix0 < aSys0.states_number_; ++ix0) {
+        for (auto ix1 = 0ul; ix1 < aSys1.states_number_; ++ix1) {
+            auto const key = ix1 * aSys0.states_number_ + ix0;
+
+            virtualsys.virtual_states_.insert(key);
+
+            virtualsys.states_events_[key] =
+                (aSys0.states_events_[ix0] & aSys1.states_events_[ix1]) |
+                (aSys0.states_events_[ix0] & only_in_0) |
+                (aSys1.states_events_[ix1] & only_in_1);
+            virtualsys.inv_states_events_[key] =
+                (aSys0.inv_states_events_[ix0] &
+                 aSys1.inv_states_events_[ix1]) |
+                (aSys0.inv_states_events_[ix0] & only_in_0) |
+                (aSys1.inv_states_events_[ix1] & only_in_1);
+        }
+    }
+
     // Set private params
     virtualsys.events_ = aSys0.events_ | aSys1.events_;
-    states_events.swap(virtualsys.states_events_);
-    inv_states_events.swap(virtualsys.inv_states_events_);
 
     return virtualsys;
 }
@@ -270,21 +270,21 @@ using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
 
 void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                            DESystem const &aSys1) {
-    auto const nstates = aVirtualSys.states_events_.size();
+    auto const nstates = aVirtualSys.virtual_states_.size();
     // Calculate sparcity pattern and create efficient data structures for
     // searching states
     // Eigen::RowVectorXi sparcitypattern(nstates);
 
     std::vector<long> statesmap(aVirtualSys.states_number_, -1);
 
-    auto states = aVirtualSys.states_events_.keys();
+    auto states = aVirtualSys.virtual_states_.toList();
     qSort(states);
 
     auto pos = 0l;
     auto sparcitypattern = 0ul;
     foreach (cldes_size_t s, states) {
         // sparcitypattern(pos) = aVirtualSys.states_events_.value(s).count();
-        sparcitypattern += aVirtualSys.states_events_.value(s).count();
+        sparcitypattern += aVirtualSys.states_events_[s].count();
         statesmap[s] = pos;
         ++pos;
     }
@@ -316,7 +316,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         auto const qx = s % aSys0.states_number_;
         auto const qy = s / aSys0.states_number_;
 
-        auto q_events = virtualse.value(s);
+        auto q_events = virtualse[s];
 
         auto event = 0ul;
         while (q_events.any()) {
@@ -508,8 +508,7 @@ static StatesArray __TransitionVirtualInv(EventsType const &aEventsP,
 
 void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                          DESystem const &aE, op::GraphType const &aInvGraphP,
-                         op::GraphType const &aInvGraphE,
-                         QHash<cldes_size_t, EventsBitArray> &C,
+                         op::GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
                          op::StatesStack &fs, cldes_size_t const &q,
                          QSet<ScalarType> const &s_non_contr) {
     StatesStack f;
@@ -521,7 +520,7 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
         C.remove(x);
         fs.removeOne(x);
 
-        auto const q_events = aVirtualSys.inv_states_events_.value(x);
+        auto const q_events = aVirtualSys.inv_states_events_[x];
 
         foreach (ScalarType event, s_non_contr) {
             if (q_events.test(event)) {
@@ -529,13 +528,14 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                     aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
 
                 foreach (cldes_size_t s, finv) {
-                    if (aVirtualSys.states_events_.contains(s)) {
+                    if (aVirtualSys.virtual_states_.contains(s)) {
                         f.push(s);
                     }
                 }
             }
         }
-        aVirtualSys.states_events_.remove(x);
+        aVirtualSys.virtual_states_.remove(x);
+        aVirtualSys.states_events_[x] = 0ul;
     }
 
     return;
@@ -558,7 +558,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
-    DESystem::StatesEventsTable c;
+    DESystem::StatesTable c;
     c.reserve(virtualsys.states_number_ * 3 / 100);
 
     StatesStack f;
@@ -566,20 +566,20 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
 
     while (!f.isEmpty()) {
         auto const q = f.pop();
-        c[q] = virtualsys.states_events_.value(q);
+        c.insert(q);
 
         // q = (qx, qy)
         auto const qx = q % aP.states_number_;
 
         auto event = 0ul;
-        auto event_it = virtualsys.states_events_.value(q) | non_contr_bit;
+        auto event_it = virtualsys.states_events_[q] | non_contr_bit;
         while (event_it.any()) {
             if (event_it.test(0)) {
                 auto const is_there_fsqe =
-                    virtualsys.states_events_.value(q).test(event);
+                    virtualsys.states_events_[q].test(event);
 
                 if (s_non_contr.contains(event) && !is_there_fsqe &&
-                    aP.states_events_.value(qx).test(event)) {
+                    aP.states_events_[qx].test(event)) {
                     RemoveBadStates(virtualsys, aP, aE, p_invgraph, e_invgraph,
                                     c, f, q, s_non_contr);
                     break;
@@ -598,8 +598,8 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
-    c.swap(virtualsys.states_events_);
-    virtualsys.states_events_.squeeze();
+    c.swap(virtualsys.virtual_states_);
+    virtualsys.virtual_states_.squeeze();
 
     // Make virtualsys a real sys
     SynchronizeStage2(virtualsys, aP, aE);
