@@ -598,6 +598,9 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     // f is a stack of tuples (accessed_state, state_from, event_from)
     QStack<std::tuple<cldes_size_t, cldes_size_t, ScalarType>> f;
     f.push(std::make_tuple(virtualsys.init_state_, 0, 0));
+    QSet<cldes_size_t> ftable;
+    ftable.reserve(virtualsys.states_number_ * 3 / 100);
+    ftable.insert(virtualsys.init_state_);
 
     while (!f.isEmpty()) {
         auto const q_from = f.pop();
@@ -626,14 +629,13 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                     break;
                 } else if (is_there_fsqe) {
                     auto const fsqe = TransitionVirtual(aP, aE, q, event);
-                    auto const fsqep = std::make_tuple(fsqe, q, event);
 
-                    if (!c.contains(fsqe) &&
-                        virtualsys.virtual_states_.contains(fsqe) &&
-                        !f.contains(fsqep)) {
+                    if (virtualsys.states_events_[fsqe] != 0 &&
+                        !c.contains(fsqe) && !ftable.contains(fsqe)) {
                         virtualsys.transtriplet_.insert(
                             std::make_pair(q, event), fsqe);
-                        f.push(fsqep);
+                        f.push(std::make_tuple(fsqe, q, event));
+                        ftable.insert(fsqe);
                     }
                 }
             }
