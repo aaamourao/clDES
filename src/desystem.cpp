@@ -244,6 +244,8 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
     return coaccessible_states;
 }
 
+using BitTriplet = Eigen::Triplet<bool>;
+
 DESystem::StatesSet DESystem::TrimStates() {
     StatesSet const accpartstl = AccessiblePart();
     QSet<cldes_size_t> accpart;
@@ -255,16 +257,19 @@ DESystem::StatesSet DESystem::TrimStates() {
 
     Eigen::Index const n_marked =
         static_cast<Eigen::Index>(marked_states_.size());
+
     StatesVector x{static_cast<Eigen::Index>(states_number_), n_marked};
     x.reserve(marked_states_.size());
+    std::vector<BitTriplet> xtriplet;
 
     {
         auto pos = 0ul;
         for (auto state : marked_states_) {
-            x.coeffRef(state, pos) = true;
+            xtriplet.push_back(BitTriplet(state, pos, true));
             ++pos;
         }
     }
+    x.setFromTriplets(xtriplet.begin(), xtriplet.end());
 
     StatesVector y{static_cast<Eigen::Index>(states_number_), n_marked};
     auto n_accessed_states = 0l;
@@ -295,6 +300,7 @@ DESystem::StatesSet DESystem::TrimStates() {
 }
 
 using RowIteratorGraph = Eigen::InnerIterator<DESystem::GraphHostData>;
+using Triplet = Eigen::Triplet<EventsBitArray>;
 
 void DESystem::Trim() {
     auto trimstates = this->TrimStates();
@@ -314,22 +320,22 @@ void DESystem::Trim() {
     bit_graph_.resize(static_cast<long>(states_number_),
                       static_cast<long>(states_number_));
 
-
     states_events_.erase(states_events_.begin() + states_number_,
                          states_events_.end());
     inv_states_events_.erase(inv_states_events_.begin() + states_number_,
                              inv_states_events_.end());
 
     // Calculate the sparsity pattern
-    auto sparcitypattern = 0ul;
-    for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
-        auto const d = std::distance(trimstates.begin(), sit);
-        sparcitypattern += old_graph.row(*sit).nonZeros();
-        statesmap[*sit] = d;
-    }
+    auto sparcitypattern = events_.count() * states_number_;
 
-    using Triplet = Eigen::Triplet<EventsBitArray>;
-    using BitTriplet = Eigen::Triplet<bool>;
+    {
+        auto d = 0ul;
+        for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
+            sparcitypattern += old_graph.row(*sit).nonZeros();
+            statesmap[*sit] = d;
+            ++d;
+        }
+    }
 
     std::vector<Triplet> triplet;
     std::vector<BitTriplet> bittriplet;
@@ -338,19 +344,21 @@ void DESystem::Trim() {
     bittriplet.reserve(sparcitypattern);
 
     // Build new graph_ slice by slice
-    for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {
-        auto const row_id = std::distance(trimstates.begin(), st);
+    {
+        auto row_id = 0ul;
+        for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {
+            for (RowIteratorGraph e(old_graph, *st); e; ++e) {
+                if (statesmap[e.col()] != -1) {
+                    auto const col_id = statesmap[e.col()];
 
-        for (RowIteratorGraph e(old_graph, *st); e; ++e) {
-            if (statesmap[e.col()] != -1) {
-                auto const col_id = statesmap[e.col()];
-
-                triplet.push_back(Triplet(row_id, col_id, e.value()));
-                bittriplet.push_back(BitTriplet(col_id, row_id, true));
-                events_ |= e.value();
-                states_events_[row_id] |= e.value();
-                inv_states_events_[col_id] |= e.value();
+                    triplet.push_back(Triplet(row_id, col_id, e.value()));
+                    bittriplet.push_back(BitTriplet(col_id, row_id, true));
+                    events_ |= e.value();
+                    states_events_[row_id] |= e.value();
+                    inv_states_events_[col_id] |= e.value();
+                }
             }
+            ++row_id;
         }
     }
 

@@ -38,8 +38,6 @@
 #include <QtCore/QVector>
 #include "des/transition_proxy.hpp"
 
-#include <iostream>
-
 using namespace cldes;
 using BitArray = std::bitset<cldes::g_max_events>;
 
@@ -314,11 +312,14 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     bittriplet.reserve(sparcitypattern);
 
     // Calculate transitions
+    auto current_state = 0ul;
     foreach (cldes_size_t s, states) {
         auto const qx = s % aSys0.states_number_;
         auto const qy = s / aSys0.states_number_;
 
         auto q_events = virtualse[s];
+
+        bittriplet.push_back(BitTriplet(current_state, current_state, true));
 
         auto event = 0ul;
         while (q_events.any()) {
@@ -372,18 +373,18 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                 if (statesmap[qto] != -1) {
                     auto const event_ul = 1ul << event;
                     triplet.push_back(
-                        Triplet(statesmap[s], statesmap[qto], 1ul << event));
+                        Triplet(current_state, statesmap[qto], 1ul << event));
                     bittriplet.push_back(
-                        BitTriplet(statesmap[qto], statesmap[s], true));
-                    aVirtualSys.states_events_[statesmap[s]] |= event_ul;
+                        BitTriplet(statesmap[qto], current_state, true));
+                    aVirtualSys.states_events_[current_state] |= event_ul;
                     aVirtualSys.inv_states_events_[statesmap[qto]] |= event_ul;
                     aVirtualSys.events_[event] = true;
                 }
             }
-            bittriplet.push_back(BitTriplet(statesmap[s], statesmap[s], true));
             ++event;
             q_events >>= 1ul;
         }
+        ++current_state;
     }
 
     // Remove aditional space
@@ -530,7 +531,7 @@ static StatesArray __TransitionVirtualInv(EventsType const &aEventsP,
 void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                          DESystem const &aE, op::GraphType const &aInvGraphP,
                          op::GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
-                         op::StatesStack &fs, cldes_size_t const &q,
+                         cldes_size_t const &q,
                          QSet<ScalarType> const &s_non_contr) {
     StatesStack f;
     f.push(q);
@@ -539,7 +540,6 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
         cldes_size_t const x = f.pop();
 
         C.remove(x);
-        fs.removeOne(x);
 
         // foreach (ScalarType event, s_non_contr) {
         auto event = 0ul;
@@ -595,11 +595,13 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     c.reserve(virtualsys.states_number_ * 3 / 100);
     virtualsys.transtriplet_.reserve(virtualsys.states_number_ / 30);
 
-    StatesStack f;
-    f.push(virtualsys.init_state_);
+    // f is a stack of tuples (accessed_state, state_from, event_from)
+    QStack<std::tuple<cldes_size_t, cldes_size_t, ScalarType>> f;
+    f.push(std::make_tuple(virtualsys.init_state_, 0, 0));
 
     while (!f.isEmpty()) {
-        auto const q = f.pop();
+        auto const q_from = f.pop();
+        auto const q = std::get<0>(q_from);
         c.insert(q);
 
         // q = (qx, qy)
@@ -614,17 +616,24 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
 
                 if (s_non_contr.contains(event) && !is_there_fsqe &&
                     aP.states_events_[qx].test(event)) {
+                    // Remove event from states_events
+                    virtualsys.states_events_[std::get<1>(q_from)].reset(
+                        std::get<2>(q_from));
+
+                    // Remove bad states recusirvely
                     RemoveBadStates(virtualsys, aP, aE, p_invgraph, e_invgraph,
-                                    c, f, q, s_non_contr);
+                                    c, q, s_non_contr);
                     break;
                 } else if (is_there_fsqe) {
                     auto const fsqe = TransitionVirtual(aP, aE, q, event);
+                    auto const fsqep = std::make_tuple(fsqe, q, event);
 
-                    if (!c.contains(fsqe) && !f.contains(fsqe) &&
-                        virtualsys.virtual_states_.contains(fsqe)) {
+                    if (!c.contains(fsqe) &&
+                        virtualsys.virtual_states_.contains(fsqe) &&
+                        !f.contains(fsqep)) {
                         virtualsys.transtriplet_.insert(
                             std::make_pair(q, event), fsqe);
-                        f.push(fsqe);
+                        f.push(fsqep);
                     }
                 }
             }

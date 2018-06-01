@@ -89,7 +89,7 @@ cldes::cldes_size_t TransitionVirtual(cldes::DESystem const &aSys0,
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
                      GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
-                     StatesStack &fs, cldes_size_t const &q,
+                     cldes_size_t const &q,
                      QSet<ScalarType> const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
@@ -233,7 +233,7 @@ private:
                                     DESystem const &aE,
                                     op::GraphType const &aInvGraphP,
                                     op::GraphType const &aInvGraphE,
-                                    QSet<cldes_size_t> &C, op::StatesStack &fs,
+                                    QSet<cldes_size_t> &C,
                                     cldes_size_t const &q,
                                     QSet<ScalarType> const &s_non_contr);
     friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
