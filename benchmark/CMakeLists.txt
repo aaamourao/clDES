@@ -2,7 +2,7 @@
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/benchmark)
 
 # Add executables
-add_executable(benchmark_clustertool ./benchmark_clustertool.cpp ./clustertools.cpp)
+add_executable(benchmark_clustertool ./benchmark_clustertool.cpp)
 add_executable(benchmark_fsm ./benchmark_fsm.cpp)
 
 # Link libraries

@@ -171,7 +171,6 @@ int main() {
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto last_result = plants[0ul];
     auto plant = last_result;
-    PrintGraph(plants[0ul].GetGraph(), "plants[0]");
     for (auto i = 1ul; i < plants.size(); ++i) {
         plant = cldes::op::Synchronize(last_result, plants[i]);
         last_result = plant;
@@ -220,12 +219,12 @@ int main() {
               << "Number of states of plant: " << plant.Size() << std::endl;
     std::cout << "Number of transitions of the plant "
               << plant.GetGraph().nonZeros() << std::endl;
-    std::cout << "Computing the supervisor" << std::endl;
     std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
     std::cout << "Number of transitions of the spec "
               << spec.GetGraph().nonZeros() << std::endl
               << std::endl;
 
+    std::cout << "Computing the supervisor" << std::endl;
     t1 = high_resolution_clock::now();
     auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
     t2 = high_resolution_clock::now();

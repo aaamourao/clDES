@@ -301,6 +301,8 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
         aVirtualSys.states_number_ = nstates;
     }
 
+    aVirtualSys.events_.reset();
+
     // Reserve space for transitions
     using Triplet = Eigen::Triplet<BitArray>;
     using BitTriplet = Eigen::Triplet<bool>;
