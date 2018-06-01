@@ -273,8 +273,6 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     auto const nstates = aVirtualSys.virtual_states_.size();
     // Calculate sparcity pattern and create efficient data structures for
     // searching states
-    // Eigen::RowVectorXi sparcitypattern(nstates);
-
     std::vector<long> statesmap(aVirtualSys.states_number_, -1);
 
     auto states = aVirtualSys.virtual_states_.toList();
@@ -294,14 +292,18 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
     // Resize adj matrices if necessary
     if (static_cast<long>(aVirtualSys.states_number_) != nstates) {
+        aVirtualSys.states_events_.erase(
+            aVirtualSys.states_events_.begin() + nstates,
+            aVirtualSys.states_events_.end());
+        aVirtualSys.inv_states_events_.erase(
+            aVirtualSys.inv_states_events_.begin() + nstates,
+            aVirtualSys.inv_states_events_.end());
         aVirtualSys.graph_.resize(nstates, nstates);
         aVirtualSys.bit_graph_.resize(nstates, nstates);
         aVirtualSys.states_number_ = nstates;
     }
 
     // Reserve space for transitions
-    // aVirtualSys.graph_.reserve(sparcitypattern);
-    // aVirtualSys.bit_graph_.reserve(sparcitypattern);
     using Triplet = Eigen::Triplet<BitArray>;
     using BitTriplet = Eigen::Triplet<bool>;
 

@@ -315,6 +315,11 @@ void DESystem::Trim() {
     // States map: old state pos -> new state pos
     std::vector<long> statesmap(old_states_number, -1);
 
+    states_events_.erase(states_events_.begin() + states_number_,
+                         states_events_.end());
+    inv_states_events_.erase(inv_states_events_.begin() + states_number_,
+                             inv_states_events_.end());
+
     // Calculate the sparsity pattern
     auto sparcitypattern = 0ul;
     for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
