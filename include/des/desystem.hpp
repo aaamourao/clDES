@@ -90,7 +90,7 @@ void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
                      GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
                      cldes_size_t const &q,
-                     QSet<ScalarType> const &s_non_contr);
+                     cldes::EventsBitArray const &s_non_contr);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
                                 cldes::DESystem const &aS,
@@ -215,7 +215,7 @@ protected:
      * Declare default constructor as protected to avoid the class user of
      * calling it.
      */
-    DESystem();
+    DESystem() {};
 
 private:
     friend class TransitionProxy;
@@ -236,7 +236,7 @@ private:
                                     op::GraphType const &aInvGraphE,
                                     QSet<cldes_size_t> &C,
                                     cldes_size_t const &q,
-                                    QSet<ScalarType> const &s_non_contr);
+                                    cldes::EventsBitArray const &s_non_contr);
     friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                                         QSet<ScalarType> const &non_contr);
 
@@ -299,8 +299,13 @@ private:
      */
     StatesEventsTable states_events_;
 
-    StatesTable virtual_states_;
-
+    /*! \brief data structures used in virtual systems
+     */
+    QList<cldes_size_t> virtual_states_;
+    QSet<cldes_size_t> virtual_table_;
+    QSet<cldes_size_t> rmtable_;
+    EventsSet only_in_0_;
+    EventsSet only_in_1_;
     QHash<std::pair<cldes_size_t, cldes_size_t>, cldes_size_t> transtriplet_;
 
     /*! \brief Vector containing a events hash table per state

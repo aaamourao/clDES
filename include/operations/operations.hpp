@@ -117,7 +117,7 @@ void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
                      GraphType const &aInvGraphE, StatesTableSTL &C,
                      StatesStack &fs, cldes_size_t const &q,
-                     QSet<ScalarType> const &s_non_contr);
+                     cldes::EventsBitArray const &bit_non_contr);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
                                 cldes::DESystem const &aS,
