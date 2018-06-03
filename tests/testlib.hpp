@@ -44,7 +44,7 @@ std::string ReadResult(T const &aOpResult, StringType const aHeader) {
     return result.str();
 }
 
-using eigen_matrix = Eigen::SparseMatrix<std::bitset<32>, Eigen::RowMajor>;
+using eigen_matrix = Eigen::SparseMatrix<std::bitset<48>, Eigen::RowMajor>;
 
 template <typename StringType>
 std::string ReadResult(eigen_matrix const &aOpResult,

@@ -328,14 +328,13 @@ void DESystem::Trim() {
     events_.reset();
 
     // Calculate the sparsity pattern
-    auto sparcitypattern = 0ul;
+    auto sparcitypattern = events_.count() * states_number_;
+
+    // Fill statesmap
     {
         auto d = 0ul;
         for (auto sit = trimstates.begin(); sit != trimstates.end(); ++sit) {
-            sparcitypattern += old_graph.row(*sit).nonZeros();
             statesmap[*sit] = d;
-            states_events_[d].reset();
-            inv_states_events_[d].reset();
             ++d;
         }
     }
@@ -350,6 +349,8 @@ void DESystem::Trim() {
     {
         auto row_id = 0ul;
         for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {
+            states_events_[row_id].reset();
+            inv_states_events_[row_id].reset();
             for (RowIteratorGraph e(old_graph, *st); e; ++e) {
                 if (statesmap[e.col()] != -1) {
                     auto const col_id = statesmap[e.col()];

@@ -38,6 +38,8 @@
 #include <QtCore/QVector>
 #include "des/transition_proxy.hpp"
 
+#include <iostream>
+
 using namespace cldes;
 using BitArray = std::bitset<cldes::g_max_events>;
 
@@ -411,6 +413,15 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     triplet.reserve(sparcitypattern);
     bittriplet.reserve(sparcitypattern);
 
+    QHash<cldes_size_t, cldes_size_t> statesmap;
+    statesmap.reserve(aVirtualSys.virtual_states_.size());
+    auto cst = 0ul;
+    foreach (cldes_size_t s, aVirtualSys.virtual_states_) {
+        statesmap[s] = cst;
+        ++cst;
+    }
+    statesmap.squeeze();
+
     // Calculate transitions
     auto current_state = 0ul;
     foreach (cldes_size_t s, aVirtualSys.virtual_states_) {
@@ -478,8 +489,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                 }
 
                 if (aVirtualSys.virtual_table_.contains(qto)) {
-                    auto const qto_mapped =
-                        aVirtualSys.virtual_states_.indexOf(qto);
+                    auto const qto_mapped = statesmap.value(qto);
                     triplet.push_back(
                         Triplet(current_state, qto_mapped, 1ul << event));
                     bittriplet.push_back(
@@ -513,6 +523,13 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     // It only works for init_state = 0;
     aVirtualSys.init_state_ =
         aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_;
+
+    aVirtualSys.virtual_table_.clear();
+    aVirtualSys.virtual_states_.clear();
+    aVirtualSys.rmtable_.clear();
+    aVirtualSys.only_in_0_.reset();
+    aVirtualSys.only_in_1_.reset();
+    aVirtualSys.transtriplet_.clear();
 }
 
 /*
@@ -729,6 +746,13 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     f.push(virtualsys.init_state_);
     ftable.insert(virtualsys.init_state_);
 
+    // Reserve space
+    c.reserve(2 * aP.states_number_);
+    virtualsys.transtriplet_.reserve(2 * aP.states_number_);
+    virtualsys.virtual_table_.reserve(2 * aP.states_number_);
+    virtualsys.rmtable_.reserve(3 * aP.states_number_);
+    ftable.reserve(3 * aP.states_number_);
+
     while (!f.isEmpty()) {
         auto const q = f.pop();
         c.insert(q);
@@ -770,10 +794,15 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
+    c.squeeze();
+
     // Swap new system states and sort it
     c.swap(virtualsys.virtual_table_);
     virtualsys.virtual_states_ = virtualsys.virtual_table_.toList();
     qSort(virtualsys.virtual_states_);
+
+    virtualsys.transtriplet_.squeeze();
+    virtualsys.virtual_table_.squeeze();
 
     // Make virtualsys a real sys
     SynchronizeStage2(virtualsys, aP, aE);
