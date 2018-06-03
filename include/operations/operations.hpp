@@ -87,7 +87,8 @@ cldes::DESystemCL Synchronize(cldes::DESystemCL &aSys0,
                               cldes::DESystemCL &aSys1);
 */
 
-cldes::DESystem Synchronize(cldes::DESystem &aSys0, cldes::DESystem &aSys1);
+cldes::DESystem Synchronize(cldes::DESystem const &aSys0,
+                            cldes::DESystem const &aSys1);
 
 /*
 StatesTable *SynchronizeStage1(cldes::DESystemCL const &aSys0,

@@ -117,11 +117,132 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
 }
 */
 
-DESystem op::Synchronize(DESystem &aSys0, DESystem &aSys1) {
-    auto syncsys = SynchronizeStage1(aSys0, aSys1);
+using Triplet = Eigen::Triplet<BitArray>;
+using BitTriplet = Eigen::Triplet<bool>;
+using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
+
+DESystem op::Synchronize(DESystem const &aSys0, DESystem const &aSys1) {
+    auto const in_both = aSys0.events_ & aSys1.events_;
+    auto const only_in_0 = aSys0.events_ ^ in_both;
+    auto const only_in_1 = aSys1.events_ ^ in_both;
+
+    // Calculate new marked states
+    DESystem::StatesSet marked_states;
+    for (auto s0 : aSys0.marked_states_) {
+        for (auto s1 : aSys1.marked_states_) {
+            marked_states.insert(s1 * aSys0.states_number_ + s0);
+        }
+    }
+
+    // Create new system without transitions
+    DESystem sys{aSys0.states_number_ * aSys1.states_number_,
+                 aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_,
+                 marked_states};
+
+    // Set private params
+    sys.events_ = aSys0.events_ | aSys1.events_;
+
+    // Alias to states_number_
+    auto const nstates = sys.states_number_;
+
+    // Calculate sparcity pattern
+    auto const sparcitypattern = sys.events_.count() * nstates;
+
+    // Reserve space for transitions
+    std::vector<Triplet> triplet;
+    std::vector<BitTriplet> bittriplet;
+
+    triplet.reserve(sparcitypattern);
+    bittriplet.reserve(sparcitypattern);
+
+    // Calculate transitions
+    for (auto q = 0; q < nstates; ++q) {
+        auto const qx = q % aSys0.states_number_;
+        auto const qy = q / aSys0.states_number_;
+
+        // Calculate sys inverse states events
+        sys.inv_states_events_[q] =
+            (aSys0.inv_states_events_[qx] & aSys1.inv_states_events_[qy]) |
+            (aSys0.inv_states_events_[qx] & only_in_0) |
+            (aSys1.inv_states_events_[qy] & only_in_1);
+
+        // Calculate sys states events
+        auto q_events = (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
+                        (aSys0.states_events_[qx] & only_in_0) |
+                        (aSys1.states_events_[qy] & only_in_1);
+        sys.states_events_[q] = q_events;
+
+        // Add loop to bit_graph_ : bit graph = graph.in_bits + identity
+        bittriplet.push_back(BitTriplet(q, q, true));
+
+        auto event = 0ul;
+        while (q_events.any()) {
+            if (q_events.test(0)) {
+                int qto;
+
+                int xto = -1;
+                int yto = -1;
+
+                bool const is_in_p = aSys0.events_.test(event);
+                bool const is_in_e = aSys1.events_.test(event);
+
+                if (is_in_p && is_in_e) {
+                    for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
+                        if (pe.value().test(event)) {
+                            xto = pe.col();
+                            break;
+                        }
+                    }
+                    for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
+                        if (ee.value().test(event)) {
+                            yto = ee.col();
+                            break;
+                        }
+                    }
+                } else if (is_in_e) {
+                    for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
+                        if (ee.value().test(event)) {
+                            xto = qx;
+                            yto = ee.col();
+                            break;
+                        }
+                    }
+                } else {
+                    for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
+                        if (pe.value().test(event)) {
+                            xto = pe.col();
+                            yto = qy;
+                            break;
+                        }
+                    }
+                }
+
+                qto = yto * aSys0.states_number_ + xto;
+
+                triplet.push_back(Triplet(q, qto, 1ul << event));
+                if (q != qto) {
+                    bittriplet.push_back(BitTriplet(qto, q, true));
+                }
+            }
+            ++event;
+            q_events >>= 1ul;
+        }
+    }
+
+    // Remove aditional space
+    sys.graph_.setFromTriplets(triplet.begin(), triplet.end());
+    sys.bit_graph_.setFromTriplets(bittriplet.begin(), bittriplet.end());
+
+    return sys;
+}
+
+/*
+op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
+                                       DESystemCL const &aSys1) {
     SynchronizeStage2(syncsys, aSys0, aSys1);
     return syncsys;
 }
+*/
 
 DESystem op::SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1) {
     auto const in_both = aSys0.events_ & aSys1.events_;
@@ -264,8 +385,6 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
 }
 */
 
-using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
-
 void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
                            DESystem const &aSys1) {
     auto const nstates = aVirtualSys.virtual_states_.size();
@@ -304,9 +423,6 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.events_.reset();
 
     // Reserve space for transitions
-    using Triplet = Eigen::Triplet<BitArray>;
-    using BitTriplet = Eigen::Triplet<bool>;
-
     std::vector<Triplet> triplet;
     std::vector<BitTriplet> bittriplet;
 
@@ -330,8 +446,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
 
                 auto const qpair = std::make_pair(s, event);
                 if (aVirtualSys.transtriplet_.contains(qpair)) {
-                    qto = aVirtualSys.transtriplet_.value(
-                        std::make_pair(s, event));
+                    qto = aVirtualSys.transtriplet_.value(qpair);
                 } else {
                     int xto = -1;
                     int yto = -1;
