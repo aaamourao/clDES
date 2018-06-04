@@ -215,7 +215,7 @@ protected:
      * Declare default constructor as protected to avoid the class user of
      * calling it.
      */
-    DESystem() {};
+    DESystem(){};
 
 private:
     friend class TransitionProxy;
@@ -306,7 +306,7 @@ private:
     QSet<cldes_size_t> rmtable_;
     EventsSet only_in_0_;
     EventsSet only_in_1_;
-    QHash<std::pair<cldes_size_t, cldes_size_t>, cldes_size_t> transtriplet_;
+    QHash<std::pair<cldes_size_t, cldes_size_t>, ScalarType> transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
      *
