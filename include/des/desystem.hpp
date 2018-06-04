@@ -37,7 +37,8 @@
 #endif
 
 #include <Eigen/Sparse>
-#include <QtCore/QHash>
+#include <QtCore/QMultiHash>
+#include <QtCore/QPair>
 #include <QtCore/QSet>
 #include <QtCore/QStack>
 #include <set>
@@ -45,7 +46,6 @@
 #include "constants.hpp"
 
 namespace cldes {
-
 /*
  * Forward declarion of DESystem's friends class TransitionProxy. A transition
  * is an element of the adjascency matrix which implements the des graph.
@@ -306,7 +306,7 @@ private:
     QSet<cldes_size_t> rmtable_;
     EventsSet only_in_0_;
     EventsSet only_in_1_;
-    QHash<std::pair<cldes_size_t, cldes_size_t>, ScalarType> transtriplet_;
+    QMultiHash<cldes_size_t, QPair<cldes_size_t, ScalarType>> transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
      *
