@@ -119,41 +119,50 @@ int main(int argc, char *argv[]) {
         throw std::runtime_error("Wrong usage");
     }
 
-    std::vector<cldes::DESystem> plants;
-    std::vector<cldes::DESystem> specs;
+    std::set<cldes::cldes_size_t> marked_states;
+    cldes::DESystem plant{1, 0, marked_states};
+    cldes::DESystem spec{1, 0, marked_states};
     QSet<cldes::ScalarType> non_contr;
 
-    std::cout << "Generating ClusterTool(" << std::atoi(argv[1]) << ")"
-              << std::endl;
-    ClusterTool(std::atoi(argv[1]), plants, specs, non_contr);
+    high_resolution_clock::time_point t1;
+    high_resolution_clock::time_point t2;
 
-    std::cout << "Synchronizing plants" << std::endl;
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    auto last_result = plants[0ul];
-    auto plant = last_result;
-    for (auto i = 1ul; i < plants.size(); ++i) {
-        plant = cldes::op::Synchronize(last_result, plants[i]);
-        last_result = plant;
+    {
+        std::vector<cldes::DESystem> plants;
+        std::vector<cldes::DESystem> specs;
+
+        std::cout << "Generating ClusterTool(" << std::atoi(argv[1]) << ")"
+                  << std::endl;
+        ClusterTool(std::atoi(argv[1]), plants, specs, non_contr);
+
+        std::cout << "Synchronizing plants" << std::endl;
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        auto last_result = plants[0ul];
+        plant = last_result;
+        for (auto i = 1ul; i < plants.size(); ++i) {
+            plant = cldes::op::Synchronize(last_result, plants[i]);
+            last_result = plant;
+        }
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(t2 - t1).count();
+
+        std::cout << "Plants sync time spent: " << duration << " microseconds"
+                  << std::endl;
+
+        std::cout << "Synchronizing specs" << std::endl;
+        t1 = high_resolution_clock::now();
+        last_result = specs[0ul];
+        spec = last_result;
+        for (auto i = 1ul; i < specs.size(); ++i) {
+            spec = cldes::op::Synchronize(last_result, specs[i]);
+            last_result = spec;
+        }
+        t2 = high_resolution_clock::now();
+        duration = duration_cast<microseconds>(t2 - t1).count();
+
+        std::cout << "Specs sync time spent: " << duration << " microseconds"
+                  << std::endl;
     }
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(t2 - t1).count();
-
-    std::cout << "Plants sync time spent: " << duration << " microseconds"
-              << std::endl;
-
-    std::cout << "Synchronizing specs" << std::endl;
-    t1 = high_resolution_clock::now();
-    last_result = specs[0ul];
-    auto spec = last_result;
-    for (auto i = 1ul; i < specs.size(); ++i) {
-        spec = cldes::op::Synchronize(last_result, specs[i]);
-        last_result = spec;
-    }
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
-
-    std::cout << "Specs sync time spent: " << duration << " microseconds"
-              << std::endl;
 
     std::cout << std::endl
               << "Number of states of plant: " << plant.Size() << std::endl;
@@ -179,7 +188,7 @@ int main(int argc, char *argv[]) {
               << spec.GetGraph().nonZeros() << std::endl
               << std::endl;
 
-    duration = duration_cast<microseconds>(t2 - t1).count();
+    auto duration = duration_cast<microseconds>(t2 - t1).count();
     std::cout << "Trim time spent: " << duration << " microseconds"
               << std::endl;
 

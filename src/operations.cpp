@@ -432,11 +432,12 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     }
 
     // Calculate transitions
-    for (auto st = aVirtualSys.transtriplet_.constBegin();
-         st != aVirtualSys.transtriplet_.constEnd(); ++st) {
+    QHash<cldes_size_t, QPair<cldes_size_t, ScalarType>>::iterator st =
+        aVirtualSys.transtriplet_.begin();
+    while (st != aVirtualSys.transtriplet_.end()) {
         auto const qto = st.value().first;
 
-        if (aVirtualSys.virtual_table_.contains(qto)) {
+        if (statesmap.contains(qto)) {
             auto const event = st.value().second;
             auto const qto_mapped = statesmap.value(qto);
             auto const q_mapped = statesmap.value(st.key());
@@ -444,6 +445,7 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
             triplet.push_back(Triplet(q_mapped, qto_mapped, 1ul << event));
             bittriplet.push_back(BitTriplet(qto_mapped, q_mapped, true));
         }
+        st = aVirtualSys.transtriplet_.erase(st);
     }
 
     // Remove aditional space
@@ -455,8 +457,8 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
             auto const key = s1 * aSys0.states_number_ + s0;
-            if (!aVirtualSys.rmtable_.contains(key)) {
-                aVirtualSys.marked_states_.insert(key);
+            if (statesmap.contains(key)) {
+                aVirtualSys.marked_states_.insert(statesmap.value(key));
             }
         }
     }
@@ -465,12 +467,10 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     aVirtualSys.init_state_ =
         aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_;
 
-    aVirtualSys.virtual_table_.clear();
+    // Remove set that will not be used anymore
     aVirtualSys.virtual_states_.clear();
-    aVirtualSys.rmtable_.clear();
     aVirtualSys.only_in_0_.reset();
     aVirtualSys.only_in_1_.reset();
-    aVirtualSys.transtriplet_.clear();
 }
 
 /*
@@ -728,10 +728,12 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
+    virtualsys.rmtable_.clear();
+
     // Swap new system states and sort it
-    c.swap(virtualsys.virtual_table_);
-    virtualsys.virtual_states_ = virtualsys.virtual_table_.toList();
+    virtualsys.virtual_states_ = c.toList();
     qSort(virtualsys.virtual_states_);
+    c.clear();
 
     // Make virtualsys a real sys
     SynchronizeStage2(virtualsys, aP, aE);

@@ -302,7 +302,6 @@ private:
     /*! \brief data structures used in virtual systems
      */
     QList<cldes_size_t> virtual_states_;
-    QSet<cldes_size_t> virtual_table_;
     QSet<cldes_size_t> rmtable_;
     EventsSet only_in_0_;
     EventsSet only_in_1_;
