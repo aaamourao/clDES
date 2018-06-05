@@ -58,6 +58,9 @@ TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
     // Add transition to bit graph, which is transposed
     sys_ptr_->bit_graph_.coeffRef(col_, lin_) = true;
 
+    sys_ptr_->bit_graph_.makeCompressed();
+    sys_ptr_->graph_.makeCompressed();
+
     sys_ptr_->is_cache_outdated_ = true;
 
     return *this;
