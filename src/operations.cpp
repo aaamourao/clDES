@@ -219,7 +219,8 @@ DESystem op::Synchronize(DESystem const &aSys0, DESystem const &aSys1) {
 
                 qto = yto * aSys0.states_number_ + xto;
 
-                triplet.push_back(Triplet(q, qto, 1ul << event));
+                triplet.push_back(
+                    Triplet(q, qto, EventsBitArray{1ul << event}));
                 if (q != static_cast<unsigned long>(qto)) {
                     bittriplet.push_back(BitTriplet(qto, q, true));
                 }
@@ -416,42 +417,40 @@ void op::SynchronizeStage2(DESystem &aVirtualSys, DESystem const &aSys0,
     auto cst = 0ul;
     foreach (cldes_size_t s, aVirtualSys.virtual_states_) {
         statesmap[s] = cst;
-        auto const qx = s % aSys0.states_number_;
-        auto const qy = s / aSys0.states_number_;
-        aVirtualSys.inv_states_events_[cst] =
-            (aSys0.inv_states_events_[qx] & aSys1.inv_states_events_[qy]) |
-            (aSys0.inv_states_events_[qx] & aVirtualSys.only_in_0_) |
-            (aSys1.inv_states_events_[qy] & aVirtualSys.only_in_1_);
-        aVirtualSys.states_events_[cst] =
-            (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
-            (aSys0.states_events_[qx] & aVirtualSys.only_in_0_) |
-            (aSys1.states_events_[qy] & aVirtualSys.only_in_1_);
         bittriplet.push_back(BitTriplet(cst, cst, true));
 
         ++cst;
     }
 
     // Calculate transitions
-    QHash<cldes_size_t, QPair<cldes_size_t, ScalarType>>::iterator st =
-        aVirtualSys.transtriplet_.begin();
-    while (st != aVirtualSys.transtriplet_.end()) {
-        auto const qto = st.value().first;
+    while (!aVirtualSys.transtriplet_.empty()) {
+        auto q_trans = aVirtualSys.transtriplet_.back();
+        auto const q = q_trans.first;
 
-        if (statesmap.contains(qto)) {
-            auto const event = st.value().second;
-            auto const qto_mapped = statesmap.value(qto);
-            auto const q_mapped = statesmap.value(st.key());
+        while (!q_trans.second.empty()) {
+            auto const qto_e = q_trans.second.back();
+            auto const qto = qto_e.first;
 
-            triplet.push_back(Triplet(q_mapped, qto_mapped, 1ul << event));
-            bittriplet.push_back(BitTriplet(qto_mapped, q_mapped, true));
+            if (statesmap.contains(qto)) {
+                auto const event = qto_e.second;
+                auto const qto_mapped = statesmap.value(qto);
+                auto const q_mapped = statesmap.value(q);
+
+                triplet.push_back(
+                    Triplet(q_mapped, qto_mapped, EventsBitArray{event}));
+                bittriplet.push_back(BitTriplet(qto_mapped, q_mapped, true));
+            }
+            q_trans.second.pop_back();
         }
-        st = aVirtualSys.transtriplet_.erase(st);
+        aVirtualSys.transtriplet_.pop_back();
     }
 
     // Remove aditional space
     aVirtualSys.graph_.setFromTriplets(triplet.begin(), triplet.end());
     aVirtualSys.bit_graph_.setFromTriplets(bittriplet.begin(),
                                            bittriplet.end());
+    aVirtualSys.graph_.makeCompressed();
+    aVirtualSys.bit_graph_.makeCompressed();
 
     // Remap marked states
     for (auto s0 : aSys0.marked_states_) {
@@ -592,12 +591,13 @@ static StatesArray __TransitionVirtualInv(EventsType const &aEventsP,
 
 void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                          DESystem const &aE, op::GraphType const &aInvGraphP,
-                         op::GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
+                         op::GraphType const &aInvGraphE, op::StatesTableSTL &C,
                          cldes_size_t const &q,
-                         EventsBitArray const &bit_non_contr) {
+                         EventsBitArray const &bit_non_contr,
+                         op::StatesTableSTL &rmtable) {
     StatesStack f;
     f.push(q);
-    aVirtualSys.rmtable_.insert(q);
+    rmtable.insert(q);
 
     while (!f.isEmpty()) {
         cldes_size_t const x = f.pop();
@@ -621,9 +621,9 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                     aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
 
                 foreach (cldes_size_t s, finv) {
-                    if (!aVirtualSys.rmtable_.contains(s)) {
+                    if (!rmtable.contains(s)) {
                         f.push(s);
-                        aVirtualSys.rmtable_.insert(s);
+                        rmtable.insert(s);
                     }
                 }
             }
@@ -672,7 +672,8 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     }
 
     // Supervisor states
-    DESystem::StatesTable c;
+    StatesTableSTL c;
+    StatesTableSTL rmtable;
 
     // f is a stack of states accessed in a dfs
     QStack<cldes_size_t> f;
@@ -683,7 +684,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     while (!f.isEmpty()) {
         auto const q = f.pop();
 
-        if (!c.contains(q) && !virtualsys.rmtable_.contains(q)) {
+        if (!c.contains(q) && !rmtable.contains(q)) {
             c.insert(q);
 
             // q = (qx, qy)
@@ -695,6 +696,9 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                 (aP.states_events_[qx] & virtualsys.only_in_0_) |
                 (aE.states_events_[qy] & virtualsys.only_in_1_);
 
+            virtualsys.transtriplet_.push_back(std::make_pair(
+                q, std::vector<std::pair<cldes_size_t, EventsBitArray>>()));
+
             auto event = 0ul;
             auto event_it = q_events | (non_contr_bit & aP.events_);
             while (event_it.any()) {
@@ -704,21 +708,23 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                     if (non_contr_bit.test(event) && !is_there_fsqe &&
                         aP.states_events_[qx].test(event)) {
                         // Remove added transition
-                        virtualsys.transtriplet_.remove(q);
+                        virtualsys.transtriplet_.pop_back();
 
                         // Remove bad states recusirvely
                         RemoveBadStates(virtualsys, aP, aE, p_invgraph,
-                                        e_invgraph, c, q, non_contr_bit);
+                                        e_invgraph, c, q, non_contr_bit,
+                                        rmtable);
                         break;
                     } else if (is_there_fsqe) {
                         auto const fsqe = TransitionVirtual(aP, aE, q, event);
 
-                        if (!virtualsys.rmtable_.contains(fsqe)) {
+                        if (!rmtable.contains(fsqe)) {
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
                             }
-                            virtualsys.transtriplet_.insert(
-                                q, qMakePair(fsqe, event));
+                            virtualsys.transtriplet_.back().second.push_back(
+                                std::make_pair(fsqe,
+                                               EventsBitArray{1ul << event}));
                         }
                     }
                 }
@@ -728,7 +734,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         }
     }
 
-    virtualsys.rmtable_.clear();
+    rmtable.clear();
 
     // Swap new system states and sort it
     virtualsys.virtual_states_ = c.toList();

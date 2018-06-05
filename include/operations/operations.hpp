@@ -116,8 +116,9 @@ cldes::cldes_size_t TransitionVirtual(cldes::DESystem const &aSys0,
 void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
                      GraphType const &aInvGraphE, StatesTableSTL &C,
-                     StatesStack &fs, cldes_size_t const &q,
-                     cldes::EventsBitArray const &bit_non_contr);
+                     cldes_size_t const &q,
+                     cldes::EventsBitArray const &bit_non_contr,
+                     StatesTableSTL &rmtable);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
                                 cldes::DESystem const &aS,

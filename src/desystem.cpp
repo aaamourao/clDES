@@ -35,6 +35,7 @@
 #include <functional>
 #include <vector>
 #include "des/transition_proxy.hpp"
+#include <QtCore/QSet>
 
 using namespace cldes;
 
@@ -349,8 +350,10 @@ void DESystem::Trim() {
     {
         auto row_id = 0ul;
         for (auto st = trimstates.begin(); st != trimstates.end(); ++st) {
-            states_events_[row_id].reset();
-            inv_states_events_[row_id].reset();
+            if (states_events_.size() > 0) {
+                states_events_[row_id].reset();
+                inv_states_events_[row_id].reset();
+            }
             for (RowIteratorGraph e(old_graph, *st); e; ++e) {
                 if (statesmap[e.col()] != -1) {
                     auto const col_id = statesmap[e.col()];
@@ -358,8 +361,10 @@ void DESystem::Trim() {
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
                     bittriplet.push_back(BitTriplet(col_id, row_id, true));
                     events_ |= e.value();
-                    states_events_[row_id] |= e.value();
-                    inv_states_events_[col_id] |= e.value();
+                    if (states_events_.size() > 0) {
+                        states_events_[row_id] |= e.value();
+                        inv_states_events_[col_id] |= e.value();
+                    }
                 }
             }
             ++row_id;

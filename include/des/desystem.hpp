@@ -37,9 +37,7 @@
 #endif
 
 #include <Eigen/Sparse>
-#include <QtCore/QMultiHash>
 #include <QtCore/QPair>
-#include <QtCore/QSet>
 #include <QtCore/QStack>
 #include <set>
 #include <tuple>
@@ -90,7 +88,8 @@ void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
                      cldes::DESystem const &aE, GraphType const &aInvGraphP,
                      GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
                      cldes_size_t const &q,
-                     cldes::EventsBitArray const &s_non_contr);
+                     cldes::EventsBitArray const &s_non_contr,
+                     StatesTableSTL &rmtable);
 
 cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
                                 cldes::DESystem const &aS,
@@ -105,7 +104,6 @@ public:
     using StatesVector = Eigen::SparseMatrix<bool>;
     using EventsSet = EventsBitArray;
     using StatesEventsTable = std::vector<EventsSet>;
-    using StatesTable = QSet<cldes_size_t>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -230,13 +228,11 @@ private:
                                               DESystem const &aSys1,
                                               cldes_size_t const &q,
                                               ScalarType const &event);
-    friend void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
-                                    DESystem const &aE,
-                                    op::GraphType const &aInvGraphP,
-                                    op::GraphType const &aInvGraphE,
-                                    QSet<cldes_size_t> &C,
-                                    cldes_size_t const &q,
-                                    cldes::EventsBitArray const &s_non_contr);
+    friend void op::RemoveBadStates(
+        DESystem &aVirtualSys, DESystem const &aP, DESystem const &aE,
+        op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
+        QSet<cldes_size_t> &C, cldes_size_t const &q,
+        cldes::EventsBitArray const &s_non_contr, QSet<cldes_size_t> &rmtable);
     friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                                         QSet<ScalarType> const &non_contr);
 
@@ -302,10 +298,11 @@ private:
     /*! \brief data structures used in virtual systems
      */
     QList<cldes_size_t> virtual_states_;
-    QSet<cldes_size_t> rmtable_;
     EventsSet only_in_0_;
     EventsSet only_in_1_;
-    QMultiHash<cldes_size_t, QPair<cldes_size_t, ScalarType>> transtriplet_;
+    std::vector<std::pair<cldes_size_t,
+                          std::vector<std::pair<cldes_size_t, EventsBitArray>>>>
+        transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
      *
