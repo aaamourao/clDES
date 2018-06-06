@@ -673,20 +673,17 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     // Supervisor states
     StatesTableSTL c;
     StatesTableSTL rmtable;
-    StatesTableSTL ftable;
 
     // f is a stack of states accessed in a dfs
     QStack<cldes_size_t> f;
 
     // Initialize f and ftable with the initial state
     f.push(virtualsys.init_state_);
-    ftable.insert(virtualsys.init_state_);
 
     while (!f.isEmpty()) {
         auto const q = f.pop();
-        ftable.remove(q);
 
-        if (!rmtable.contains(q)) {
+        if (!rmtable.contains(q) && !c.contains(q)) {
             c.insert(q);
 
             // q = (qx, qy)
@@ -714,7 +711,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                         virtualsys.transtriplet_.pop_back();
                         rmtable.insert(q);
                         for (auto i = 0u; i < tradded; ++i) {
-                            ftable.remove(f.pop());
+                            f.pop();
                         }
 
                         // Remove bad states recusirvely
@@ -725,10 +722,9 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                     } else if (is_there_fsqe) {
                         auto const fsqe = TransitionVirtual(aP, aE, q, event);
 
-                        if (!rmtable.contains(fsqe) && !ftable.contains(fsqe)) {
+                        if (!rmtable.contains(fsqe)) {
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
-                                ftable.insert(fsqe);
                                 ++tradded;
                             }
                             virtualsys.transtriplet_.back().second.push_back(
