@@ -612,7 +612,7 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
             (aP.inv_states_events_[x0] & aVirtualSys.only_in_0_) |
             (aE.inv_states_events_[x1] & aVirtualSys.only_in_1_);
 
-        q_events &= (bit_non_contr);
+        q_events &= bit_non_contr;
 
         auto event = 0ul;
         while (q_events.any()) {
@@ -631,7 +631,6 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
             q_events >>= 1ul;
         }
     }
-
     return;
 }
 
@@ -684,7 +683,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     while (!f.isEmpty()) {
         auto const q = f.pop();
 
-        if (!c.contains(q) && !rmtable.contains(q)) {
+        if (!rmtable.contains(q) && !c.contains(q)) {
             c.insert(q);
 
             // q = (qx, qy)
@@ -701,6 +700,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
 
             auto event = 0ul;
             auto event_it = q_events | (non_contr_bit & aP.events_);
+            auto tradded = 0u;
             while (event_it.any()) {
                 if (event_it.test(0)) {
                     auto const is_there_fsqe = q_events.test(event);
@@ -709,6 +709,10 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                         aP.states_events_[qx].test(event)) {
                         // Remove added transition
                         virtualsys.transtriplet_.pop_back();
+                        rmtable.insert(q);
+                        for (auto i = 0u; i < tradded; ++i) {
+                            f.pop();
+                        }
 
                         // Remove bad states recusirvely
                         RemoveBadStates(virtualsys, aP, aE, p_invgraph,
@@ -721,6 +725,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                         if (!rmtable.contains(fsqe)) {
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
+                                ++tradded;
                             }
                             virtualsys.transtriplet_.back().second.push_back(
                                 std::make_pair(fsqe,
