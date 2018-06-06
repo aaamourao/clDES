@@ -684,6 +684,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
 
     while (!f.isEmpty()) {
         auto const q = f.pop();
+        ftable.remove(q);
 
         if (!rmtable.contains(q)) {
             c.insert(q);
@@ -713,7 +714,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                         virtualsys.transtriplet_.pop_back();
                         rmtable.insert(q);
                         for (auto i = 0u; i < tradded; ++i) {
-                            f.pop();
+                            ftable.remove(f.pop());
                         }
 
                         // Remove bad states recusirvely
@@ -727,7 +728,7 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                         if (!rmtable.contains(fsqe) && !ftable.contains(fsqe)) {
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
-                                ftable.contains(fsqe);
+                                ftable.insert(fsqe);
                                 ++tradded;
                             }
                             virtualsys.transtriplet_.back().second.push_back(
