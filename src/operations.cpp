@@ -234,6 +234,9 @@ DESystem op::Synchronize(DESystem const &aSys0, DESystem const &aSys1) {
     sys.graph_.setFromTriplets(triplet.begin(), triplet.end());
     sys.bit_graph_.setFromTriplets(bittriplet.begin(), bittriplet.end());
 
+    sys.graph_.makeCompressed();
+    sys.bit_graph_.makeCompressed();
+
     return sys;
 }
 
@@ -709,7 +712,6 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                         aP.states_events_[qx].test(event)) {
                         // Remove added transition
                         virtualsys.transtriplet_.pop_back();
-                        rmtable.insert(q);
                         for (auto i = 0u; i < tradded; ++i) {
                             f.pop();
                         }

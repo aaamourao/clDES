@@ -375,6 +375,9 @@ void DESystem::Trim() {
     graph_.setFromTriplets(triplet.begin(), triplet.end());
     bit_graph_.setFromTriplets(bittriplet.begin(), bittriplet.end());
 
+    graph_.makeCompressed();
+    bit_graph_.makeCompressed();
+
     // Calculate new marked states
     auto const old_marked = marked_states_;
     marked_states_.clear();
