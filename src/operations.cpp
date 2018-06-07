@@ -662,15 +662,13 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
 
     // Evaluate which non contr event is in system and convert it to a
     // bitarray
-    auto event = non_contr.constBegin();
-    while (event != non_contr.constEnd()) {
-        if (aP.events_.test(*event)) {
-            p_non_contr_bit.set(*event);
-            if (virtualsys.events_.test(*event)) {
-                non_contr_bit.set(*event);
+    foreach (auto event, non_contr) {
+        if (aP.events_.test(event)) {
+            p_non_contr_bit.set(event);
+            if (virtualsys.events_.test(event)) {
+                non_contr_bit.set(event);
             }
         }
-        ++event;
     }
 
     // Supervisor states
