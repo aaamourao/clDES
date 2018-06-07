@@ -605,8 +605,6 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
     while (!f.isEmpty()) {
         cldes_size_t const x = f.pop();
 
-        C.remove(x);
-
         auto const x0 = x % aInvGraphP.rows();
         auto const x1 = x / aInvGraphP.rows();
 
@@ -626,6 +624,7 @@ void op::RemoveBadStates(DESystem &aVirtualSys, DESystem const &aP,
                 foreach (cldes_size_t s, finv) {
                     if (!rmtable.contains(s)) {
                         f.push(s);
+                        C.remove(s);
                         rmtable.insert(s);
                     }
                 }
@@ -686,8 +685,6 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
         auto const q = f.pop();
 
         if (!rmtable.contains(q) && !c.contains(q)) {
-            c.insert(q);
-
             // q = (qx, qy)
             auto const qx = q % aP.states_number_;
             auto const qy = q / aP.states_number_;
@@ -696,9 +693,6 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                 (aP.states_events_[qx] & aE.states_events_[qy]) |
                 (aP.states_events_[qx] & virtualsys.only_in_0_) |
                 (aE.states_events_[qy] & virtualsys.only_in_1_);
-
-            virtualsys.transtriplet_.push_back(std::make_pair(
-                q, std::vector<std::pair<cldes_size_t, EventsBitArray>>()));
 
             auto const in_ncqx = p_non_contr_bit & aP.states_events_[qx];
             auto const in_ncqx_and_q = in_ncqx & q_events;
@@ -716,6 +710,11 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
                     event_it >>= 1ul;
                 }
             } else {
+                c.insert(q);
+
+                virtualsys.transtriplet_.push_back(std::make_pair(
+                    q, std::vector<std::pair<cldes_size_t, EventsBitArray>>()));
+
                 auto event = 0ul;
                 auto event_it = q_events;
                 while (event_it.any()) {
