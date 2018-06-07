@@ -657,19 +657,18 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
     virtualsys.only_in_0_ = aP.events_ ^ in_both;
     virtualsys.only_in_1_ = aE.events_ ^ in_both;
 
-    // non contr events inside s_events
-    QSet<ScalarType> s_non_contr = non_contr;
-
-    // s_non_contr in a bitarray structure
+    // non_contr in a bitarray structure
     EventsBitArray non_contr_bit;
+    EventsBitArray p_non_contr_bit;
 
     // Evaluate which non contr event is in system and convert it to a
     // bitarray
     foreach (ScalarType event, non_contr) {
-        if (!virtualsys.events_.test(event)) {
-            s_non_contr.remove(event);
-        } else {
-            non_contr_bit.set(event);
+        if (aP.events_.test(event)) {
+            p_non_contr_bit.set(event);
+            if (virtualsys.events_.test(event)) {
+                non_contr_bit.set(event);
+            }
         }
     }
 
@@ -701,42 +700,40 @@ DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
             virtualsys.transtriplet_.push_back(std::make_pair(
                 q, std::vector<std::pair<cldes_size_t, EventsBitArray>>()));
 
-            auto event = 0ul;
-            auto event_it = q_events | (non_contr_bit & aP.events_);
-            auto tradded = 0u;
-            while (event_it.any()) {
-                if (event_it.test(0)) {
-                    auto const is_there_fsqe = q_events.test(event);
+            auto const in_ncqx = p_non_contr_bit & aP.states_events_[qx];
+            auto const in_ncqx_and_q = in_ncqx & q_events;
 
-                    if (non_contr_bit.test(event) && !is_there_fsqe &&
-                        aP.states_events_[qx].test(event)) {
-                        // Remove added transition
-                        virtualsys.transtriplet_.pop_back();
-                        for (auto i = 0u; i < tradded; ++i) {
-                            f.pop();
-                        }
-
-                        // Remove bad states recusirvely
+            if (in_ncqx_and_q != in_ncqx) {
+                auto event = 0ul;
+                auto event_it = in_ncqx_and_q ^ in_ncqx;
+                while (event_it.any()) {
+                    if (event_it.test(0)) {
                         RemoveBadStates(virtualsys, aP, aE, p_invgraph,
                                         e_invgraph, c, q, non_contr_bit,
                                         rmtable);
-                        break;
-                    } else if (is_there_fsqe) {
+                    }
+                    ++event;
+                    event_it >>= 1ul;
+                }
+            } else {
+                auto event = 0ul;
+                auto event_it = q_events;
+                while (event_it.any()) {
+                    if (event_it.test(0)) {
                         auto const fsqe = TransitionVirtual(aP, aE, q, event);
 
                         if (!rmtable.contains(fsqe)) {
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
-                                ++tradded;
                             }
                             virtualsys.transtriplet_.back().second.push_back(
                                 std::make_pair(fsqe,
                                                EventsBitArray{1ul << event}));
                         }
                     }
+                    ++event;
+                    event_it >>= 1ul;
                 }
-                ++event;
-                event_it >>= 1ul;
             }
         }
     }
