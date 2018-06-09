@@ -43,18 +43,20 @@ using ScalarType = size_t;
 using cldes_size_t = size_t;
 
 // Max number of events
-cldes_size_t const g_max_events = 48;
+cldes_size_t const g_max_events = 56;
 
 // Host array of events represented by one bit each
 using EventsBitArray = std::bitset<g_max_events>;
 
 using EventsLong = unsigned long;
-}  // namespace cldes
+} // namespace cldes
 
 namespace std {
 using BitArray = std::bitset<cldes::g_max_events>;
-inline BitArray operator+(BitArray const &rhs, BitArray const &lhs) {
+inline BitArray
+operator+(BitArray const& rhs, BitArray const& lhs)
+{
     return rhs | lhs;
 }
-}  // namespace std
-#endif  // CLDES_CONSTANTS_HPP
+} // namespace std
+#endif // CLDES_CONSTANTS_HPP

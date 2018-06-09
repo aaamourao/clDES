@@ -36,12 +36,12 @@
 #define VIENNACL_WITH_OPENCL
 #endif
 
+#include "constants.hpp"
 #include <Eigen/Sparse>
 #include <QtCore/QPair>
 #include <QtCore/QStack>
 #include <set>
 #include <tuple>
-#include "constants.hpp"
 
 namespace cldes {
 /*
@@ -63,7 +63,8 @@ using GraphType = Eigen::SparseMatrix<cldes::EventsBitArray, Eigen::RowMajor>;
  * Forward declarion of DESystem's friend function Synchronize which
  * implements the parallel composition between two DES.
  */
-cldes::DESystem Synchronize(DESystem const &aSys0, DESystem const &aSys1);
+cldes::DESystem
+Synchronize(DESystem const& aSys0, DESystem const& aSys1);
 
 struct StatesTable;
 
@@ -73,30 +74,39 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 using StatesTableSTL = QSet<cldes_size_t>;
 using StatesStack = QStack<cldes_size_t>;
 
-cldes::DESystem SynchronizeStage1(DESystem const &aSys0, DESystem const &aSys1);
+cldes::DESystem
+SynchronizeStage1(DESystem const& aSys0, DESystem const& aSys1);
 
-void SynchronizeStage2(cldes::DESystem &aVirtualSys,
-                       cldes::DESystem const &aSys0,
-                       cldes::DESystem const &aSys1);
+void
+SynchronizeStage2(cldes::DESystem& aVirtualSys,
+                  cldes::DESystem const& aSys0,
+                  cldes::DESystem const& aSys1);
 
-cldes::cldes_size_t TransitionVirtual(cldes::DESystem const &aSys0,
-                                      cldes::DESystem const &aSys1,
-                                      cldes::cldes_size_t const &q,
-                                      cldes::ScalarType const &event);
+cldes::cldes_size_t
+TransitionVirtual(cldes::DESystem const& aSys0,
+                  cldes::DESystem const& aSys1,
+                  cldes::cldes_size_t const& q,
+                  cldes::ScalarType const& event);
 
-void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
-                     cldes::DESystem const &aE, GraphType const &aInvGraphP,
-                     GraphType const &aInvGraphE, QSet<cldes_size_t> &C,
-                     cldes_size_t const &q,
-                     cldes::EventsBitArray const &s_non_contr,
-                     StatesTableSTL &rmtable);
+void
+RemoveBadStates(cldes::DESystem& aVirtualSys,
+                cldes::DESystem const& aP,
+                cldes::DESystem const& aE,
+                GraphType const& aInvGraphP,
+                GraphType const& aInvGraphE,
+                QSet<cldes_size_t>& C,
+                cldes_size_t const& q,
+                cldes::EventsBitArray const& s_non_contr,
+                StatesTableSTL& rmtable);
 
-cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
-                                cldes::DESystem const &aS,
-                                QSet<ScalarType> const &non_contr);
-}  // namespace op
+cldes::DESystem
+SupervisorSynth(cldes::DESystem const& aP,
+                cldes::DESystem const& aS,
+                QSet<ScalarType> const& non_contr);
+} // namespace op
 
-class DESystem {
+class DESystem
+{
 public:
     using GraphHostData = Eigen::SparseMatrix<EventsBitArray, Eigen::RowMajor>;
     using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::RowMajor>;
@@ -115,9 +125,10 @@ public:
      * @param aMarkedStates System's marked states
      * @aDevCacheEnabled Enable or disable device cache for graph data
      */
-    explicit DESystem(cldes_size_t const &aStatesNumber,
-                      cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                      bool const &aDevCacheEnabled = true);
+    explicit DESystem(cldes_size_t const& aStatesNumber,
+                      cldes_size_t const& aInitState,
+                      StatesSet& aMarkedStates,
+                      bool const& aDevCacheEnabled = true);
 
     // DESystem(DESystem &aSys);
 
@@ -174,8 +185,8 @@ public:
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    EventsSet const operator()(cldes_size_t const &aLin,
-                               cldes_size_t const &aCol) const;
+    EventsSet const operator()(cldes_size_t const& aLin,
+                               cldes_size_t const& aCol) const;
 
     /*! \brief Returns value of the specified transition
      *
@@ -185,8 +196,8 @@ public:
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    TransitionProxy operator()(cldes_size_t const &aLin,
-                               cldes_size_t const &aCol);
+    TransitionProxy operator()(cldes_size_t const& aLin,
+                               cldes_size_t const& aCol);
 
     /*! \brief Returns number of states of the system
      *
@@ -199,7 +210,7 @@ public:
      * Set the member events_ with a set containing all events that are present
      * on the current system.
      */
-    void InsertEvents(EventsSet const &aEvents);
+    void InsertEvents(EventsSet const& aEvents);
 
     /*
      * TODO:
@@ -217,24 +228,29 @@ protected:
 
 private:
     friend class TransitionProxy;
-    friend DESystem op::Synchronize(DESystem const &aSys0,
-                                    DESystem const &aSys1);
-    friend DESystem op::SynchronizeStage1(DESystem const &aSys0,
-                                          DESystem const &aSys1);
-    friend void op::SynchronizeStage2(DESystem &aVirtualSys,
-                                      DESystem const &aSys0,
-                                      DESystem const &aSys1);
-    friend cldes_size_t op::TransitionVirtual(DESystem const &aSys0,
-                                              DESystem const &aSys1,
-                                              cldes_size_t const &q,
-                                              ScalarType const &event);
-    friend void op::RemoveBadStates(
-        DESystem &aVirtualSys, DESystem const &aP, DESystem const &aE,
-        op::GraphType const &aInvGraphP, op::GraphType const &aInvGraphE,
-        QSet<cldes_size_t> &C, cldes_size_t const &q,
-        cldes::EventsBitArray const &s_non_contr, QSet<cldes_size_t> &rmtable);
-    friend DESystem op::SupervisorSynth(DESystem const &aP, DESystem const &aE,
-                                        QSet<ScalarType> const &non_contr);
+    friend DESystem op::Synchronize(DESystem const& aSys0,
+                                    DESystem const& aSys1);
+    friend DESystem op::SynchronizeStage1(DESystem const& aSys0,
+                                          DESystem const& aSys1);
+    friend void op::SynchronizeStage2(DESystem& aVirtualSys,
+                                      DESystem const& aSys0,
+                                      DESystem const& aSys1);
+    friend cldes_size_t op::TransitionVirtual(DESystem const& aSys0,
+                                              DESystem const& aSys1,
+                                              cldes_size_t const& q,
+                                              ScalarType const& event);
+    friend void op::RemoveBadStates(DESystem& aVirtualSys,
+                                    DESystem const& aP,
+                                    DESystem const& aE,
+                                    op::GraphType const& aInvGraphP,
+                                    op::GraphType const& aInvGraphE,
+                                    QSet<cldes_size_t>& C,
+                                    cldes_size_t const& q,
+                                    cldes::EventsBitArray const& s_non_contr,
+                                    QSet<cldes_size_t>& rmtable);
+    friend DESystem op::SupervisorSynth(DESystem const& aP,
+                                        DESystem const& aE,
+                                        QSet<ScalarType> const& non_contr);
 
     /*! \brief Graph represented by an adjascency matrix
      *
@@ -302,7 +318,7 @@ private:
     EventsSet only_in_1_;
     std::vector<std::pair<cldes_size_t,
                           std::vector<std::pair<cldes_size_t, EventsBitArray>>>>
-        transtriplet_;
+      transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
      *
@@ -330,10 +346,10 @@ private:
      *
      * @param aInitialNodes Set of nodes where the searches will start
      */
-    template <class StatesType>
-    StatesSet *Bfs_(StatesType const &aInitialNodes,
-                    std::function<void(cldes_size_t const &,
-                                       cldes_size_t const &)> const &aBfsVisit);
+    template<class StatesType>
+    StatesSet* Bfs_(StatesType const& aInitialNodes,
+                    std::function<void(cldes_size_t const&,
+                                       cldes_size_t const&)> const& aBfsVisit);
 
     /*! \brief Calculates Bfs and returns accessed states array
      *
@@ -342,19 +358,19 @@ private:
      *
      * @param aInitialNode Where the search will start
      */
-    StatesSet *BfsCalc_(
-        StatesVector &aHostX,
-        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-            &aBfsVisit,
-        std::vector<cldes_size_t> const *const aStatesMap);
+    StatesSet* BfsCalc_(
+      StatesVector& aHostX,
+      std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
+        aBfsVisit,
+      std::vector<cldes_size_t> const* const aStatesMap);
 
     /*! \brief Return a pointer to accessed states from the initial state
      *
      * Executes a breadth first search on the graph starting from
      * init_state_.
      */
-    StatesSet *Bfs_();
+    StatesSet* Bfs_();
 };
 
-}  // namespace cldes
-#endif  // DESYSTEM_HPP
+} // namespace cldes
+#endif // DESYSTEM_HPP

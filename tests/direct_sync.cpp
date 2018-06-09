@@ -29,17 +29,19 @@
  =========================================================================
 */
 
-#include <boost/numeric/ublas/matrix_sparse.hpp>
-#include <chrono>
-#include <string>
 #include "des/desystemcl.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <chrono>
+#include <string>
 
 namespace ublas = boost::numeric::ublas;
 using namespace std::chrono;
 
-int main() {
+int
+main()
+{
     // Declare transitions: represented by prime numbers
     const float a = 2.0f;
     const float b = 3.0f;
@@ -68,7 +70,7 @@ int main() {
     adjmtr(2, 1) = a * g;
     adjmtr(2, 2) = b;
 
-    cldes::DESystemCL g1{adjmtr, nstatesG1, initstateG1, markedstatesG1};
+    cldes::DESystemCL g1{ adjmtr, nstatesG1, initstateG1, markedstatesG1 };
     g1.InsertEvents(eventsG1);
 
     // Declare system G2
@@ -90,7 +92,7 @@ int main() {
     adjmtrg2(1, 0) = b;
     adjmtrg2(1, 1) = a;
 
-    cldes::DESystemCL g2{adjmtrg2, nstatesG2, initstateG2, markedstatesG2};
+    cldes::DESystemCL g2{ adjmtrg2, nstatesG2, initstateG2, markedstatesG2 };
     g2.InsertEvents(eventsG2);
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -110,8 +112,8 @@ int main() {
     expected_result << "0 2 0 1 0 0 " << std::endl;
     expected_result << "0 0 2 0 5 0 " << std::endl;
     expected_result << ">";
-    ProcessResult(sync_sys.GetGraph(), "< Sync graph",
-                  expected_result.str().c_str());
+    ProcessResult(
+      sync_sys.GetGraph(), "< Sync graph", expected_result.str().c_str());
 
     std::cout << "Finishing test" << std::endl;
 
