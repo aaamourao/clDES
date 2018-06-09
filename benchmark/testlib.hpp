@@ -31,8 +31,10 @@
 #include <Eigen/Sparse>
 #include <iostream>
 
-template <typename T, typename StringType>
-std::string ReadResult(T const &aOpResult, StringType const aHeader) {
+template<typename T, typename StringType>
+std::string
+ReadResult(T const& aOpResult, StringType const aHeader)
+{
     std::ostringstream result;
 
     result << aHeader << ": ";
@@ -44,11 +46,12 @@ std::string ReadResult(T const &aOpResult, StringType const aHeader) {
     return result.str();
 }
 
-using eigen_matrix = Eigen::SparseMatrix<std::bitset<48>, Eigen::RowMajor>;
+using eigen_matrix = Eigen::SparseMatrix<std::bitset<56>, Eigen::RowMajor>;
 
-template <typename StringType>
-std::string ReadResult(eigen_matrix const &aOpResult,
-                       StringType const aHeader) {
+template<typename StringType>
+std::string
+ReadResult(eigen_matrix const& aOpResult, StringType const aHeader)
+{
     std::ostringstream result;
 
     result << aHeader << ":" << std::endl;
@@ -63,22 +66,29 @@ std::string ReadResult(eigen_matrix const &aOpResult,
     return result.str();
 }
 
-template <typename StringType>
-void TestResult(StringType const &aResult, StringType const &aExpected) {
+template<typename StringType>
+void
+TestResult(StringType const& aResult, StringType const& aExpected)
+{
     assert(aResult.find(aExpected) != std::string::npos);
 }
 
-template <typename T, typename StringType>
-void ProcessResult(T const &aOpResult, StringType const aHeader,
-                   StringType const aExpected) {
+template<typename T, typename StringType>
+void
+ProcessResult(T const& aOpResult,
+              StringType const aHeader,
+              StringType const aExpected)
+{
     auto result = ReadResult(aOpResult, aHeader);
     std::cout << "Result:   " << result;
     std::cout << "Expected: " << aHeader << ": " << aExpected << std::endl;
     TestResult(result, std::string(aExpected));
 }
 
-template <typename GraphType, typename StringType>
-void PrintGraph(GraphType const &aGraph, StringType const &aGraphName) {
+template<typename GraphType, typename StringType>
+void
+PrintGraph(GraphType const& aGraph, StringType const& aGraphName)
+{
     std::cout << aGraphName << std::endl;
     for (auto it1 = 0l; it1 != aGraph.rows(); ++it1) {
         for (auto it2 = 0l; it2 != aGraph.cols(); ++it2) {

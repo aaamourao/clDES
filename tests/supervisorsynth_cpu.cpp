@@ -29,29 +29,31 @@
  =========================================================================
 */
 
+#include "cldes.hpp"
 #include <chrono>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "cldes.hpp"
 
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 
 using namespace std::chrono;
 
-int main() {
+int
+main()
+{
     // Declare transitions: represented by prime numbers
     cldes::ScalarType const a0 = 0;
     cldes::ScalarType const a1 = 1;
     cldes::ScalarType const b0 = 2;
     cldes::ScalarType const b1 = 3;
 
-    QSet<cldes::ScalarType> non_contr = {b0, b1};
+    QSet<cldes::ScalarType> non_contr = { b0, b1 };
 
-    std::set<cldes::cldes_size_t> plant_marked_states = {0};
+    std::set<cldes::cldes_size_t> plant_marked_states = { 0 };
 
-    cldes::DESystem plant{4, 0, plant_marked_states};
+    cldes::DESystem plant{ 4, 0, plant_marked_states };
 
     plant(0, 1) = a0;
     plant(0, 2) = a1;
@@ -64,9 +66,9 @@ int main() {
 
     PrintGraph(plant.GetGraph(), "Plant");
 
-    std::set<cldes::cldes_size_t> spec_marked_states = {0, 1};
+    std::set<cldes::cldes_size_t> spec_marked_states = { 0, 1 };
 
-    cldes::DESystem spec{2, 0, spec_marked_states};
+    cldes::DESystem spec{ 2, 0, spec_marked_states };
 
     spec(0, 1) = b0;
     spec(1, 0) = a1;
@@ -95,8 +97,8 @@ int main() {
     expected_result << "0 0 2 0 0 0 " << std::endl;
     expected_result << "0 0 0 0 8 0 " << std::endl;
     expected_result << ">" << std::endl;
-    ProcessResult(supervisor.GetGraph(), "< Sync graph",
-                  expected_result.str().c_str());
+    ProcessResult(
+      supervisor.GetGraph(), "< Sync graph", expected_result.str().c_str());
     std::cout << "Synchronize time: " << duration << " microseconds"
               << std::endl;
 

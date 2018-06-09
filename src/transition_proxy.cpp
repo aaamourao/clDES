@@ -33,12 +33,18 @@
 
 using namespace cldes;
 
-TransitionProxy::TransitionProxy(DESystem *const aSysPtr,
-                                 cldes_size_t const &aLin,
-                                 cldes_size_t const &aCol)
-    : sys_ptr_{aSysPtr}, lin_{aLin}, col_{aCol} {}
+TransitionProxy::TransitionProxy(DESystem* const aSysPtr,
+                                 cldes_size_t const& aLin,
+                                 cldes_size_t const& aCol)
+  : sys_ptr_{ aSysPtr }
+  , lin_{ aLin }
+  , col_{ aCol }
+{
+}
 
-TransitionProxy &TransitionProxy::operator=(ScalarType aEventPos) {
+TransitionProxy&
+TransitionProxy::operator=(ScalarType aEventPos)
+{
     // Add transition to the system
     sys_ptr_->events_[aEventPos] = true;
 

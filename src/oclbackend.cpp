@@ -33,7 +33,7 @@
 
 #include "backend/oclbackend.hpp"
 #include <CL/cl.hpp>
-#include <cstdlib>  // std::getenv()
+#include <cstdlib> // std::getenv()
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -43,14 +43,17 @@ using namespace cldes::backend;
 // Initialize static data members
 OclBackend* OclBackend::instance_ = nullptr;
 
-OclBackend* OclBackend::Instance() {
+OclBackend*
+OclBackend::Instance()
+{
     if (!instance_) {
         instance_ = new OclBackend();
     }
     return instance_;
 }
 
-OclBackend::OclBackend() {
+OclBackend::OclBackend()
+{
     context_ = viennacl::ocl::current_context();
 
     // Read kernels from file
@@ -65,15 +68,27 @@ OclBackend::OclBackend() {
     cldes_program_ = context_.add_program(source_file, "cldes_kernels");
 }
 
-OclBackend::ViennaCLContext OclBackend::GetContext() { return context_; }
+OclBackend::ViennaCLContext
+OclBackend::GetContext()
+{
+    return context_;
+}
 
-OclBackend::ViennaCLKernel& OclBackend::GetKernel(std::string aKernelName) {
+OclBackend::ViennaCLKernel&
+OclBackend::GetKernel(std::string aKernelName)
+{
     return cldes_program_.get_kernel(aKernelName);
 }
 
-void OclBackend::Enqueue(viennacl::ocl::kernel const& k) {
+void
+OclBackend::Enqueue(viennacl::ocl::kernel const& k)
+{
     viennacl::ocl::enqueue(k);
     queue_ = viennacl::ocl::get_queue().handle().get();
 }
 
-OclBackend::CLQueue OclBackend::CommandQueue() { return queue_; }
+OclBackend::CLQueue
+OclBackend::CommandQueue()
+{
+    return queue_;
+}

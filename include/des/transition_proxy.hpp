@@ -37,7 +37,8 @@ namespace cldes {
 
 class DESystem;
 
-class TransitionProxy {
+class TransitionProxy
+{
 public:
     /*! \brief TransitionProxy unique constructor
      *
@@ -47,8 +48,9 @@ public:
      * @param aLin Line of the element
      * @param aCol Column of the element
      */
-    TransitionProxy(DESystem *const aSysPtr, cldes_size_t const &aLin,
-                    cldes_size_t const &aCol);
+    TransitionProxy(DESystem* const aSysPtr,
+                    cldes_size_t const& aLin,
+                    cldes_size_t const& aCol);
 
     /*! \brief Override operator "=" from TransitionProxy class
      *
@@ -57,7 +59,7 @@ public:
      *
      * @param aTransitionValue graph_(lin_, col_) new value
      */
-    TransitionProxy &operator=(ScalarType aTransitionValue);
+    TransitionProxy& operator=(ScalarType aTransitionValue);
 
     /*! \brief Override cast to ScalarType
      *
@@ -78,7 +80,7 @@ private:
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystem * sys_ptr_;
+    DESystem* sys_ptr_;
 
     /*! \brief Element line.
      *
@@ -93,6 +95,6 @@ private:
     cldes_size_t const col_;
 };
 
-}  // namespace cldes
+} // namespace cldes
 
-#endif  // TRANSITION_PROXY_HPP
+#endif // TRANSITION_PROXY_HPP

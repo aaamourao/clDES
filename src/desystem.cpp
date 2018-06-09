@@ -30,18 +30,20 @@
 */
 
 #include "des/desystem.hpp"
+#include "des/transition_proxy.hpp"
+#include <QtCore/QSet>
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <functional>
 #include <vector>
-#include "des/transition_proxy.hpp"
-#include <QtCore/QSet>
 
 using namespace cldes;
 
-DESystem::DESystem(cldes_size_t const &aStatesNumber,
-                   cldes_size_t const &aInitState, StatesSet &aMarkedStates,
-                   bool const &aDevCacheEnabled) {
+DESystem::DESystem(cldes_size_t const& aStatesNumber,
+                   cldes_size_t const& aInitState,
+                   StatesSet& aMarkedStates,
+                   bool const& aDevCacheEnabled)
+{
     init_state_ = aInitState;
     states_number_ = aStatesNumber;
     marked_states_ = aMarkedStates;
@@ -84,34 +86,49 @@ DESystem::DESystem(DESystem const &aSys) {
 }
 */
 
-DESystem::GraphHostData DESystem::GetGraph() const { return graph_; }
+DESystem::GraphHostData
+DESystem::GetGraph() const
+{
+    return graph_;
+}
 
-void DESystem::CacheGraph_() { is_cache_outdated_ = false; }
+void
+DESystem::CacheGraph_()
+{
+    is_cache_outdated_ = false;
+}
 
-DESystem::EventsSet const DESystem::operator()(cldes_size_t const &aLin,
-                                               cldes_size_t const &aCol) const {
+DESystem::EventsSet const
+DESystem::operator()(cldes_size_t const& aLin, cldes_size_t const& aCol) const
+{
     return graph_.coeff(aLin, aCol);
 }
 
-TransitionProxy DESystem::operator()(cldes_size_t const &aLin,
-                                     cldes_size_t const &aCol) {
+TransitionProxy
+DESystem::operator()(cldes_size_t const& aLin, cldes_size_t const& aCol)
+{
     return TransitionProxy(this, aLin, aCol);
 }
 
-void DESystem::UpdateGraphCache_() { is_cache_outdated_ = false; }
+void
+DESystem::UpdateGraphCache_()
+{
+    is_cache_outdated_ = false;
+}
 
-template <typename StatesType>
-DESystem::StatesSet *DESystem::Bfs_(
-    StatesType const &aInitialNodes,
-    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-        &aBfsVisit) {
+template<typename StatesType>
+DESystem::StatesSet*
+DESystem::Bfs_(StatesType const& aInitialNodes,
+               std::function<void(cldes_size_t const&,
+                                  cldes_size_t const&)> const& aBfsVisit)
+{
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
     // There is no need of search if a marked state is coaccessible
-    StatesVector host_x{static_cast<Eigen::Index>(states_number_),
-                        static_cast<Eigen::Index>(aInitialNodes.size())};
+    StatesVector host_x{ static_cast<Eigen::Index>(states_number_),
+                         static_cast<Eigen::Index>(aInitialNodes.size()) };
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
@@ -126,16 +143,18 @@ DESystem::StatesSet *DESystem::Bfs_(
     return BfsCalc_(host_x, aBfsVisit, &states_map);
 }
 
-template <>
-DESystem::StatesSet *DESystem::Bfs_<cldes_size_t>(
-    cldes_size_t const &aInitialNode,
-    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-        &aBfsVisit) {
+template<>
+DESystem::StatesSet*
+DESystem::Bfs_<cldes_size_t>(
+  cldes_size_t const& aInitialNode,
+  std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
+    aBfsVisit)
+{
     /*
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-    StatesVector host_x{static_cast<Eigen::Index>(states_number_), 1};
+    StatesVector host_x{ static_cast<Eigen::Index>(states_number_), 1 };
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
@@ -144,21 +163,26 @@ DESystem::StatesSet *DESystem::Bfs_<cldes_size_t>(
     return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
-DESystem::StatesSet *DESystem::Bfs_() { return Bfs_(init_state_, nullptr); };
+DESystem::StatesSet*
+DESystem::Bfs_()
+{
+    return Bfs_(init_state_, nullptr);
+};
 
 using RowIteratorConst = Eigen::InnerIterator<DESystem::StatesVector const>;
 using RowIterator = Eigen::InnerIterator<DESystem::StatesVector>;
 
-DESystem::StatesSet *DESystem::BfsCalc_(
-    StatesVector &aHostX,
-    std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-        &aBfsVisit,
-    std::vector<cldes_size_t> const *const aStatesMap) {
+DESystem::StatesSet*
+DESystem::BfsCalc_(StatesVector& aHostX,
+                   std::function<void(cldes_size_t const&,
+                                      cldes_size_t const&)> const& aBfsVisit,
+                   std::vector<cldes_size_t> const* const aStatesMap)
+{
     cldes_size_t n_initial_nodes = aHostX.cols();
 
     // Executes BFS
-    StatesVector y{static_cast<Eigen::Index>(states_number_),
-                   static_cast<Eigen::Index>(n_initial_nodes)};
+    StatesVector y{ static_cast<Eigen::Index>(states_number_),
+                    static_cast<Eigen::Index>(n_initial_nodes) };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
         // Using auto bellow results in compile error
@@ -193,7 +217,9 @@ DESystem::StatesSet *DESystem::BfsCalc_(
     return accessed_states;
 }
 
-DESystem::StatesSet DESystem::AccessiblePart() {
+DESystem::StatesSet
+DESystem::AccessiblePart()
+{
     // Executes a BFS on graph_
     auto paccessible_states = Bfs_();
 
@@ -203,12 +229,14 @@ DESystem::StatesSet DESystem::AccessiblePart() {
     return accessible_states;
 }
 
-DESystem::StatesSet DESystem::CoaccessiblePart() {
+DESystem::StatesSet
+DESystem::CoaccessiblePart()
+{
     DESystem::BitGraphHostData const invgraph = bit_graph_.transpose();
 
     Eigen::Index const n_marked =
-        static_cast<Eigen::Index>(marked_states_.size());
-    StatesVector x{static_cast<Eigen::Index>(states_number_), n_marked};
+      static_cast<Eigen::Index>(marked_states_.size());
+    StatesVector x{ static_cast<Eigen::Index>(states_number_), n_marked };
     x.reserve(marked_states_.size());
 
     {
@@ -219,7 +247,7 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
         }
     }
 
-    StatesVector y{static_cast<Eigen::Index>(states_number_), n_marked};
+    StatesVector y{ static_cast<Eigen::Index>(states_number_), n_marked };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
         y = (invgraph * x).pruned();
@@ -247,7 +275,9 @@ DESystem::StatesSet DESystem::CoaccessiblePart() {
 
 using BitTriplet = Eigen::Triplet<bool>;
 
-DESystem::StatesSet DESystem::TrimStates() {
+DESystem::StatesSet
+DESystem::TrimStates()
+{
     StatesSet const accpartstl = AccessiblePart();
     QSet<cldes_size_t> accpart;
     for (auto s : accpartstl) {
@@ -257,9 +287,9 @@ DESystem::StatesSet DESystem::TrimStates() {
     DESystem::BitGraphHostData const invgraph = bit_graph_.transpose();
 
     Eigen::Index const n_marked =
-        static_cast<Eigen::Index>(marked_states_.size());
+      static_cast<Eigen::Index>(marked_states_.size());
 
-    StatesVector x{static_cast<Eigen::Index>(states_number_), n_marked};
+    StatesVector x{ static_cast<Eigen::Index>(states_number_), n_marked };
     x.reserve(marked_states_.size());
     std::vector<BitTriplet> xtriplet;
 
@@ -272,7 +302,7 @@ DESystem::StatesSet DESystem::TrimStates() {
     }
     x.setFromTriplets(xtriplet.begin(), xtriplet.end());
 
-    StatesVector y{static_cast<Eigen::Index>(states_number_), n_marked};
+    StatesVector y{ static_cast<Eigen::Index>(states_number_), n_marked };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
         y = (invgraph * x).pruned();
@@ -303,7 +333,9 @@ DESystem::StatesSet DESystem::TrimStates() {
 using RowIteratorGraph = Eigen::InnerIterator<DESystem::GraphHostData>;
 using Triplet = Eigen::Triplet<EventsBitArray>;
 
-void DESystem::Trim() {
+void
+DESystem::Trim()
+{
     auto trimstates = this->TrimStates();
 
     if (trimstates.size() == static_cast<unsigned long>(graph_.rows())) {
@@ -390,6 +422,8 @@ void DESystem::Trim() {
     return;
 }
 
-void DESystem::InsertEvents(DESystem::EventsSet const &aEvents) {
+void
+DESystem::InsertEvents(DESystem::EventsSet const& aEvents)
+{
     events_ = EventsSet(aEvents);
 }

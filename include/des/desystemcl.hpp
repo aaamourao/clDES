@@ -36,10 +36,10 @@
 #define VIENNACL_WITH_OPENCL
 #endif
 
-#include <boost/numeric/ublas/matrix_sparse.hpp>
-#include <set>
 #include "constants.hpp"
 #include "viennacl/compressed_matrix.hpp"
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <set>
 
 namespace cldes {
 
@@ -56,23 +56,26 @@ namespace op {
  * Forward declarion of DESystemCL's friend function Synchronize which
  * implements the parallel composition between two DES.
  */
-cldes::DESystemCL Synchronize(DESystemCL &aSys0, DESystemCL &aSys1);
+cldes::DESystemCL
+Synchronize(DESystemCL& aSys0, DESystemCL& aSys1);
 
 struct StatesTable;
 
-StatesTable *SynchronizeStage1(DESystemCL const &aSys0,
-                               DESystemCL const &aSys1);
+StatesTable*
+SynchronizeStage1(DESystemCL const& aSys0, DESystemCL const& aSys1);
 
-cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
-                                    cldes::DESystemCL &aSys0,
-                                    cldes::DESystemCL &aSys1);
-}  // namespace op
+cldes::DESystemCL
+SynchronizeStage2(StatesTable const* aTable,
+                  cldes::DESystemCL& aSys0,
+                  cldes::DESystemCL& aSys1);
+} // namespace op
 
 namespace backend {
 class OclBackend;
 }
 
-class DESystemCL {
+class DESystemCL
+{
 public:
     using GraphHostData = ublas::compressed_matrix<ScalarType>;
     using GraphDeviceData = viennacl::compressed_matrix<ScalarType>;
@@ -95,11 +98,11 @@ public:
      * @param aMarkedStates System's marked states
      * @aDevCacheEnabled Enable or disable device cache for graph data
      */
-    explicit DESystemCL(GraphHostData const &aGraph,
-                        cldes_size_t const &aStatesNumber,
-                        cldes_size_t const &aInitState,
-                        StatesSet &aMarkedStates,
-                        bool const &aDevCacheEnabled = true);
+    explicit DESystemCL(GraphHostData const& aGraph,
+                        cldes_size_t const& aStatesNumber,
+                        cldes_size_t const& aInitState,
+                        StatesSet& aMarkedStates,
+                        bool const& aDevCacheEnabled = true);
 
     /*! \brief DESystemCL constructor with empty matrix
      *
@@ -111,12 +114,12 @@ public:
      * @param aMarkedStates System's marked states
      * @aDevCacheEnabled Enable or disable device cache for graph data
      */
-    explicit DESystemCL(cldes_size_t const &aStatesNumber,
-                        cldes_size_t const &aInitState,
-                        StatesSet &aMarkedStates,
-                        bool const &aDevCacheEnabled = true);
+    explicit DESystemCL(cldes_size_t const& aStatesNumber,
+                        cldes_size_t const& aInitState,
+                        StatesSet& aMarkedStates,
+                        bool const& aDevCacheEnabled = true);
 
-    DESystemCL(DESystemCL const &aSys);
+    DESystemCL(DESystemCL const& aSys);
 
     /*! \brief DESystemCL destructor
      *
@@ -161,7 +164,7 @@ public:
      *
      * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    DESystemCL Trim(bool const &aDevCacheEnabled = true);
+    DESystemCL Trim(bool const& aDevCacheEnabled = true);
 
     /*! \brief Returns number of states of the system
      *
@@ -174,7 +177,7 @@ public:
      * Set the member events_ with a set containing all events that are present
      * on the current system.
      */
-    void InsertEvents(EventsSet const &aEvents);
+    void InsertEvents(EventsSet const& aEvents);
 
     /*
      * TODO:
@@ -191,12 +194,12 @@ protected:
     DESystemCL();
 
 private:
-    friend DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1);
-    friend op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
-                                                  DESystemCL const &aSys1);
-    friend DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
-                                            DESystemCL &aSys0,
-                                            DESystemCL &aSys1);
+    friend DESystemCL op::Synchronize(DESystemCL& aSys0, DESystemCL& aSys1);
+    friend op::StatesTable* op::SynchronizeStage1(DESystemCL const& aSys0,
+                                                  DESystemCL const& aSys1);
+    friend DESystemCL op::SynchronizeStage2(op::StatesTable const* aTable,
+                                            DESystemCL& aSys0,
+                                            DESystemCL& aSys1);
 
     /*! \brief Graph represented by an adjascency matrix
      *
@@ -208,7 +211,7 @@ private:
      * TODO: Explain transition scheme.
      * TODO: Should it be a smart pointer?
      */
-    GraphHostData *const graph_;
+    GraphHostData* const graph_;
 
     /*! \brief Graph data on device memory
      *
@@ -218,7 +221,7 @@ private:
      *
      * TODO: Should it be a smart pointer?
      */
-    GraphDeviceData *device_graph_;
+    GraphDeviceData* device_graph_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      *
@@ -260,7 +263,7 @@ private:
      */
     EventsSet events_;
 
-    static backend::OclBackend *backend_ptr_;
+    static backend::OclBackend* backend_ptr_;
 
     /*! \brief Method for caching the graph
      *
@@ -281,10 +284,10 @@ private:
      *
      * @param aInitialNodes Set of nodes where the searches will start
      */
-    template <class StatesType>
-    StatesSet *Bfs_(StatesType const &aInitialNodes,
-                    std::function<void(cldes_size_t const &,
-                                       cldes_size_t const &)> const &aBfsVisit);
+    template<class StatesType>
+    StatesSet* Bfs_(StatesType const& aInitialNodes,
+                    std::function<void(cldes_size_t const&,
+                                       cldes_size_t const&)> const& aBfsVisit);
 
     /*! \brief Setup BFS using dense vector and return accessed states array
      *
@@ -293,10 +296,10 @@ private:
      *
      * @param aInitialNode Node where the searches will start
      */
-    StatesSet *BfsSpMV_(
-        cldes_size_t const &aInitialNode,
-        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-            &aBfsVisit);
+    StatesSet* BfsSpMV_(
+      cldes_size_t const& aInitialNode,
+      std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
+        aBfsVisit);
 
     /*! \brief Calculates Bfs and returns accessed states array
      *
@@ -305,11 +308,11 @@ private:
      *
      * @param aInitialNode Where the search will start
      */
-    StatesSet *BfsCalc_(
-        StatesVector &aHostX,
-        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-            &aBfsVisit,
-        std::vector<cldes_size_t> const *const aStatesMap);
+    StatesSet* BfsCalc_(
+      StatesVector& aHostX,
+      std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
+        aBfsVisit,
+      std::vector<cldes_size_t> const* const aStatesMap);
 
     /*! \brief Calculates Bfs using dense vector and returns accessed states
      * array
@@ -319,17 +322,17 @@ private:
      *
      * @param aInitialNode Where the search will start
      */
-    StatesSet *BfsCalcSpMV_(
-        StatesDenseVector &aHostX,
-        std::function<void(cldes_size_t const &, cldes_size_t const &)> const
-            &aBfsVisit);
+    StatesSet* BfsCalcSpMV_(
+      StatesDenseVector& aHostX,
+      std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
+        aBfsVisit);
 
     /*! \brief Return a pointer to accessed states from the initial state
      *
      * Executes a breadth first search on the graph starting from init_state_.
      */
-    StatesSet *Bfs_();
+    StatesSet* Bfs_();
 };
 
-}  // namespace cldes
-#endif  // DESYSTEMCL_HPP
+} // namespace cldes
+#endif // DESYSTEMCL_HPP

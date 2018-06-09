@@ -31,12 +31,12 @@
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
+#include "constants.hpp"
 #include <Eigen/Sparse>
 #include <QtCore/QHash>
 #include <QtCore/QSet>
 #include <QtCore/QStack>
 #include <tuple>
-#include "constants.hpp"
 
 namespace cldes {
 
@@ -87,16 +87,16 @@ cldes::DESystemCL Synchronize(cldes::DESystemCL &aSys0,
                               cldes::DESystemCL &aSys1);
 */
 
-cldes::DESystem Synchronize(cldes::DESystem const &aSys0,
-                            cldes::DESystem const &aSys1);
+cldes::DESystem
+Synchronize(cldes::DESystem const& aSys0, cldes::DESystem const& aSys1);
 
 /*
 StatesTable *SynchronizeStage1(cldes::DESystemCL const &aSys0,
                                cldes::DESystemCL const &aSys1);
 */
 
-cldes::DESystem SynchronizeStage1(cldes::DESystem const &aSys0,
-                                  cldes::DESystem const &aSys1);
+cldes::DESystem
+SynchronizeStage1(cldes::DESystem const& aSys0, cldes::DESystem const& aSys1);
 
 /*
 cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
@@ -104,25 +104,32 @@ cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
                                     cldes::DESystemCL &aSys1);
 */
 
-void SynchronizeStage2(cldes::DESystem &aVirtualSys,
-                       cldes::DESystem const &aSys0,
-                       cldes::DESystem const &aSys1);
+void
+SynchronizeStage2(cldes::DESystem& aVirtualSys,
+                  cldes::DESystem const& aSys0,
+                  cldes::DESystem const& aSys1);
 
-cldes::cldes_size_t TransitionVirtual(cldes::DESystem const &aSys0,
-                                      cldes::DESystem const &aSys1,
-                                      cldes::cldes_size_t const &q,
-                                      cldes::ScalarType const &event);
+cldes::cldes_size_t
+TransitionVirtual(cldes::DESystem const& aSys0,
+                  cldes::DESystem const& aSys1,
+                  cldes::cldes_size_t const& q,
+                  cldes::ScalarType const& event);
 
-void RemoveBadStates(cldes::DESystem &aVirtualSys, cldes::DESystem const &aP,
-                     cldes::DESystem const &aE, GraphType const &aInvGraphP,
-                     GraphType const &aInvGraphE, StatesTableSTL &C,
-                     cldes_size_t const &q,
-                     cldes::EventsBitArray const &bit_non_contr,
-                     StatesTableSTL &rmtable);
+void
+RemoveBadStates(cldes::DESystem& aVirtualSys,
+                cldes::DESystem const& aP,
+                cldes::DESystem const& aE,
+                GraphType const& aInvGraphP,
+                GraphType const& aInvGraphE,
+                StatesTableSTL& C,
+                cldes_size_t const& q,
+                cldes::EventsBitArray const& bit_non_contr,
+                StatesTableSTL& rmtable);
 
-cldes::DESystem SupervisorSynth(cldes::DESystem const &aP,
-                                cldes::DESystem const &aS,
-                                QSet<cldes::ScalarType> const &non_contr);
-}  // namespace op
-}  // namespace cldes
-#endif  // DESYSTEM_HPP
+cldes::DESystem
+SupervisorSynth(cldes::DESystem const& aP,
+                cldes::DESystem const& aS,
+                QSet<cldes::ScalarType> const& non_contr);
+} // namespace op
+} // namespace cldes
+#endif // DESYSTEM_HPP

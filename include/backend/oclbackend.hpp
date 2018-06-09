@@ -39,7 +39,8 @@ class CommandQueue;
 namespace cldes {
 namespace backend {
 
-class OclBackend {
+class OclBackend
+{
 public:
     using ViennaCLKernel = viennacl::ocl::kernel;
     using ViennaCLProgram = viennacl::ocl::program;
@@ -115,5 +116,5 @@ private:
     ViennaCLContext context_;
 };
 
-}  // namespace backend
-}  // namespace cldes
+} // namespace backend
+} // namespace cldes
