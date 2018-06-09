@@ -188,7 +188,7 @@ cldes::DESystem::BfsCalc_(
     for (auto i = 0ul; i < states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        y = (bit_graph_ * aHostX).pruned();
+        y = bit_graph_ * aHostX;
 
         if (n_accessed_states == y.nonZeros()) {
             break;
@@ -253,7 +253,7 @@ cldes::DESystem::CoaccessiblePart()
     StatesVector y{ static_cast<Eigen::Index>(states_number_), n_marked };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
-        y = (invgraph * x).pruned();
+        y = invgraph * x;
 
         if (n_accessed_states == y.nonZeros()) {
             break;
@@ -282,7 +282,6 @@ cldes::DESystem::TrimStates()
     using RowIteratorConst = Eigen::InnerIterator<DESystem::StatesVector const>;
     using BitTriplet = Eigen::Triplet<bool>;
 
-
     StatesSet const accpartstl = AccessiblePart();
     QSet<cldes_size_t> accpart;
     for (auto s : accpartstl) {
@@ -305,12 +304,14 @@ cldes::DESystem::TrimStates()
             ++pos;
         }
     }
-    x.setFromTriplets(xtriplet.begin(), xtriplet.end());
+    x.setFromTriplets(xtriplet.begin(),
+                      xtriplet.end(),
+                      [](bool const&, bool const&) { return true; });
 
     StatesVector y{ static_cast<Eigen::Index>(states_number_), n_marked };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
-        y = (invgraph * x).pruned();
+        y = invgraph * x;
 
         if (n_accessed_states == y.nonZeros()) {
             break;
@@ -411,7 +412,9 @@ cldes::DESystem::Trim()
 
     // Remove aditional space
     graph_.setFromTriplets(triplet.begin(), triplet.end());
-    bit_graph_.setFromTriplets(bittriplet.begin(), bittriplet.end());
+    bit_graph_.setFromTriplets(bittriplet.begin(),
+                               bittriplet.end(),
+                               [](bool const&, bool const&) { return true; });
 
     graph_.makeCompressed();
     bit_graph_.makeCompressed();

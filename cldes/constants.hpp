@@ -59,4 +59,5 @@ operator+(BitArray const& rhs, BitArray const& lhs)
     return rhs | lhs;
 }
 } // namespace std
+
 #endif // CLDES_CONSTANTS_HPP

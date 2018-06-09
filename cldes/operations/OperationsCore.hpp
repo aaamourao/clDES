@@ -231,7 +231,10 @@ cldes::op::Synchronize(cldes::DESystem const& aSys0,
 
     // Remove aditional space
     sys.graph_.setFromTriplets(triplet.begin(), triplet.end());
-    sys.bit_graph_.setFromTriplets(bittriplet.begin(), bittriplet.end());
+    sys.bit_graph_.setFromTriplets(
+      bittriplet.begin(), bittriplet.end(), [](bool const&, bool const&) {
+          return true;
+      });
 
     sys.graph_.makeCompressed();
     sys.bit_graph_.makeCompressed();
@@ -457,8 +460,10 @@ cldes::op::SynchronizeStage2(cldes::DESystem& aVirtualSys,
 
     // Remove aditional space
     aVirtualSys.graph_.setFromTriplets(triplet.begin(), triplet.end());
-    aVirtualSys.bit_graph_.setFromTriplets(bittriplet.begin(),
-                                           bittriplet.end());
+    aVirtualSys.bit_graph_.setFromTriplets(
+      bittriplet.begin(), bittriplet.end(), [](bool const&, bool const&) {
+          return true;
+      });
     aVirtualSys.graph_.makeCompressed();
     aVirtualSys.bit_graph_.makeCompressed();
 
