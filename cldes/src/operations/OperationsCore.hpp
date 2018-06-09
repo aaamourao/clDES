@@ -177,10 +177,10 @@ cldes::op::Synchronize(cldes::DESystem const& aSys0,
         auto event = 0ul;
         while (q_events.any()) {
             if (q_events.test(0)) {
-                int qto;
+                cldes_size_t qto;
 
-                int xto = -1;
-                int yto = -1;
+                long xto = -1;
+                long yto = -1;
 
                 bool const is_in_p = aSys0.events_.test(event);
                 bool const is_in_e = aSys1.events_.test(event);
@@ -220,7 +220,7 @@ cldes::op::Synchronize(cldes::DESystem const& aSys0,
 
                 triplet.push_back(
                   Triplet(q, qto, EventsBitArray{ 1ul << event }));
-                if (q != static_cast<unsigned long>(qto)) {
+                if (q != static_cast<cldes_size_t>(qto)) {
                     bittriplet.push_back(BitTriplet(qto, q, true));
                 }
             }
@@ -520,8 +520,8 @@ cldes::op::TransitionVirtual(cldes::DESystem const& aSys0,
     auto const qx = q % aSys0.states_number_;
     auto const qy = q / aSys0.states_number_;
 
-    int xid = -1;
-    int yid = -1;
+    long xid = -1;
+    long yid = -1;
 
     if (is_in_p && is_in_e) {
         for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {

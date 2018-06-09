@@ -136,5 +136,5 @@ SupervisorSynth(cldes::DESystem const& aP,
 } // namespace cldes
 
 // Including implementation
-#include "operations/OperationsCore.hpp"
+#include "src/operations/OperationsCore.hpp"
 #endif // DESYSTEM_HPP

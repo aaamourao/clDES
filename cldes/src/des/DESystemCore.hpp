@@ -345,7 +345,7 @@ cldes::DESystem::Trim()
 
     auto trimstates = this->TrimStates();
 
-    if (trimstates.size() == static_cast<unsigned long>(graph_.rows())) {
+    if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
         return;
     }
 
@@ -355,10 +355,10 @@ cldes::DESystem::Trim()
     // Copy graph and resize it
     auto const old_graph = graph_;
     states_number_ = trimstates.size();
-    graph_.resize(static_cast<long>(states_number_),
-                  static_cast<long>(states_number_));
-    bit_graph_.resize(static_cast<long>(states_number_),
-                      static_cast<long>(states_number_));
+    graph_.resize(static_cast<Eigen::Index>(states_number_),
+                  static_cast<Eigen::Index>(states_number_));
+    bit_graph_.resize(static_cast<Eigen::Index>(states_number_),
+                      static_cast<Eigen::Index>(states_number_));
 
     states_events_.erase(states_events_.begin() + states_number_,
                          states_events_.end());

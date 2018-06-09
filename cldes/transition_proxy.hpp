@@ -98,6 +98,6 @@ private:
 } // namespace cldes
 
 // including implementation
-#include "TransitionsProxyCore.hpp"
+#include "src/des/TransitionsProxyCore.hpp"
 
 #endif // TRANSITION_PROXY_HPP

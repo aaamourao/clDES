@@ -375,6 +375,6 @@ private:
 } // namespace cldes
 
 // Include DESystem implementation
-#include "DESystemCore.hpp"
+#include "src/des/DESystemCore.hpp"
 
 #endif // DESYSTEM_HPP
