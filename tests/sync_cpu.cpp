@@ -32,8 +32,8 @@
 #include <chrono>
 #include <string>
 #include <tuple>
-#include "cldes.hpp"
-#include "operations/operations.hpp"
+#include "DESystem.hpp"
+#include "operations/Operations.hpp"
 #include "testlib.hpp"
 
 using namespace std::chrono;

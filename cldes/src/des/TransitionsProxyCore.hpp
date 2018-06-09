@@ -28,7 +28,7 @@
  =========================================================================
 */
 
-#include "desystem.hpp"
+#include "DESystem.hpp"
 
 cldes::TransitionProxy::TransitionProxy(cldes::DESystem* const aSysPtr,
                                         cldes_size_t const& aLin,

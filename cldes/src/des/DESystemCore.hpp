@@ -29,8 +29,7 @@
  =========================================================================
 */
 
-#include "desystem.hpp"
-#include "transition_proxy.hpp"
+#include "TransitionProxy.hpp"
 #include <QtCore/QSet>
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>

@@ -31,9 +31,8 @@
 #include <algorithm>
 #include <cmath>
 // #include "backend/oclbackend.hpp"
-#include "desystem.hpp"
+#include "DESystem.hpp"
 // #include "desystemcl.hpp"
-#include "transition_proxy.hpp"
 #include <Eigen/Sparse>
 #include <QtCore/QVector>
 
