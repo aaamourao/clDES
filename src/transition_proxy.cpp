@@ -28,8 +28,8 @@
  =========================================================================
 */
 
-#include "des/transition_proxy.hpp"
-#include "des/desystem.hpp"
+#include "transition_proxy.hpp"
+#include "desystem.hpp"
 
 using namespace cldes;
 

@@ -29,7 +29,7 @@
  =========================================================================
 */
 
-#include "des/desystemcl.hpp"
+#include "desystemcl.hpp"
 #include "backend/oclbackend.hpp"
 #include "operations/operations.hpp"
 #include "viennacl/linalg/prod.hpp"

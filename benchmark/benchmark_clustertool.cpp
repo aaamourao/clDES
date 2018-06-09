@@ -29,8 +29,8 @@
  =========================================================================
 */
 
-#include "des/desystem.hpp"
-#include "des/transition_proxy.hpp"
+#include "desystem.hpp"
+#include "transition_proxy.hpp"
 #include "operations/operations.hpp"
 #include "testlib.hpp"
 #include <chrono>
