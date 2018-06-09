@@ -28,22 +28,19 @@
  =========================================================================
 */
 
-#include "transition_proxy.hpp"
 #include "desystem.hpp"
 
-using namespace cldes;
-
-TransitionProxy::TransitionProxy(DESystem* const aSysPtr,
-                                 cldes_size_t const& aLin,
-                                 cldes_size_t const& aCol)
+cldes::TransitionProxy::TransitionProxy(cldes::DESystem* const aSysPtr,
+                                        cldes_size_t const& aLin,
+                                        cldes_size_t const& aCol)
   : sys_ptr_{ aSysPtr }
   , lin_{ aLin }
   , col_{ aCol }
 {
 }
 
-TransitionProxy&
-TransitionProxy::operator=(ScalarType aEventPos)
+cldes::TransitionProxy&
+cldes::TransitionProxy::operator=(cldes::ScalarType aEventPos)
 {
     // Add transition to the system
     sys_ptr_->events_[aEventPos] = true;
@@ -73,7 +70,7 @@ TransitionProxy::operator=(ScalarType aEventPos)
 }
 
 /*
-TransitionProxy::operator ScalarType() {
+   cldes::TransitionProxy::operator ScalarType() {
     return (sys_ptr_->graph_)(lin_, col_);
 }
 */

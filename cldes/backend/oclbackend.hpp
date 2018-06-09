@@ -118,3 +118,6 @@ private:
 
 } // namespace backend
 } // namespace cldes
+
+// Include Implementation
+#include "backend/OCLBackend.hpp"

@@ -40,6 +40,7 @@
 #include "viennacl/compressed_matrix.hpp"
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <set>
+#include "DESystemCLCore.hpp"
 
 namespace cldes {
 

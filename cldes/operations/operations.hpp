@@ -46,6 +46,7 @@ class DESystem;
 namespace op {
 
 using GraphType = Eigen::SparseMatrix<cldes::EventsBitArray, Eigen::RowMajor>;
+using StatesArray = QVector<cldes_size_t>;
 
 /*
 typedef struct StatesTuple {
@@ -130,6 +131,10 @@ cldes::DESystem
 SupervisorSynth(cldes::DESystem const& aP,
                 cldes::DESystem const& aS,
                 QSet<cldes::ScalarType> const& non_contr);
+
 } // namespace op
 } // namespace cldes
+
+// Including implementation
+#include "operations/OperationsCore.hpp"
 #endif // DESYSTEM_HPP

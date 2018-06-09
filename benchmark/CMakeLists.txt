@@ -6,8 +6,8 @@ add_executable(benchmark_clustertool ./benchmark_clustertool.cpp)
 add_executable(benchmark_fsm ./benchmark_fsm.cpp)
 
 # Link libraries
-target_link_libraries(benchmark_clustertool libclDES)# OpenCL::OpenCL)
-target_link_libraries(benchmark_fsm libclDES)# OpenCL::OpenCL)
+target_link_libraries(benchmark_clustertool Qt5::Core)# OpenCL::OpenCL)
+target_link_libraries(benchmark_fsm Qt5::Core)# OpenCL::OpenCL)
 
 # Link OpenCL library
 # target_link_libraries(viennacl OpenCL::OpenCL)

@@ -373,4 +373,8 @@ private:
 };
 
 } // namespace cldes
+
+// Include DESystem implementation
+#include "DESystemCore.hpp"
+
 #endif // DESYSTEM_HPP

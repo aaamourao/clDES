@@ -97,4 +97,7 @@ private:
 
 } // namespace cldes
 
+// including implementation
+#include "TransitionsProxyCore.hpp"
+
 #endif // TRANSITION_PROXY_HPP

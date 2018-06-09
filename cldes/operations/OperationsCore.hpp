@@ -28,7 +28,6 @@
  =========================================================================
 */
 
-#include "operations/operations.hpp"
 #include <algorithm>
 #include <cmath>
 // #include "backend/oclbackend.hpp"
@@ -37,9 +36,6 @@
 #include "transition_proxy.hpp"
 #include <Eigen/Sparse>
 #include <QtCore/QVector>
-
-using namespace cldes;
-using BitArray = std::bitset<cldes::g_max_events>;
 
 /*
 DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
@@ -117,13 +113,14 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
 }
 */
 
-using Triplet = Eigen::Triplet<BitArray>;
-using BitTriplet = Eigen::Triplet<bool>;
-using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
-
-DESystem
-op::Synchronize(DESystem const& aSys0, DESystem const& aSys1)
+cldes::DESystem
+cldes::op::Synchronize(cldes::DESystem const& aSys0,
+                       cldes::DESystem const& aSys1)
 {
+    using Triplet = Eigen::Triplet<EventsBitArray>;
+    using BitTriplet = Eigen::Triplet<bool>;
+    using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
+
     auto const in_both = aSys0.events_ & aSys1.events_;
     auto const only_in_0 = aSys0.events_ ^ in_both;
     auto const only_in_1 = aSys1.events_ ^ in_both;
@@ -250,8 +247,9 @@ op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
 }
 */
 
-DESystem
-op::SynchronizeStage1(DESystem const& aSys0, DESystem const& aSys1)
+cldes::DESystem
+cldes::op::SynchronizeStage1(cldes::DESystem const& aSys0,
+                             cldes::DESystem const& aSys1)
 {
     auto const in_both = aSys0.events_ & aSys1.events_;
     auto const only_in_0 = aSys0.events_ ^ in_both;
@@ -393,10 +391,13 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
 */
 
 void
-op::SynchronizeStage2(DESystem& aVirtualSys,
-                      DESystem const& aSys0,
-                      DESystem const& aSys1)
+cldes::op::SynchronizeStage2(cldes::DESystem& aVirtualSys,
+                             cldes::DESystem const& aSys0,
+                             cldes::DESystem const& aSys1)
 {
+    using Triplet = Eigen::Triplet<EventsBitArray>;
+    using BitTriplet = Eigen::Triplet<bool>;
+
     // Alias to new size
     auto const nstates = aVirtualSys.virtual_states_.size();
 
@@ -500,12 +501,14 @@ is_in_p = aSys0.events_[event]; bool const is_in_e = aSys1.events_[event];
 }
     */
 
-cldes_size_t
-op::TransitionVirtual(DESystem const& aSys0,
-                      DESystem const& aSys1,
-                      cldes_size_t const& q,
-                      ScalarType const& event)
+cldes::cldes_size_t
+cldes::op::TransitionVirtual(cldes::DESystem const& aSys0,
+                             cldes::DESystem const& aSys1,
+                             cldes::cldes_size_t const& q,
+                             cldes::ScalarType const& event)
 {
+    using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
+
     bool const is_in_p = aSys0.events_.test(event);
     bool const is_in_e = aSys1.events_.test(event);
 
@@ -549,31 +552,32 @@ op::TransitionVirtual(DESystem const& aSys0,
     return yid * aSys0.states_number_ + xid;
 }
 
-using StatesArray = QVector<cldes_size_t>;
-
 // This function assumes that there is an inverse transition.
 template<class EventsType>
-static StatesArray
+static cldes::op::StatesArray
 __TransitionVirtualInv(EventsType const& aEventsP,
                        EventsType const& aEventsE,
-                       op::GraphType const& aInvGraphP,
-                       op::GraphType const& aInvGraphE,
-                       cldes_size_t const& q,
-                       ScalarType const& event)
+                       cldes::op::GraphType const& aInvGraphP,
+                       cldes::op::GraphType const& aInvGraphE,
+                       cldes::cldes_size_t const& q,
+                       cldes::ScalarType const& event)
 {
+    using RowIterator =
+      Eigen::InnerIterator<cldes::DESystem::GraphHostData const>;
+
     auto const qx = q % aInvGraphP.rows();
     auto const qy = q / aInvGraphP.rows();
 
     bool const is_in_p = aEventsP.test(event);
     bool const is_in_e = aEventsE.test(event);
 
-    StatesArray ret;
+    cldes::op::StatesArray ret;
     // ret.reserve(cldes::g_max_events);
 
     auto const p_size = aInvGraphP.rows();
 
     if (is_in_p && is_in_e) {
-        StatesArray pstates;
+        cldes::op::StatesArray pstates;
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
             if (pe.value().test(event)) {
                 pstates.push_back(pe.col());
@@ -581,7 +585,7 @@ __TransitionVirtualInv(EventsType const& aEventsP,
         }
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
             if (ee.value().test(event)) {
-                foreach (cldes_size_t sp, pstates) {
+                foreach (cldes::cldes_size_t sp, pstates) {
                     ret.push_back(ee.col() * p_size + sp);
                 }
             }
@@ -604,15 +608,15 @@ __TransitionVirtualInv(EventsType const& aEventsP,
 }
 
 void
-op::RemoveBadStates(DESystem& aVirtualSys,
-                    DESystem const& aP,
-                    DESystem const& aE,
-                    op::GraphType const& aInvGraphP,
-                    op::GraphType const& aInvGraphE,
-                    op::StatesTableSTL& C,
-                    cldes_size_t const& q,
-                    EventsBitArray const& bit_non_contr,
-                    op::StatesTableSTL& rmtable)
+cldes::op::RemoveBadStates(cldes::DESystem& aVirtualSys,
+                           cldes::DESystem const& aP,
+                           cldes::DESystem const& aE,
+                           cldes::op::GraphType const& aInvGraphP,
+                           cldes::op::GraphType const& aInvGraphE,
+                           cldes::op::StatesTableSTL& C,
+                           cldes::cldes_size_t const& q,
+                           cldes::EventsBitArray const& bit_non_contr,
+                           cldes::op::StatesTableSTL& rmtable)
 {
     StatesStack f;
     f.push(q);
@@ -652,10 +656,10 @@ op::RemoveBadStates(DESystem& aVirtualSys,
     return;
 }
 
-DESystem
-op::SupervisorSynth(DESystem const& aP,
-                    DESystem const& aE,
-                    QSet<ScalarType> const& non_contr)
+cldes::DESystem
+cldes::op::SupervisorSynth(cldes::DESystem const& aP,
+                           cldes::DESystem const& aE,
+                           QSet<cldes::ScalarType> const& non_contr)
 {
     DESystem::GraphHostData const p_invgraph = aP.graph_.transpose();
     DESystem::GraphHostData const e_invgraph = aE.graph_.transpose();
