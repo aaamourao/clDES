@@ -29,16 +29,18 @@
  =========================================================================
 */
 
-#include <chrono>
-#include <string>
-#include <tuple>
 #include "DESystem.hpp"
 #include "operations/Operations.hpp"
 #include "testlib.hpp"
+#include <chrono>
+#include <string>
+#include <tuple>
 
 using namespace std::chrono;
 
-int main() {
+int
+main()
+{
     // Declare transitions: represented by prime numbers
     cldes::ScalarType a = 0;
     cldes::ScalarType b = 1;
@@ -47,13 +49,13 @@ int main() {
     // Declare system G1
     int const nstatesG1 = 3;
 
-    cldes::DESystem::StatesSet markedstatesG1;
+    cldes::DESystem<3>::StatesSet markedstatesG1;
     markedstatesG1.insert(0);
     markedstatesG1.insert(2);
 
     int const initstateG1 = 0;
 
-    cldes::DESystem g1{nstatesG1, initstateG1, markedstatesG1};
+    cldes::DESystem<3> g1{ nstatesG1, initstateG1, markedstatesG1 };
 
     g1(0, 0) = a;
     g1(0, 2) = g;
@@ -66,12 +68,12 @@ int main() {
     // Declare system G2
     int const nstatesG2 = 2;
 
-    cldes::DESystem::StatesSet markedstatesG2;
+    cldes::DESystem<3>::StatesSet markedstatesG2;
     markedstatesG1.insert(1);
 
     int const initstateG2 = 0;
 
-    cldes::DESystem g2{nstatesG2, initstateG2, markedstatesG2};
+    cldes::DESystem<3> g2{ nstatesG2, initstateG2, markedstatesG2 };
 
     g2(0, 0) = b;
     g2(0, 1) = a;
@@ -93,8 +95,8 @@ int main() {
     expected_result << "0 2 0 1 0 0 " << std::endl;
     expected_result << "0 0 2 0 5 0 " << std::endl;
     expected_result << ">" << std::endl;
-    ProcessResult(sync_sys.GetGraph(), "< Sync graph",
-                  expected_result.str().c_str());
+    ProcessResult(
+      sync_sys.GetGraph(), "< Sync graph", expected_result.str().c_str());
     std::cout << "Synchronize time: " << duration << " microseconds"
               << std::endl;
 

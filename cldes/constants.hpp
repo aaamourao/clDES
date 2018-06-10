@@ -42,22 +42,18 @@ using ScalarType = size_t;
 // clDES base type for indexing matrices and arrays
 using cldes_size_t = size_t;
 
-// Max number of events
-cldes_size_t const g_max_events = 56;
-
-// Host array of events represented by one bit each
-using EventsBitArray = std::bitset<g_max_events>;
-
 using EventsLong = unsigned long;
 } // namespace cldes
 
 namespace std {
-using BitArray = std::bitset<cldes::g_max_events>;
-inline BitArray
-operator+(BitArray const& rhs, BitArray const& lhs)
+
+template <std::size_t size>
+inline bitset<size>
+operator+(bitset<size> const& rhs, bitset<size> const& lhs)
 {
     return rhs | lhs;
 }
+
 } // namespace std
 
 #endif // CLDES_CONSTANTS_HPP

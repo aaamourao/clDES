@@ -45,19 +45,21 @@ ReadResult(T const& aOpResult, StringType const aHeader)
 
     return result.str();
 }
+template<unsigned int NEvents>
+using eigen_matrix = Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor>;
 
-using eigen_matrix = Eigen::SparseMatrix<std::bitset<56>, Eigen::RowMajor>;
-
-template<typename StringType>
+template<typename StringType, size_t NEvents>
 std::string
-ReadResult(eigen_matrix const& aOpResult, StringType const aHeader)
+ReadResult(
+  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor> const& aOpResult,
+  StringType const aHeader)
 {
     std::ostringstream result;
 
     result << aHeader << ":" << std::endl;
     for (auto it1 = 0l; it1 != aOpResult.rows(); ++it1) {
         for (auto it2 = 0l; it2 != aOpResult.cols(); ++it2) {
-            result << aOpResult.coeff(it1, it2).to_ullong() << " ";
+            result << aOpResult.coeff(it1, it2).to_ulong() << " ";
         }
         result << std::endl;
     }
@@ -92,7 +94,7 @@ PrintGraph(GraphType const& aGraph, StringType const& aGraphName)
     std::cout << aGraphName << std::endl;
     for (auto it1 = 0l; it1 != aGraph.rows(); ++it1) {
         for (auto it2 = 0l; it2 != aGraph.cols(); ++it2) {
-            std::cout << aGraph.coeff(it1, it2).to_ullong() << " ";
+            std::cout << aGraph.coeff(it1, it2).to_ulong() << " ";
         }
         std::cout << std::endl;
     }

@@ -24,8 +24,8 @@
  Universidade Federal de Minas Gerais
 
  File: desystem.cpp
- Description: DESystem class implementation. DESystem is a graph, which
- is modeled as a Sparce Adjacency Matrix.
+ Description: DESystem<NEvents> class implementation. DESystem<NEvents> is a
+ graph, which is modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
 
@@ -36,10 +36,11 @@
 #include <functional>
 #include <vector>
 
-cldes::DESystem::DESystem(cldes::cldes_size_t const& aStatesNumber,
-                          cldes::cldes_size_t const& aInitState,
-                          StatesSet& aMarkedStates,
-                          bool const& aDevCacheEnabled)
+template<cldes::cldes_size_t NEvents>
+cldes::DESystem<NEvents>::DESystem(cldes::cldes_size_t const& aStatesNumber,
+                                   cldes::cldes_size_t const& aInitState,
+                                   StatesSet& aMarkedStates,
+                                   bool const& aDevCacheEnabled)
 {
     init_state_ = aInitState;
     states_number_ = aStatesNumber;
@@ -69,7 +70,7 @@ cldes::DESystem::DESystem(cldes::cldes_size_t const& aStatesNumber,
 }
 
 /*
-DESystem::DESystem(DESystem const &aSys) {
+DESystem<NEvents>::DESystem(DESystem<NEvents> const &aSys) {
     init_state_ = cldes_size_t{aSys.init_state_};
     states_number_ = cldes_size_t{aSys.states_number_};
     marked_states_ = StatesSet{aSys.marked_states_};
@@ -83,41 +84,47 @@ DESystem::DESystem(DESystem const &aSys) {
 }
 */
 
-cldes::DESystem::GraphHostData
-cldes::DESystem::GetGraph() const
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::GraphHostData
+cldes::DESystem<NEvents>::GetGraph() const
 {
     return graph_;
 }
 
+template<cldes::cldes_size_t NEvents>
 void
-cldes::DESystem::CacheGraph_()
+cldes::DESystem<NEvents>::CacheGraph_()
 {
     is_cache_outdated_ = false;
 }
 
-cldes::DESystem::EventsSet const
-cldes::DESystem::operator()(cldes_size_t const& aLin,
-                            cldes_size_t const& aCol) const
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::EventsSet const
+cldes::DESystem<NEvents>::operator()(cldes_size_t const& aLin,
+                                     cldes_size_t const& aCol) const
 {
     return graph_.coeff(aLin, aCol);
 }
 
-cldes::TransitionProxy
-cldes::DESystem::operator()(cldes::cldes_size_t const& aLin,
-                            cldes::cldes_size_t const& aCol)
+template<cldes::cldes_size_t NEvents>
+cldes::TransitionProxy<NEvents>
+cldes::DESystem<NEvents>::operator()(cldes::cldes_size_t const& aLin,
+                                     cldes::cldes_size_t const& aCol)
 {
-    return TransitionProxy(this, aLin, aCol);
+    return TransitionProxy<NEvents>(this, aLin, aCol);
 }
 
+template<cldes::cldes_size_t NEvents>
 void
-cldes::DESystem::UpdateGraphCache_()
+cldes::DESystem<NEvents>::UpdateGraphCache_()
 {
     is_cache_outdated_ = false;
 }
 
+template<cldes::cldes_size_t NEvents>
 template<typename StatesType>
-cldes::DESystem::StatesSet*
-cldes::DESystem::Bfs_(
+typename cldes::DESystem<NEvents>::StatesSet*
+cldes::DESystem<NEvents>::Bfs_(
   StatesType const& aInitialNodes,
   std::function<void(cldes::cldes_size_t const&,
                      cldes::cldes_size_t const&)> const& aBfsVisit)
@@ -143,9 +150,9 @@ cldes::DESystem::Bfs_(
     return BfsCalc_(host_x, aBfsVisit, &states_map);
 }
 
-template<>
-cldes::DESystem::StatesSet*
-cldes::DESystem::Bfs_<cldes::cldes_size_t>(
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::StatesSet*
+cldes::DESystem<NEvents>::Bfs_(
   cldes::cldes_size_t const& aInitialNode,
   std::function<void(cldes::cldes_size_t const&,
                      cldes::cldes_size_t const&)> const& aBfsVisit)
@@ -163,20 +170,22 @@ cldes::DESystem::Bfs_<cldes::cldes_size_t>(
     return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
-cldes::DESystem::StatesSet*
-cldes::DESystem::Bfs_()
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::StatesSet*
+cldes::DESystem<NEvents>::Bfs_()
 {
     return Bfs_(init_state_, nullptr);
 };
 
-cldes::DESystem::StatesSet*
-cldes::DESystem::BfsCalc_(
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::StatesSet*
+cldes::DESystem<NEvents>::BfsCalc_(
   StatesVector& aHostX,
   std::function<void(cldes::cldes_size_t const&,
                      cldes::cldes_size_t const&)> const& aBfsVisit,
   std::vector<cldes::cldes_size_t> const* const aStatesMap)
 {
-    using RowIterator = Eigen::InnerIterator<DESystem::StatesVector>;
+    using RowIterator = Eigen::InnerIterator<DESystem<NEvents>::StatesVector>;
 
     cldes_size_t n_initial_nodes = aHostX.cols();
 
@@ -217,8 +226,9 @@ cldes::DESystem::BfsCalc_(
     return accessed_states;
 }
 
-cldes::DESystem::StatesSet
-cldes::DESystem::AccessiblePart()
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::StatesSet
+cldes::DESystem<NEvents>::AccessiblePart()
 {
     // Executes a BFS on graph_
     auto paccessible_states = Bfs_();
@@ -229,12 +239,14 @@ cldes::DESystem::AccessiblePart()
     return accessible_states;
 }
 
-cldes::DESystem::StatesSet
-cldes::DESystem::CoaccessiblePart()
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::StatesSet
+cldes::DESystem<NEvents>::CoaccessiblePart()
 {
-    using RowIteratorConst = Eigen::InnerIterator<DESystem::StatesVector const>;
+    using RowIteratorConst =
+      Eigen::InnerIterator<DESystem<NEvents>::StatesVector const>;
 
-    DESystem::BitGraphHostData const invgraph = bit_graph_.transpose();
+    DESystem<NEvents>::BitGraphHostData const invgraph = bit_graph_.transpose();
 
     Eigen::Index const n_marked =
       static_cast<Eigen::Index>(marked_states_.size());
@@ -275,10 +287,12 @@ cldes::DESystem::CoaccessiblePart()
     return coaccessible_states;
 }
 
-cldes::DESystem::StatesSet
-cldes::DESystem::TrimStates()
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>::StatesSet
+cldes::DESystem<NEvents>::TrimStates()
 {
-    using RowIteratorConst = Eigen::InnerIterator<DESystem::StatesVector const>;
+    using RowIteratorConst =
+      Eigen::InnerIterator<DESystem<NEvents>::StatesVector const>;
     using BitTriplet = Eigen::Triplet<bool>;
 
     StatesSet const accpartstl = AccessiblePart();
@@ -287,7 +301,7 @@ cldes::DESystem::TrimStates()
         accpart.insert(s);
     }
 
-    DESystem::BitGraphHostData const invgraph = bit_graph_.transpose();
+    DESystem<NEvents>::BitGraphHostData const invgraph = bit_graph_.transpose();
 
     Eigen::Index const n_marked =
       static_cast<Eigen::Index>(marked_states_.size());
@@ -335,11 +349,13 @@ cldes::DESystem::TrimStates()
     return trimstates;
 }
 
+template<cldes::cldes_size_t NEvents>
 void
-cldes::DESystem::Trim()
+cldes::DESystem<NEvents>::Trim()
 {
-    using RowIteratorGraph = Eigen::InnerIterator<DESystem::GraphHostData>;
-    using Triplet = Eigen::Triplet<EventsBitArray>;
+    using RowIteratorGraph =
+      Eigen::InnerIterator<DESystem<NEvents>::GraphHostData>;
+    using Triplet = Eigen::Triplet<EventsSet>;
     using BitTriplet = Eigen::Triplet<bool>;
 
     auto trimstates = this->TrimStates();
@@ -430,8 +446,10 @@ cldes::DESystem::Trim()
     return;
 }
 
+template<cldes::cldes_size_t NEvents>
 void
-cldes::DESystem::InsertEvents(cldes::DESystem::EventsSet const& aEvents)
+cldes::DESystem<NEvents>::InsertEvents(
+  cldes::DESystem<NEvents>::EventsSet const& aEvents)
 {
     events_ = EventsSet(aEvents);
 }

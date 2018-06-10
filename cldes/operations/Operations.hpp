@@ -40,12 +40,15 @@
 
 namespace cldes {
 
-// class DESystemCL;
+// class DESystem<NEvents>CL;
+template<cldes::cldes_size_t NEvents>
 class DESystem;
 
 namespace op {
 
-using GraphType = Eigen::SparseMatrix<cldes::EventsBitArray, Eigen::RowMajor>;
+template<cldes::cldes_size_t NEvents>
+using GraphType = Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor>;
+
 using StatesArray = QVector<cldes_size_t>;
 
 /*
@@ -84,52 +87,62 @@ void SetWorkGroups_(KernelType *k, cldes::cldes_size_t const aGws0,
     k->global_work_size(1, aGws1);
 }
 
-cldes::DESystemCL Synchronize(cldes::DESystemCL &aSys0,
-                              cldes::DESystemCL &aSys1);
+cldes::DESystem<NEvents>CL Synchronize(cldes::DESystem<NEvents>CL &aSys0,
+                              cldes::DESystem<NEvents>CL &aSys1);
 */
 
-cldes::DESystem
-Synchronize(cldes::DESystem const& aSys0, cldes::DESystem const& aSys1);
+/*! \brief Returns the parallel composition between aSys0 and aSys1
+ */
+template<cldes::cldes_size_t NEvents>
+cldes::DESystem<NEvents>
+Synchronize(cldes::DESystem<NEvents> const& aSys0,
+            cldes::DESystem<NEvents> const& aSys1);
 
 /*
-StatesTable *SynchronizeStage1(cldes::DESystemCL const &aSys0,
-                               cldes::DESystemCL const &aSys1);
+StatesTable *SynchronizeStage1(cldes::DESystem<NEvents>CL const &aSys0,
+                               cldes::DESystem<NEvents>CL const &aSys1);
 */
 
-cldes::DESystem
-SynchronizeStage1(cldes::DESystem const& aSys0, cldes::DESystem const& aSys1);
+template<cldes::cldes_size_t NEvents>
+cldes::DESystem<NEvents>
+SynchronizeStage1(cldes::DESystem<NEvents> const& aSys0,
+                  cldes::DESystem<NEvents> const& aSys1);
 
 /*
-cldes::DESystemCL SynchronizeStage2(StatesTable const *aTable,
-                                    cldes::DESystemCL &aSys0,
-                                    cldes::DESystemCL &aSys1);
+cldes::DESystem<NEvents>CL SynchronizeStage2(StatesTable const *aTable,
+                                    cldes::DESystem<NEvents>CL &aSys0,
+                                    cldes::DESystem<NEvents>CL &aSys1);
 */
 
+template<cldes::cldes_size_t NEvents>
 void
-SynchronizeStage2(cldes::DESystem& aVirtualSys,
-                  cldes::DESystem const& aSys0,
-                  cldes::DESystem const& aSys1);
+SynchronizeStage2(cldes::DESystem<NEvents>& aVirtualSys,
+                  cldes::DESystem<NEvents> const& aSys0,
+                  cldes::DESystem<NEvents> const& aSys1);
 
+template<cldes::cldes_size_t NEvents>
 cldes::cldes_size_t
-TransitionVirtual(cldes::DESystem const& aSys0,
-                  cldes::DESystem const& aSys1,
+TransitionVirtual(cldes::DESystem<NEvents> const& aSys0,
+                  cldes::DESystem<NEvents> const& aSys1,
                   cldes::cldes_size_t const& q,
                   cldes::ScalarType const& event);
 
+template<cldes::cldes_size_t NEvents>
 void
-RemoveBadStates(cldes::DESystem& aVirtualSys,
-                cldes::DESystem const& aP,
-                cldes::DESystem const& aE,
-                GraphType const& aInvGraphP,
-                GraphType const& aInvGraphE,
+RemoveBadStates(cldes::DESystem<NEvents>& aVirtualSys,
+                cldes::DESystem<NEvents> const& aP,
+                cldes::DESystem<NEvents> const& aE,
+                GraphType<NEvents> const& aInvGraphP,
+                GraphType<NEvents> const& aInvGraphE,
                 StatesTableSTL& C,
                 cldes_size_t const& q,
-                cldes::EventsBitArray const& bit_non_contr,
+                std::bitset<NEvents> const& bit_non_contr,
                 StatesTableSTL& rmtable);
 
-cldes::DESystem
-SupervisorSynth(cldes::DESystem const& aP,
-                cldes::DESystem const& aS,
+template<cldes::cldes_size_t NEvents>
+cldes::DESystem<NEvents>
+SupervisorSynth(cldes::DESystem<NEvents> const& aP,
+                cldes::DESystem<NEvents> const& aS,
                 QSet<cldes::ScalarType> const& non_contr);
 
 } // namespace op

@@ -37,8 +37,9 @@
 #include <QtCore/QVector>
 
 /*
-DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
-    auto table_size = aSys0.states_number_ * aSys1.states_number_;
+DESystem<NEvents>CL op::Synchronize(DESystem<NEvents>CL &aSys0,
+DESystem<NEvents>CL &aSys1) { auto table_size = aSys0.states_number_ *
+aSys1.states_number_;
 
     // Allocate memory on the device
     auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
@@ -104,7 +105,7 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
         static_cast<cl_uint>(result_dev.internal_rows())));
 
     // Copy device graph to host memory
-    DESystemCL sync_sys(table_size, initstate_sync, markedstates_sync);
+    DESystem<NEvents>CL sync_sys(table_size, initstate_sync, markedstates_sync);
     viennacl::copy(result_dev, *(sync_sys.graph_));
     viennacl::copy(trans(*(sync_sys.graph_)), *(sync_sys.device_graph_));
 
@@ -112,20 +113,22 @@ DESystemCL op::Synchronize(DESystemCL &aSys0, DESystemCL &aSys1) {
 }
 */
 
-cldes::DESystem
-cldes::op::Synchronize(cldes::DESystem const& aSys0,
-                       cldes::DESystem const& aSys1)
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>
+cldes::op::Synchronize(cldes::DESystem<NEvents> const& aSys0,
+                       cldes::DESystem<NEvents> const& aSys1)
 {
-    using Triplet = Eigen::Triplet<EventsBitArray>;
+    using Triplet = Eigen::Triplet<std::bitset<NEvents>>;
     using BitTriplet = Eigen::Triplet<bool>;
-    using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
+    using RowIterator =
+      Eigen::InnerIterator<typename DESystem<NEvents>::GraphHostData const>;
 
     auto const in_both = aSys0.events_ & aSys1.events_;
     auto const only_in_0 = aSys0.events_ ^ in_both;
     auto const only_in_1 = aSys1.events_ ^ in_both;
 
     // Calculate new marked states
-    DESystem::StatesSet marked_states;
+    typename DESystem<NEvents>::StatesSet marked_states;
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
             marked_states.insert(s1 * aSys0.states_number_ + s0);
@@ -133,9 +136,10 @@ cldes::op::Synchronize(cldes::DESystem const& aSys0,
     }
 
     // Create new system without transitions
-    DESystem sys{ aSys0.states_number_ * aSys1.states_number_,
-                  aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_,
-                  marked_states };
+    DESystem<NEvents> sys{ aSys0.states_number_ * aSys1.states_number_,
+                           aSys1.init_state_ * aSys0.states_number_ +
+                             aSys0.init_state_,
+                           marked_states };
 
     // Set private params
     sys.events_ = aSys0.events_ | aSys1.events_;
@@ -218,7 +222,7 @@ cldes::op::Synchronize(cldes::DESystem const& aSys0,
                 qto = yto * aSys0.states_number_ + xto;
 
                 triplet.push_back(
-                  Triplet(q, qto, EventsBitArray{ 1ul << event }));
+                  Triplet(q, qto, std::bitset<NEvents>{ 1ul << event }));
                 if (q != static_cast<cldes_size_t>(qto)) {
                     bittriplet.push_back(BitTriplet(qto, q, true));
                 }
@@ -242,23 +246,24 @@ cldes::op::Synchronize(cldes::DESystem const& aSys0,
 }
 
 /*
-op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
-                                       DESystemCL const &aSys1) {
+op::StatesTable *op::SynchronizeStage1(DESystem<NEvents>CL const &aSys0,
+                                       DESystem<NEvents>CL const &aSys1) {
     SynchronizeStage2(syncsys, aSys0, aSys1);
     return syncsys;
 }
 */
 
-cldes::DESystem
-cldes::op::SynchronizeStage1(cldes::DESystem const& aSys0,
-                             cldes::DESystem const& aSys1)
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>
+cldes::op::SynchronizeStage1(cldes::DESystem<NEvents> const& aSys0,
+                             cldes::DESystem<NEvents> const& aSys1)
 {
     auto const in_both = aSys0.events_ & aSys1.events_;
     auto const only_in_0 = aSys0.events_ ^ in_both;
     auto const only_in_1 = aSys1.events_ ^ in_both;
 
     // Calculate new marked states
-    DESystem::StatesSet marked_states;
+    typename DESystem<NEvents>::StatesSet marked_states;
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
             marked_states.insert(s1 * aSys0.states_number_ + s0);
@@ -266,10 +271,10 @@ cldes::op::SynchronizeStage1(cldes::DESystem const& aSys0,
     }
 
     // Create new system without transitions
-    DESystem virtualsys{ aSys0.states_number_ * aSys1.states_number_,
-                         aSys1.init_state_ * aSys0.states_number_ +
-                           aSys0.init_state_,
-                         marked_states };
+    DESystem<NEvents> virtualsys{ aSys0.states_number_ * aSys1.states_number_,
+                                  aSys1.init_state_ * aSys0.states_number_ +
+                                    aSys0.init_state_,
+                                  marked_states };
 
     // New system params
     virtualsys.states_events_.reserve(aSys0.states_number_ *
@@ -302,8 +307,8 @@ cldes::op::SynchronizeStage1(cldes::DESystem const& aSys0,
 }
 
 /*
-op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
-                                       DESystemCL const &aSys1) {
+op::StatesTable *op::SynchronizeStage1(DESystem<NEvents>CL const &aSys0,
+                                       DESystem<NEvents>CL const &aSys1) {
     auto table_size = aSys0.states_number_ * aSys1.states_number_;
 
     // Allocate memory on the device
@@ -333,10 +338,9 @@ op::StatesTable *op::SynchronizeStage1(DESystemCL const &aSys0,
     return states_table;
 }
 
-DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
-                                 DESystemCL &aSys0, DESystemCL &aSys1) {
-    if (aSys0.is_cache_outdated_) {
-        aSys0.UpdateGraphCache_();
+DESystem<NEvents>CL op::SynchronizeStage2(op::StatesTable const *aTable,
+                                 DESystem<NEvents>CL &aSys0, DESystem<NEvents>CL
+&aSys1) { if (aSys0.is_cache_outdated_) { aSys0.UpdateGraphCache_();
     }
 
     if (aSys1.is_cache_outdated_) {
@@ -384,20 +388,21 @@ DESystemCL op::SynchronizeStage2(op::StatesTable const *aTable,
         static_cast<cl_uint>(result_dev.internal_rows())));
 
     // Copy device graph to host memory
-    DESystemCL sync_sys(aTable->tsize, initstate_sync, markedstates_sync);
-    viennacl::copy(result_dev, *(sync_sys.graph_));
+    DESystem<NEvents>CL sync_sys(aTable->tsize, initstate_sync,
+markedstates_sync); viennacl::copy(result_dev, *(sync_sys.graph_));
     viennacl::copy(trans(*(sync_sys.graph_)), *(sync_sys.device_graph_));
 
     return sync_sys;
 }
 */
 
+template<cldes::cldes_size_t NEvents>
 void
-cldes::op::SynchronizeStage2(cldes::DESystem& aVirtualSys,
-                             cldes::DESystem const& aSys0,
-                             cldes::DESystem const& aSys1)
+cldes::op::SynchronizeStage2(cldes::DESystem<NEvents>& aVirtualSys,
+                             cldes::DESystem<NEvents> const& aSys0,
+                             cldes::DESystem<NEvents> const& aSys1)
 {
-    using Triplet = Eigen::Triplet<EventsBitArray>;
+    using Triplet = Eigen::Triplet<std::bitset<NEvents>>;
     using BitTriplet = Eigen::Triplet<bool>;
 
     // Alias to new size
@@ -449,7 +454,7 @@ cldes::op::SynchronizeStage2(cldes::DESystem& aVirtualSys,
                 auto const q_mapped = statesmap.value(q);
 
                 triplet.push_back(
-                  Triplet(q_mapped, qto_mapped, EventsBitArray{ event }));
+                  Triplet(q_mapped, qto_mapped, std::bitset<NEvents>{ event }));
                 bittriplet.push_back(BitTriplet(qto_mapped, q_mapped, true));
             }
             q_trans.second.pop_back();
@@ -487,9 +492,10 @@ cldes::op::SynchronizeStage2(cldes::DESystem& aVirtualSys,
 }
 
 /*
-bool op::ExistTransitionVirtual(DESystem const &aSys0, DESystem const
-&aSys1, op::StatesTupleSTL const q, ScalarType const event) { bool const
-is_in_p = aSys0.events_[event]; bool const is_in_e = aSys1.events_[event];
+bool op::ExistTransitionVirtual(DESystem<NEvents> const &aSys0,
+DESystem<NEvents> const &aSys1, op::StatesTupleSTL const q, ScalarType const
+event) { bool const is_in_p = aSys0.events_[event]; bool const is_in_e =
+aSys1.events_[event];
 
     bool const is_in_x = (aSys0.states_events_[q.first])[event];
     bool const is_in_y = (aSys1.states_events_[q.second])[event];
@@ -505,13 +511,15 @@ is_in_p = aSys0.events_[event]; bool const is_in_e = aSys1.events_[event];
 }
     */
 
+template<cldes::cldes_size_t NEvents>
 cldes::cldes_size_t
-cldes::op::TransitionVirtual(cldes::DESystem const& aSys0,
-                             cldes::DESystem const& aSys1,
+cldes::op::TransitionVirtual(cldes::DESystem<NEvents> const& aSys0,
+                             cldes::DESystem<NEvents> const& aSys1,
                              cldes::cldes_size_t const& q,
                              cldes::ScalarType const& event)
 {
-    using RowIterator = Eigen::InnerIterator<DESystem::GraphHostData const>;
+    using RowIterator =
+      Eigen::InnerIterator<typename DESystem<NEvents>::GraphHostData const>;
 
     bool const is_in_p = aSys0.events_.test(event);
     bool const is_in_e = aSys1.events_.test(event);
@@ -557,20 +565,20 @@ cldes::op::TransitionVirtual(cldes::DESystem const& aSys0,
 }
 
 // This function assumes that there is an inverse transition.
-template<class EventsType>
+template<class EventsType, cldes::cldes_size_t NEvents>
 static cldes::op::StatesArray
 __TransitionVirtualInv(EventsType const& aEventsP,
                        EventsType const& aEventsE,
-                       cldes::op::GraphType const& aInvGraphP,
-                       cldes::op::GraphType const& aInvGraphE,
+                       cldes::op::GraphType<NEvents> const& aInvGraphP,
+                       cldes::op::GraphType<NEvents> const& aInvGraphE,
                        cldes::cldes_size_t const& q,
                        cldes::ScalarType const& event)
 {
-    using RowIterator =
-      Eigen::InnerIterator<cldes::DESystem::GraphHostData const>;
+    using RowIterator = Eigen::InnerIterator<
+      typename cldes::DESystem<NEvents>::GraphHostData const>;
 
-    auto const qx = q % aInvGraphP.rows();
-    auto const qy = q / aInvGraphP.rows();
+    cldes::cldes_size_t const qx = q % aInvGraphP.rows();
+    cldes::cldes_size_t const qy = q / aInvGraphP.rows();
 
     bool const is_in_p = aEventsP.test(event);
     bool const is_in_e = aEventsE.test(event);
@@ -578,7 +586,7 @@ __TransitionVirtualInv(EventsType const& aEventsP,
     cldes::op::StatesArray ret;
     // ret.reserve(cldes::g_max_events);
 
-    auto const p_size = aInvGraphP.rows();
+    cldes::cldes_size_t const p_size = aInvGraphP.rows();
 
     if (is_in_p && is_in_e) {
         cldes::op::StatesArray pstates;
@@ -611,15 +619,16 @@ __TransitionVirtualInv(EventsType const& aEventsP,
     return ret;
 }
 
+template<cldes::cldes_size_t NEvents>
 void
-cldes::op::RemoveBadStates(cldes::DESystem& aVirtualSys,
-                           cldes::DESystem const& aP,
-                           cldes::DESystem const& aE,
-                           cldes::op::GraphType const& aInvGraphP,
-                           cldes::op::GraphType const& aInvGraphE,
+cldes::op::RemoveBadStates(cldes::DESystem<NEvents>& aVirtualSys,
+                           cldes::DESystem<NEvents> const& aP,
+                           cldes::DESystem<NEvents> const& aE,
+                           cldes::op::GraphType<NEvents> const& aInvGraphP,
+                           cldes::op::GraphType<NEvents> const& aInvGraphE,
                            cldes::op::StatesTableSTL& C,
                            cldes::cldes_size_t const& q,
-                           cldes::EventsBitArray const& bit_non_contr,
+                           std::bitset<NEvents> const& bit_non_contr,
                            cldes::op::StatesTableSTL& rmtable)
 {
     StatesStack f;
@@ -660,16 +669,19 @@ cldes::op::RemoveBadStates(cldes::DESystem& aVirtualSys,
     return;
 }
 
-cldes::DESystem
-cldes::op::SupervisorSynth(cldes::DESystem const& aP,
-                           cldes::DESystem const& aE,
+template<cldes::cldes_size_t NEvents>
+typename cldes::DESystem<NEvents>
+cldes::op::SupervisorSynth(cldes::DESystem<NEvents> const& aP,
+                           cldes::DESystem<NEvents> const& aE,
                            QSet<cldes::ScalarType> const& non_contr)
 {
-    DESystem::GraphHostData const p_invgraph = aP.graph_.transpose();
-    DESystem::GraphHostData const e_invgraph = aE.graph_.transpose();
+    typename DESystem<NEvents>::GraphHostData const p_invgraph =
+      aP.graph_.transpose();
+    typename DESystem<NEvents>::GraphHostData const e_invgraph =
+      aE.graph_.transpose();
 
     // TODO: It may be in the new SynchronizeStage1
-    DESystem virtualsys;
+    DESystem<NEvents> virtualsys;
     virtualsys.init_state_ =
       aE.init_state_ * aP.states_number_ + aP.init_state_;
     virtualsys.is_cache_outdated_ = true;
@@ -684,8 +696,8 @@ cldes::op::SupervisorSynth(cldes::DESystem const& aP,
     virtualsys.only_in_1_ = aE.events_ ^ in_both;
 
     // non_contr in a bitarray structure
-    EventsBitArray non_contr_bit;
-    EventsBitArray p_non_contr_bit;
+    std::bitset<NEvents> non_contr_bit;
+    std::bitset<NEvents> p_non_contr_bit;
 
     // Evaluate which non contr event is in system and convert it to a
     // bitarray
@@ -746,7 +758,9 @@ cldes::op::SupervisorSynth(cldes::DESystem const& aP,
                 c.insert(q);
 
                 virtualsys.transtriplet_.push_back(std::make_pair(
-                  q, std::vector<std::pair<cldes_size_t, EventsBitArray>>()));
+                  q,
+                  std::vector<
+                    std::pair<cldes_size_t, std::bitset<NEvents>>>()));
 
                 auto event = 0ul;
                 auto event_it = q_events;
@@ -759,8 +773,8 @@ cldes::op::SupervisorSynth(cldes::DESystem const& aP,
                                 f.push(fsqe);
                             }
                             virtualsys.transtriplet_.back().second.push_back(
-                              std::make_pair(fsqe,
-                                             EventsBitArray{ 1ul << event }));
+                              std::make_pair(
+                                fsqe, std::bitset<NEvents>{ 1ul << event }));
                         }
                     }
                     ++event;

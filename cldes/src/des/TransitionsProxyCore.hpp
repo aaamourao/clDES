@@ -30,23 +30,26 @@
 
 #include "DESystem.hpp"
 
-cldes::TransitionProxy::TransitionProxy(cldes::DESystem* const aSysPtr,
-                                        cldes_size_t const& aLin,
-                                        cldes_size_t const& aCol)
+template<cldes::cldes_size_t NEvents>
+cldes::TransitionProxy<NEvents>::TransitionProxy(
+  cldes::DESystem<NEvents>* const aSysPtr,
+  cldes::cldes_size_t const& aLin,
+  cldes::cldes_size_t const& aCol)
   : sys_ptr_{ aSysPtr }
   , lin_{ aLin }
   , col_{ aCol }
 {
 }
 
-cldes::TransitionProxy&
-cldes::TransitionProxy::operator=(cldes::ScalarType aEventPos)
+template<cldes::cldes_size_t NEvents>
+cldes::TransitionProxy<NEvents>&
+cldes::TransitionProxy<NEvents>::operator=(cldes::ScalarType aEventPos)
 {
     // Add transition to the system
     sys_ptr_->events_[aEventPos] = true;
 
     // Create a unsigned long long representing the event
-    DESystem::EventsSet const event_ull = 1ul << aEventPos;
+    std::bitset<NEvents> const event_ull{ 1ul << aEventPos };
 
     // Add transition to the state events hash table
     sys_ptr_->states_events_[lin_] |= event_ull;
@@ -55,7 +58,7 @@ cldes::TransitionProxy::operator=(cldes::ScalarType aEventPos)
     sys_ptr_->inv_states_events_[col_] |= event_ull;
 
     // Add transition to graph
-    DESystem::EventsSet const last_value = sys_ptr_->graph_.coeff(lin_, col_);
+    std::bitset<NEvents> const last_value = sys_ptr_->graph_.coeff(lin_, col_);
     sys_ptr_->graph_.coeffRef(lin_, col_) = last_value | event_ull;
 
     // Add transition to bit graph, which is transposed

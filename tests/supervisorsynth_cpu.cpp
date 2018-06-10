@@ -53,7 +53,7 @@ main()
 
     std::set<cldes::cldes_size_t> plant_marked_states = { 0 };
 
-    cldes::DESystem plant{ 4, 0, plant_marked_states };
+    cldes::DESystem<4> plant{ 4, 0, plant_marked_states };
 
     plant(0, 1) = a0;
     plant(0, 2) = a1;
@@ -68,7 +68,7 @@ main()
 
     std::set<cldes::cldes_size_t> spec_marked_states = { 0, 1 };
 
-    cldes::DESystem spec{ 2, 0, spec_marked_states };
+    cldes::DESystem<4> spec{ 2, 0, spec_marked_states };
 
     spec(0, 1) = b0;
     spec(1, 0) = a1;

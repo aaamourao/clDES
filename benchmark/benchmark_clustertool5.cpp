@@ -30,6 +30,7 @@
 */
 
 #include "DESystem.hpp"
+#include "clustertool.hpp"
 #include "operations/Operations.hpp"
 #include "testlib.hpp"
 #include <chrono>
@@ -38,105 +39,29 @@
 
 using namespace std::chrono;
 
+template<cldes::cldes_size_t NEvents>
 void
 ClusterTool(unsigned long const& aNClusters,
-            std::vector<cldes::DESystem>& aPlants,
-            std::vector<cldes::DESystem>& aSpecs,
-            QSet<cldes::ScalarType>& non_contr)
-{
-    if (aPlants.size() != 0 || aSpecs.size() != 0 || non_contr.size() ||
-        aNClusters == 0) {
-        throw std::runtime_error("ClusterTool: Invalid inputs");
-    }
-
-    std::set<cldes::cldes_size_t> marked_states;
-    marked_states.emplace(0);
-
-    for (auto i = 0ul; i < aNClusters; ++i) {
-        auto const istart = i * 8ul;
-
-        if (i != aNClusters - 1ul) {
-            cldes::DESystem r_i{ 4, 0, marked_states };
-            r_i(0, 1) = istart;       // k
-            r_i(1, 0) = istart + 1ul; // k
-            r_i(0, 2) = istart + 2ul; // k
-            r_i(2, 0) = istart + 3ul; // k
-            r_i(0, 3) = istart + 4ul; // k
-            r_i(3, 0) = istart + 5ul; // k
-
-            aPlants.push_back(r_i);
-        } else {
-            cldes::DESystem r_i{ 3, 0, marked_states };
-            r_i(0, 1) = istart;       // k
-            r_i(1, 0) = istart + 1ul; // k
-            r_i(0, 2) = istart + 4ul; // k
-            r_i(2, 0) = istart + 3ul; // k
-
-            aPlants.push_back(r_i);
-        }
-
-        non_contr.insert(istart + 1ul);
-        non_contr.insert(istart + 3ul);
-        non_contr.insert(istart + 5ul);
-
-        cldes::DESystem c_i{ 2, 0, marked_states };
-        c_i(0, 1) = istart + 6ul; // k
-        c_i(1, 0) = istart + 7ul; // k
-
-        non_contr.insert(istart + 7ul);
-
-        aPlants.push_back(c_i);
-
-        cldes::DESystem e_i{ 3, 0, marked_states };
-        e_i(0, 1) = istart + 1ul; // k
-        e_i(1, 0) = istart + 6ul; // k
-        e_i(0, 2) = istart + 7ul; // k
-        e_i(2, 0) = istart + 4ul; // k
-
-        aSpecs.push_back(e_i);
-    }
-
-    for (auto i = 1ul; i < aNClusters; ++i) {
-        auto const istart = (i - 1) * 8ul;
-
-        cldes::DESystem e_ij{ 3, 0, marked_states };
-
-        e_ij(0, 1) = istart + 5ul;
-        e_ij(1, 0) = istart + 8ul;
-        e_ij(0, 2) = istart + 8ul + 3ul;
-        e_ij(2, 0) = istart + 2ul;
-
-        non_contr.insert(istart + 5ul);
-        non_contr.insert(istart + 8ul + 3ul);
-
-        aSpecs.push_back(e_ij);
-    }
-
-    return;
-}
-
+            std::vector<cldes::DESystem<NEvents>>& aPlants,
+            std::vector<cldes::DESystem<NEvents>>& aSpecs,
+            QSet<cldes::ScalarType>& non_contr);
 int
-main(int argc, char* argv[])
+main()
 {
-    if (argc != 2) {
-        throw std::runtime_error("Wrong usage");
-    }
-
     std::set<cldes::cldes_size_t> marked_states;
-    cldes::DESystem plant{ 1, 0, marked_states };
-    cldes::DESystem spec{ 1, 0, marked_states };
+    cldes::DESystem<40> plant{ 1, 0, marked_states };
+    cldes::DESystem<40> spec{ 1, 0, marked_states };
     QSet<cldes::ScalarType> non_contr;
 
     high_resolution_clock::time_point t1;
     high_resolution_clock::time_point t2;
 
     {
-        std::vector<cldes::DESystem> plants;
-        std::vector<cldes::DESystem> specs;
+        std::vector<cldes::DESystem<40>> plants;
+        std::vector<cldes::DESystem<40>> specs;
 
-        std::cout << "Generating ClusterTool(" << std::atoi(argv[1]) << ")"
-                  << std::endl;
-        ClusterTool(std::atoi(argv[1]), plants, specs, non_contr);
+        std::cout << "Generating ClusterTool(2)" << std::endl;
+        ClusterTool(5, plants, specs, non_contr);
 
         std::cout << "Synchronizing plants" << std::endl;
         high_resolution_clock::time_point t1 = high_resolution_clock::now();

@@ -35,8 +35,10 @@
 
 namespace cldes {
 
+template<cldes::cldes_size_t NEvents>
 class DESystem;
 
+template<cldes::cldes_size_t NEvents>
 class TransitionProxy
 {
 public:
@@ -48,7 +50,7 @@ public:
      * @param aLin Line of the element
      * @param aCol Column of the element
      */
-    TransitionProxy(DESystem* const aSysPtr,
+    TransitionProxy(DESystem<NEvents>* const aSysPtr,
                     cldes_size_t const& aLin,
                     cldes_size_t const& aCol);
 
@@ -80,7 +82,7 @@ private:
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystem* sys_ptr_;
+    DESystem<NEvents>* sys_ptr_;
 
     /*! \brief Element line.
      *

@@ -44,13 +44,13 @@ main()
     std::cout << "Creating DES" << std::endl;
     int const n_states = 4;
 
-    cldes::DESystem::StatesSet marked_states;
+    cldes::DESystem<3>::StatesSet marked_states;
     marked_states.insert(0);
     marked_states.insert(2);
 
     int const init_state = 0;
 
-    cldes::DESystem sys{ n_states, init_state, marked_states };
+    cldes::DESystem<3> sys{ n_states, init_state, marked_states };
 
     // Declare transitions: represented by prime numbers
     cldes::ScalarType const a = 0;
@@ -96,7 +96,7 @@ main()
 
     std::cout << "Creating new system" << std::endl;
 
-    cldes::DESystem new_sys{ n_states, init_state, marked_states };
+    cldes::DESystem<3> new_sys{ n_states, init_state, marked_states };
 
     // This graph has no transition from the 3rd state to th 4th one.
     new_sys(0, 0) = a;
