@@ -40,10 +40,6 @@
 
 namespace cldes {
 
-// class DESystem<NEvents>CL;
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
-class DESystem;
-
 namespace op {
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>

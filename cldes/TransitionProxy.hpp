@@ -36,9 +36,6 @@
 namespace cldes {
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
-class DESystem;
-
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
 class TransitionProxy
 {
 public:

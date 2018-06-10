@@ -29,12 +29,12 @@
  =========================================================================
 */
 
-#include "TransitionProxy.hpp"
 #include <QtCore/QSet>
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <functional>
 #include <vector>
+#include "TransitionProxy.hpp"
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>::DESystem(

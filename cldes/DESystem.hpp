@@ -45,18 +45,18 @@
 
 namespace cldes {
 /*
+ * Forward declarion of DESystem class necessary for the forward declaration of
+ * the DESystem's friend function op::Synchronize
+ */
+template<cldes::cldes_size_t NEvents = 32ul, typename StorageIndex = int>
+class DESystem;
+
+/*
  * Forward declarion of DESystem's friends class TransitionProxy. A transition
  * is an element of the adjascency matrix which implements the des graph.
  */
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 class TransitionProxy;
-
-/*
- * Forward declarion of DESystem class necessary for the forward declaration of
- * the DESystem's friend function op::Synchronize
- */
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
-class DESystem;
 
 namespace op {
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
@@ -117,7 +117,7 @@ SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 QSet<ScalarType> const& non_contr);
 } // namespace op
 
-template<cldes::cldes_size_t NEvents = 32ul, typename StorageIndex = int>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 class DESystem
 {
 public:

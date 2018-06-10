@@ -28,8 +28,6 @@
  =========================================================================
 */
 
-#include "DESystem.hpp"
-
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::TransitionProxy<NEvents, StorageIndex>::TransitionProxy(
   cldes::DESystem<NEvents, StorageIndex>* const aSysPtr,
