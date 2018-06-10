@@ -48,27 +48,29 @@ namespace cldes {
  * Forward declarion of DESystem's friends class TransitionProxy. A transition
  * is an element of the adjascency matrix which implements the des graph.
  */
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 class TransitionProxy;
 
 /*
  * Forward declarion of DESystem class necessary for the forward declaration of
  * the DESystem's friend function op::Synchronize
  */
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 class DESystem;
 
 namespace op {
-template<cldes::cldes_size_t NEvents>
-using GraphType = Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor>;
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+using GraphType =
+  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
 
 /*
  * Forward declarion of DESystem's friend function Synchronize which
  * implements the parallel composition between two DES.
  */
-template<cldes::cldes_size_t NEvents>
-cldes::DESystem<NEvents>
-Synchronize(DESystem<NEvents> const& aSys0, DESystem<NEvents> const& aSys1);
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>
+Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
+            DESystem<NEvents, StorageIndex> const& aSys1);
 
 struct StatesTable;
 
@@ -78,52 +80,55 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 using StatesTableSTL = QSet<cldes_size_t>;
 using StatesStack = QStack<cldes_size_t>;
 
-template<cldes::cldes_size_t NEvents>
-cldes::DESystem<NEvents>
-SynchronizeStage1(cldes::DESystem<NEvents> const& aSys0,
-                  cldes::DESystem<NEvents> const& aSys1);
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>
+SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(cldes::DESystem<NEvents>& aVirtualSys,
-                  cldes::DESystem<NEvents> const& aSys0,
-                  cldes::DESystem<NEvents> const& aSys1);
+SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys0,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::cldes_size_t
-TransitionVirtual(cldes::DESystem<NEvents> const& aSys0,
-                  cldes::DESystem<NEvents> const& aSys1,
+TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys1,
                   cldes::cldes_size_t const& q,
                   cldes::ScalarType const& event);
 
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 void
-RemoveBadStates(cldes::DESystem<NEvents>& aVirtualSys,
-                cldes::DESystem<NEvents> const& aP,
-                cldes::DESystem<NEvents> const& aE,
-                GraphType<NEvents> const& aInvGraphP,
-                GraphType<NEvents> const& aInvGraphE,
+RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
+                cldes::DESystem<NEvents, StorageIndex> const& aP,
+                cldes::DESystem<NEvents, StorageIndex> const& aE,
+                GraphType<NEvents, StorageIndex> const& aInvGraphP,
+                GraphType<NEvents, StorageIndex> const& aInvGraphE,
                 QSet<cldes_size_t>& C,
                 cldes_size_t const& q,
                 std::bitset<NEvents> const& s_non_contr,
                 StatesTableSTL& rmtable);
 
-template<cldes::cldes_size_t NEvents>
-cldes::DESystem<NEvents>
-SupervisorSynth(cldes::DESystem<NEvents> const& aP,
-                cldes::DESystem<NEvents> const& aS,
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>
+SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
+                cldes::DESystem<NEvents, StorageIndex> const& aS,
                 QSet<ScalarType> const& non_contr);
 } // namespace op
 
-template<cldes::cldes_size_t NEvents = 64ul>
+template<cldes::cldes_size_t NEvents = 32ul, typename StorageIndex = int>
 class DESystem
 {
 public:
     using EventsSet = std::bitset<NEvents>;
-    using GraphHostData = Eigen::SparseMatrix<EventsSet, Eigen::RowMajor>;
-    using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::RowMajor>;
+    using GraphHostData =
+      Eigen::SparseMatrix<EventsSet, Eigen::RowMajor, StorageIndex>;
+    using BitGraphHostData =
+      Eigen::SparseMatrix<bool, Eigen::RowMajor, StorageIndex>;
     using StatesSet = std::set<cldes_size_t>;
-    using StatesVector = Eigen::SparseMatrix<bool>;
+    using StatesVector =
+      Eigen::SparseMatrix<bool, Eigen::ColMajor, StorageIndex>;
     using StatesEventsTable = std::vector<EventsSet>;
 
     /*! \brief DESystem constructor with empty matrix
@@ -207,8 +212,8 @@ public:
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    TransitionProxy<NEvents> operator()(cldes_size_t const& aLin,
-                                        cldes_size_t const& aCol);
+    TransitionProxy<NEvents, StorageIndex> operator()(cldes_size_t const& aLin,
+                                                      cldes_size_t const& aCol);
 
     /*! \brief Returns number of states of the system
      *
@@ -238,35 +243,35 @@ protected:
     DESystem(){};
 
 private:
-    friend class TransitionProxy<NEvents>;
-    friend DESystem cldes::op::Synchronize<NEvents>(
-      DESystem<NEvents> const& aSys0,
-      DESystem<NEvents> const& aSys1);
-    friend DESystem cldes::op::SynchronizeStage1<NEvents>(
-      DESystem<NEvents> const& aSys0,
-      DESystem<NEvents> const& aSys1);
-    friend void cldes::op::SynchronizeStage2<NEvents>(
-      DESystem<NEvents>& aVirtualSys,
-      DESystem<NEvents> const& aSys0,
-      DESystem<NEvents> const& aSys1);
-    friend cldes_size_t cldes::op::TransitionVirtual<NEvents>(
-      DESystem<NEvents> const& aSys0,
-      DESystem<NEvents> const& aSys1,
+    friend class TransitionProxy<NEvents, StorageIndex>;
+    friend DESystem cldes::op::Synchronize<NEvents, StorageIndex>(
+      DESystem<NEvents, StorageIndex> const& aSys0,
+      DESystem<NEvents, StorageIndex> const& aSys1);
+    friend DESystem cldes::op::SynchronizeStage1<NEvents, StorageIndex>(
+      DESystem<NEvents, StorageIndex> const& aSys0,
+      DESystem<NEvents, StorageIndex> const& aSys1);
+    friend void cldes::op::SynchronizeStage2<NEvents, StorageIndex>(
+      DESystem<NEvents, StorageIndex>& aVirtualSys,
+      DESystem<NEvents, StorageIndex> const& aSys0,
+      DESystem<NEvents, StorageIndex> const& aSys1);
+    friend cldes_size_t cldes::op::TransitionVirtual<NEvents, StorageIndex>(
+      DESystem<NEvents, StorageIndex> const& aSys0,
+      DESystem<NEvents, StorageIndex> const& aSys1,
       cldes_size_t const& q,
       ScalarType const& event);
-    friend void cldes::op::RemoveBadStates<NEvents>(
-      DESystem<NEvents>& aVirtualSys,
-      DESystem<NEvents> const& aP,
-      DESystem<NEvents> const& aE,
-      op::GraphType<NEvents> const& aInvGraphP,
-      op::GraphType<NEvents> const& aInvGraphE,
+    friend void cldes::op::RemoveBadStates<NEvents, StorageIndex>(
+      DESystem<NEvents, StorageIndex>& aVirtualSys,
+      DESystem<NEvents, StorageIndex> const& aP,
+      DESystem<NEvents, StorageIndex> const& aE,
+      op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
+      op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
       QSet<cldes_size_t>& C,
       cldes_size_t const& q,
       std::bitset<NEvents> const& s_non_contr,
       QSet<cldes_size_t>& rmtable);
-    friend DESystem cldes::op::SupervisorSynth<NEvents>(
-      DESystem<NEvents> const& aP,
-      DESystem<NEvents> const& aE,
+    friend DESystem cldes::op::SupervisorSynth<NEvents, StorageIndex>(
+      DESystem<NEvents, StorageIndex> const& aP,
+      DESystem<NEvents, StorageIndex> const& aE,
       QSet<ScalarType> const& non_contr);
 
     /*! \brief Graph represented by an adjascency matrix

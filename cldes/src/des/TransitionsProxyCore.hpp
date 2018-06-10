@@ -30,9 +30,9 @@
 
 #include "DESystem.hpp"
 
-template<cldes::cldes_size_t NEvents>
-cldes::TransitionProxy<NEvents>::TransitionProxy(
-  cldes::DESystem<NEvents>* const aSysPtr,
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::TransitionProxy<NEvents, StorageIndex>::TransitionProxy(
+  cldes::DESystem<NEvents, StorageIndex>* const aSysPtr,
   cldes::cldes_size_t const& aLin,
   cldes::cldes_size_t const& aCol)
   : sys_ptr_{ aSysPtr }
@@ -41,9 +41,10 @@ cldes::TransitionProxy<NEvents>::TransitionProxy(
 {
 }
 
-template<cldes::cldes_size_t NEvents>
-cldes::TransitionProxy<NEvents>&
-cldes::TransitionProxy<NEvents>::operator=(cldes::ScalarType aEventPos)
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::TransitionProxy<NEvents, StorageIndex>&
+cldes::TransitionProxy<NEvents, StorageIndex>::operator=(
+  cldes::ScalarType aEventPos)
 {
     // Add transition to the system
     sys_ptr_->events_[aEventPos] = true;

@@ -45,14 +45,16 @@ ReadResult(T const& aOpResult, StringType const aHeader)
 
     return result.str();
 }
-template<unsigned int NEvents>
-using eigen_matrix = Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor>;
+template<unsigned int NEvents, typename StorageIndex>
+using eigen_matrix =
+  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
 
-template<typename StringType, size_t NEvents>
+template<typename StringType, size_t NEvents, typename StorageIndex>
 std::string
-ReadResult(
-  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor> const& aOpResult,
-  StringType const aHeader)
+ReadResult(Eigen::SparseMatrix<std::bitset<NEvents>,
+                               Eigen::RowMajor,
+                               StorageIndex> const& aOpResult,
+           StringType const aHeader)
 {
     std::ostringstream result;
 

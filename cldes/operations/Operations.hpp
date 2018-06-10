@@ -41,13 +41,14 @@
 namespace cldes {
 
 // class DESystem<NEvents>CL;
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 class DESystem;
 
 namespace op {
 
-template<cldes::cldes_size_t NEvents>
-using GraphType = Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor>;
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+using GraphType =
+  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
 
 using StatesArray = QVector<cldes_size_t>;
 
@@ -93,20 +94,20 @@ cldes::DESystem<NEvents>CL Synchronize(cldes::DESystem<NEvents>CL &aSys0,
 
 /*! \brief Returns the parallel composition between aSys0 and aSys1
  */
-template<cldes::cldes_size_t NEvents>
-cldes::DESystem<NEvents>
-Synchronize(cldes::DESystem<NEvents> const& aSys0,
-            cldes::DESystem<NEvents> const& aSys1);
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>
+Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
+            cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
 /*
 StatesTable *SynchronizeStage1(cldes::DESystem<NEvents>CL const &aSys0,
                                cldes::DESystem<NEvents>CL const &aSys1);
 */
 
-template<cldes::cldes_size_t NEvents>
-cldes::DESystem<NEvents>
-SynchronizeStage1(cldes::DESystem<NEvents> const& aSys0,
-                  cldes::DESystem<NEvents> const& aSys1);
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>
+SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
 /*
 cldes::DESystem<NEvents>CL SynchronizeStage2(StatesTable const *aTable,
@@ -114,35 +115,35 @@ cldes::DESystem<NEvents>CL SynchronizeStage2(StatesTable const *aTable,
                                     cldes::DESystem<NEvents>CL &aSys1);
 */
 
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(cldes::DESystem<NEvents>& aVirtualSys,
-                  cldes::DESystem<NEvents> const& aSys0,
-                  cldes::DESystem<NEvents> const& aSys1);
+SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys0,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::cldes_size_t
-TransitionVirtual(cldes::DESystem<NEvents> const& aSys0,
-                  cldes::DESystem<NEvents> const& aSys1,
+TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
+                  cldes::DESystem<NEvents, StorageIndex> const& aSys1,
                   cldes::cldes_size_t const& q,
                   cldes::ScalarType const& event);
 
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
 void
-RemoveBadStates(cldes::DESystem<NEvents>& aVirtualSys,
-                cldes::DESystem<NEvents> const& aP,
-                cldes::DESystem<NEvents> const& aE,
-                GraphType<NEvents> const& aInvGraphP,
-                GraphType<NEvents> const& aInvGraphE,
+RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
+                cldes::DESystem<NEvents, StorageIndex> const& aP,
+                cldes::DESystem<NEvents, StorageIndex> const& aE,
+                GraphType<NEvents, StorageIndex> const& aInvGraphP,
+                GraphType<NEvents, StorageIndex> const& aInvGraphE,
                 StatesTableSTL& C,
                 cldes_size_t const& q,
                 std::bitset<NEvents> const& bit_non_contr,
                 StatesTableSTL& rmtable);
 
-template<cldes::cldes_size_t NEvents>
-cldes::DESystem<NEvents>
-SupervisorSynth(cldes::DESystem<NEvents> const& aP,
-                cldes::DESystem<NEvents> const& aS,
+template<cldes::cldes_size_t NEvents, typename StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>
+SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
+                cldes::DESystem<NEvents, StorageIndex> const& aS,
                 QSet<cldes::ScalarType> const& non_contr);
 
 } // namespace op

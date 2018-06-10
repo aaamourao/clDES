@@ -39,26 +39,20 @@
 
 using namespace std::chrono;
 
-template<cldes::cldes_size_t NEvents>
-void
-ClusterTool(unsigned long const& aNClusters,
-            std::vector<cldes::DESystem<NEvents>>& aPlants,
-            std::vector<cldes::DESystem<NEvents>>& aSpecs,
-            QSet<cldes::ScalarType>& non_contr);
 int
 main()
 {
     std::set<cldes::cldes_size_t> marked_states;
-    cldes::DESystem<56> plant{ 1, 0, marked_states };
-    cldes::DESystem<56> spec{ 1, 0, marked_states };
+    cldes::DESystem<56, long> plant{ 1, 0, marked_states };
+    cldes::DESystem<56, long> spec{ 1, 0, marked_states };
     QSet<cldes::ScalarType> non_contr;
 
     high_resolution_clock::time_point t1;
     high_resolution_clock::time_point t2;
 
     {
-        std::vector<cldes::DESystem<56>> plants;
-        std::vector<cldes::DESystem<56>> specs;
+        std::vector<cldes::DESystem<56, long>> plants;
+        std::vector<cldes::DESystem<56, long>> specs;
 
         std::cout << "Generating ClusterTool(2)" << std::endl;
         ClusterTool(7, plants, specs, non_contr);

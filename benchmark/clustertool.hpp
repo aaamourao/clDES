@@ -32,11 +32,11 @@
 #include "DESystem.hpp"
 #include <vector>
 
-template<cldes::cldes_size_t NEvents>
+template<cldes::cldes_size_t NEvents, typename StorageIndex = int>
 void
 ClusterTool(unsigned long const& aNClusters,
-            std::vector<cldes::DESystem<NEvents>>& aPlants,
-            std::vector<cldes::DESystem<NEvents>>& aSpecs,
+            std::vector<cldes::DESystem<NEvents, StorageIndex>>& aPlants,
+            std::vector<cldes::DESystem<NEvents, StorageIndex>>& aSpecs,
             QSet<cldes::ScalarType>& non_contr)
 {
     if (aPlants.size() != 0 || aSpecs.size() != 0 || non_contr.size() ||
@@ -51,7 +51,7 @@ ClusterTool(unsigned long const& aNClusters,
         auto const istart = i * 8ul;
 
         if (i != aNClusters - 1ul) {
-            cldes::DESystem<NEvents> r_i{ 4, 0, marked_states };
+            cldes::DESystem<NEvents, StorageIndex> r_i{ 4, 0, marked_states };
             r_i(0, 1) = istart;       // k
             r_i(1, 0) = istart + 1ul; // k
             r_i(0, 2) = istart + 2ul; // k
@@ -61,7 +61,7 @@ ClusterTool(unsigned long const& aNClusters,
 
             aPlants.push_back(r_i);
         } else {
-            cldes::DESystem<NEvents> r_i{ 3, 0, marked_states };
+            cldes::DESystem<NEvents, StorageIndex> r_i{ 3, 0, marked_states };
             r_i(0, 1) = istart;       // k
             r_i(1, 0) = istart + 1ul; // k
             r_i(0, 2) = istart + 4ul; // k
@@ -74,7 +74,7 @@ ClusterTool(unsigned long const& aNClusters,
         non_contr.insert(istart + 3ul);
         non_contr.insert(istart + 5ul);
 
-        cldes::DESystem<NEvents> c_i{ 2, 0, marked_states };
+        cldes::DESystem<NEvents, StorageIndex> c_i{ 2, 0, marked_states };
         c_i(0, 1) = istart + 6ul; // k
         c_i(1, 0) = istart + 7ul; // k
 
@@ -82,7 +82,7 @@ ClusterTool(unsigned long const& aNClusters,
 
         aPlants.push_back(c_i);
 
-        cldes::DESystem<NEvents> e_i{ 3, 0, marked_states };
+        cldes::DESystem<NEvents, StorageIndex> e_i{ 3, 0, marked_states };
         e_i(0, 1) = istart + 1ul; // k
         e_i(1, 0) = istart + 6ul; // k
         e_i(0, 2) = istart + 7ul; // k
@@ -94,7 +94,7 @@ ClusterTool(unsigned long const& aNClusters,
     for (auto i = 1ul; i < aNClusters; ++i) {
         auto const istart = (i - 1) * 8ul;
 
-        cldes::DESystem<NEvents> e_ij{ 3, 0, marked_states };
+        cldes::DESystem<NEvents, StorageIndex> e_ij{ 3, 0, marked_states };
 
         e_ij(0, 1) = istart + 5ul;
         e_ij(1, 0) = istart + 8ul;

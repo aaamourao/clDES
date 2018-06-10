@@ -39,12 +39,6 @@
 
 using namespace std::chrono;
 
-template<cldes::cldes_size_t NEvents>
-void
-ClusterTool(unsigned long const& aNClusters,
-            std::vector<cldes::DESystem<NEvents>>& aPlants,
-            std::vector<cldes::DESystem<NEvents>>& aSpecs,
-            QSet<cldes::ScalarType>& non_contr);
 int
 main()
 {
