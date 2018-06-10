@@ -622,8 +622,9 @@ cldes::op::RemoveBadStates(
     f.push(q);
     rmtable.insert(q);
 
-    while (!f.isEmpty()) {
-        cldes_size_t const x = f.pop();
+    while (!f.empty()) {
+        cldes_size_t const x = f.top();
+        f.pop();
 
         cldes_size_t const x0 = x % aInvGraphP.rows();
         cldes_size_t const x1 = x / aInvGraphP.rows();
@@ -702,13 +703,14 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     StatesTableSTL rmtable;
 
     // f is a stack of states accessed in a dfs
-    QStack<cldes_size_t> f;
+    StatesStack f;
 
     // Initialize f and ftable with the initial state
     f.push(virtualsys.init_state_);
 
-    while (!f.isEmpty()) {
-        auto const q = f.pop();
+    while (!f.empty()) {
+        auto const q = f.top();
+        f.pop();
 
         if (!rmtable.contains(q) && !c.contains(q)) {
             // q = (qx, qy)

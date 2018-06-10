@@ -41,6 +41,7 @@
 #include <QtCore/QPair>
 #include <QtCore/QStack>
 #include <set>
+#include <stack>
 #include <tuple>
 
 namespace cldes {
@@ -78,7 +79,7 @@ struct StatesTuple;
 
 using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 using StatesTableSTL = QSet<cldes_size_t>;
-using StatesStack = QStack<cldes_size_t>;
+using StatesStack = std::stack<cldes_size_t>;
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>

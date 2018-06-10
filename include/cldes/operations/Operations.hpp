@@ -35,7 +35,7 @@
 #include <Eigen/Sparse>
 #include <QtCore/QHash>
 #include <QtCore/QSet>
-#include <QtCore/QStack>
+#include <stack>
 #include <tuple>
 
 namespace cldes {
@@ -46,7 +46,7 @@ template<cldes::cldes_size_t NEvents, typename StorageIndex>
 using GraphType =
   Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
 
-using StatesArray = QVector<cldes_size_t>;
+using StatesArray = std::vector<cldes_size_t>;
 
 /*
 typedef struct StatesTuple {
@@ -70,7 +70,7 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
  */
 using StatesTableSTL = QSet<cldes_size_t>;
 
-using StatesStack = QStack<cldes_size_t>;
+using StatesStack = std::stack<cldes_size_t>;
 
 /*
 template <class KernelType>
