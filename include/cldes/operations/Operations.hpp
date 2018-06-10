@@ -69,6 +69,7 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 /*! \brief Hash table of tuples representing a virtual synch (stage 1)
  */
 using StatesTableSTL = QSet<cldes_size_t>;
+using EventsTableSTL = QSet<ScalarType>;
 
 using StatesStack = std::stack<cldes_size_t>;
 
@@ -140,7 +141,7 @@ template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aS,
-                QSet<cldes::ScalarType> const& non_contr);
+                EventsTableSTL const& non_contr);
 
 } // namespace op
 } // namespace cldes

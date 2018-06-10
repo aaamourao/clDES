@@ -661,7 +661,7 @@ template<cldes::cldes_size_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                            cldes::DESystem<NEvents, StorageIndex> const& aE,
-                           QSet<cldes::ScalarType> const& non_contr)
+                           op::EventsTableSTL const& non_contr)
 {
     typename DESystem<NEvents, StorageIndex>::GraphHostData const p_invgraph =
       aP.graph_.transpose();

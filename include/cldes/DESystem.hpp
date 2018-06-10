@@ -80,6 +80,7 @@ struct StatesTuple;
 using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 using StatesTableSTL = QSet<cldes_size_t>;
 using StatesStack = std::stack<cldes_size_t>;
+using EventsTableSTL = QSet<ScalarType>;
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
@@ -106,7 +107,7 @@ RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
                 GraphType<NEvents, StorageIndex> const& aInvGraphP,
                 GraphType<NEvents, StorageIndex> const& aInvGraphE,
-                QSet<cldes_size_t>& C,
+                StatesTableSTL& C,
                 cldes_size_t const& q,
                 std::bitset<NEvents> const& s_non_contr,
                 StatesTableSTL& rmtable);
@@ -115,7 +116,7 @@ template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aS,
-                QSet<ScalarType> const& non_contr);
+                EventsTableSTL const& non_contr);
 } // namespace op
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
