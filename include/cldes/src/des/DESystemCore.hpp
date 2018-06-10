@@ -137,8 +137,8 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
      *     Y = G^T * X
      */
     // There is no need of search if a marked state is coaccessible
-    StatesVector host_x{ static_cast<Eigen::Index>(states_number_),
-                         static_cast<Eigen::Index>(aInitialNodes.size()) };
+    StatesVector host_x{ static_cast<StorageIndex>(states_number_),
+                         static_cast<StorageIndex>(aInitialNodes.size()) };
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
@@ -164,7 +164,7 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-    StatesVector host_x{ static_cast<Eigen::Index>(states_number_), 1 };
+    StatesVector host_x{ static_cast<StorageIndex>(states_number_), 1 };
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
@@ -194,8 +194,8 @@ cldes::DESystem<NEvents, StorageIndex>::BfsCalc_(
     cldes_size_t n_initial_nodes = aHostX.cols();
 
     // Executes BFS
-    StatesVector y{ static_cast<Eigen::Index>(states_number_),
-                    static_cast<Eigen::Index>(n_initial_nodes) };
+    StatesVector y{ static_cast<StorageIndex>(states_number_),
+                    static_cast<StorageIndex>(n_initial_nodes) };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
         // Using auto bellow results in compile error
@@ -254,8 +254,8 @@ cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()
       bit_graph_.transpose();
 
     Eigen::Index const n_marked =
-      static_cast<Eigen::Index>(marked_states_.size());
-    StatesVector x{ static_cast<Eigen::Index>(states_number_), n_marked };
+      static_cast<StorageIndex>(marked_states_.size());
+    StatesVector x{ static_cast<StorageIndex>(states_number_), n_marked };
     x.reserve(marked_states_.size());
 
     {
@@ -266,7 +266,7 @@ cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()
         }
     }
 
-    StatesVector y{ static_cast<Eigen::Index>(states_number_), n_marked };
+    StatesVector y{ static_cast<StorageIndex>(states_number_), n_marked };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
         y = invgraph * x;
@@ -310,9 +310,9 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
       bit_graph_.transpose();
 
     Eigen::Index const n_marked =
-      static_cast<Eigen::Index>(marked_states_.size());
+      static_cast<StorageIndex>(marked_states_.size());
 
-    StatesVector x{ static_cast<Eigen::Index>(states_number_), n_marked };
+    StatesVector x{ static_cast<StorageIndex>(states_number_), n_marked };
     x.reserve(marked_states_.size());
     std::vector<BitTriplet> xtriplet;
 
@@ -327,7 +327,7 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
                       xtriplet.end(),
                       [](bool const&, bool const&) { return true; });
 
-    StatesVector y{ static_cast<Eigen::Index>(states_number_), n_marked };
+    StatesVector y{ static_cast<StorageIndex>(states_number_), n_marked };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < states_number_; ++i) {
         y = invgraph * x;
@@ -376,10 +376,10 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     // Copy graph and resize it
     auto const old_graph = graph_;
     states_number_ = trimstates.size();
-    graph_.resize(static_cast<Eigen::Index>(states_number_),
-                  static_cast<Eigen::Index>(states_number_));
-    bit_graph_.resize(static_cast<Eigen::Index>(states_number_),
-                      static_cast<Eigen::Index>(states_number_));
+    graph_.resize(static_cast<StorageIndex>(states_number_),
+                  static_cast<StorageIndex>(states_number_));
+    bit_graph_.resize(static_cast<StorageIndex>(states_number_),
+                      static_cast<StorageIndex>(states_number_));
 
     states_events_.erase(states_events_.begin() + states_number_,
                          states_events_.end());
