@@ -31,7 +31,7 @@
 #ifndef TRANSITION_PROXY_HPP
 #define TRANSITION_PROXY_HPP
 
-#include "constants.hpp"
+#include "cldes/constants.hpp"
 
 namespace cldes {
 
@@ -97,6 +97,6 @@ private:
 } // namespace cldes
 
 // including implementation
-#include "src/des/TransitionsProxyCore.hpp"
+#include "cldes/src/des/TransitionsProxyCore.hpp"
 
 #endif // TRANSITION_PROXY_HPP

@@ -31,7 +31,7 @@
 #ifndef OPERATIONS_HPP
 #define OPERATIONS_HPP
 
-#include "constants.hpp"
+#include "cldes/constants.hpp"
 #include <Eigen/Sparse>
 #include <QtCore/QHash>
 #include <QtCore/QSet>
@@ -146,5 +146,5 @@ SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
 } // namespace cldes
 
 // Including implementation
-#include "src/operations/OperationsCore.hpp"
+#include "cldes/src/operations/OperationsCore.hpp"
 #endif // DESYSTEM_HPP

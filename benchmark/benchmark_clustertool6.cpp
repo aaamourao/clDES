@@ -29,9 +29,9 @@
  =========================================================================
 */
 
-#include "DESystem.hpp"
+#include "cldes/DESystem.hpp"
 #include "clustertool.hpp"
-#include "operations/Operations.hpp"
+#include "cldes/operations/Operations.hpp"
 #include "testlib.hpp"
 #include <chrono>
 #include <cstdlib>

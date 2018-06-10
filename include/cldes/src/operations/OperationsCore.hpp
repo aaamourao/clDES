@@ -31,7 +31,7 @@
 #include <algorithm>
 #include <cmath>
 // #include "backend/oclbackend.hpp"
-#include "DESystem.hpp"
+#include "cldes/DESystem.hpp"
 // #include "desystemcl.hpp"
 #include <Eigen/Sparse>
 #include <QtCore/QVector>
@@ -494,26 +494,6 @@ cldes::op::SynchronizeStage2(
     aVirtualSys.only_in_0_.reset();
     aVirtualSys.only_in_1_.reset();
 }
-
-/*
-bool op::ExistTransitionVirtual(DESystem<NEvents> const &aSys0,
-DESystem<NEvents> const &aSys1, op::StatesTupleSTL const q, ScalarType const
-event) { bool const is_in_p = aSys0.events_[event]; bool const is_in_e =
-aSys1.events_[event];
-
-    bool const is_in_x = (aSys0.states_events_[q.first])[event];
-    bool const is_in_y = (aSys1.states_events_[q.second])[event];
-
-    bool exist_transition = false;
-
-    if ((is_in_x && is_in_y) || (is_in_x && !is_in_e) ||
-        (is_in_y && !is_in_p)) {
-        exist_transition = true;
-    }
-
-    return exist_transition;
-}
-    */
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::cldes_size_t

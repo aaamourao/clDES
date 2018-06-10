@@ -36,7 +36,7 @@
 #define VIENNACL_WITH_OPENCL
 #endif
 
-#include "constants.hpp"
+#include "cldes/constants.hpp"
 #include <Eigen/Sparse>
 #include <QtCore/QPair>
 #include <QtCore/QStack>
@@ -400,6 +400,6 @@ private:
 } // namespace cldes
 
 // Include DESystem implementation
-#include "src/des/DESystemCore.hpp"
+#include "cldes/src/des/DESystemCore.hpp"
 
 #endif // DESYSTEM_HPP

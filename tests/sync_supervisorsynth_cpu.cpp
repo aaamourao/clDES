@@ -29,13 +29,13 @@
  =========================================================================
 */
 
-#include "DESystem.hpp"
+#include "cldes/DESystem.hpp"
 #include <chrono>
 #include <iostream>
 #include <sstream>
 #include <string>
 
-#include "operations/Operations.hpp"
+#include "cldes/operations/Operations.hpp"
 #include "testlib.hpp"
 
 using namespace std::chrono;

@@ -29,7 +29,7 @@
  =========================================================================
 */
 
-#include "DESystem.hpp"
+#include "cldes/DESystem.hpp"
 #include <vector>
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex = int>
