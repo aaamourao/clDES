@@ -42,17 +42,17 @@ using namespace std::chrono;
 int
 main()
 {
-    std::set<int> marked_states;
-    cldes::DESystem<48> plant{ 1, 0, marked_states };
-    cldes::DESystem<48> spec{ 1, 0, marked_states };
-    cldes::DESystem<48>::EventsTable non_contr;
+    std::set<long> marked_states;
+    cldes::DESystem<48, long> plant{ 1, 0, marked_states };
+    cldes::DESystem<48, long> spec{ 1, 0, marked_states };
+    cldes::DESystem<48, long>::EventsTable non_contr;
 
     high_resolution_clock::time_point t1;
     high_resolution_clock::time_point t2;
 
     {
-        std::vector<cldes::DESystem<48>> plants;
-        std::vector<cldes::DESystem<48>> specs;
+        std::vector<cldes::DESystem<48, long>> plants;
+        std::vector<cldes::DESystem<48, long>> specs;
 
         std::cout << "Generating ClusterTool(2)" << std::endl;
         ClusterTool(6, plants, specs, non_contr);
