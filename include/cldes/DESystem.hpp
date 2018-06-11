@@ -36,7 +36,7 @@
 #define VIENNACL_WITH_OPENCL
 #endif
 
-#include "cldes/constants.hpp"
+#include "cldes/Constants.hpp"
 #include <Eigen/Sparse>
 #include <set>
 #include <sparsepp/spp.h>
@@ -44,6 +44,7 @@
 #include <tuple>
 #include <vector>
 
+// Forward declarations
 namespace cldes {
 /*
  * Forward declarion of DESystem class necessary for the forward declaration of
@@ -59,6 +60,7 @@ class DESystem;
 template<size_t NEvents, typename StorageIndex>
 class TransitionProxy;
 
+// Forward declartions of friends functions which implement des operations
 namespace op {
 template<size_t NEvents, typename StorageIndex>
 using GraphType =
@@ -75,39 +77,52 @@ cldes::DESystem<NEvents, StorageIndex>
 Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
             DESystem<NEvents, StorageIndex> const& aSys1);
 
+// Table containing states of a system on the device mem
 struct StatesTable;
 
+/*
+ * Tuple which implements the virtual states of sync a system on the device
+ * memory
+ */
 struct StatesTuple;
 
+// Tuple representing a virtual state
 template<typename StorageIndex>
-using StatesTupleSTL = std::pair<StorageIndex, StorageIndex>;
+using StatesTupleHost = std::pair<StorageIndex, StorageIndex>;
 
+// Table containing virtual states of a virtual system as integers/longs
 template<typename StorageIndex>
-using StatesTableSTL = spp::sparse_hash_set<StorageIndex>;
+using StatesTableHost = spp::sparse_hash_set<StorageIndex>;
 
+// Stack of states for implementing a DFS
 template<typename StorageIndex>
 using StatesStack = std::stack<StorageIndex>;
 
-using EventsTableSTL = spp::sparse_hash_set<unsigned>;
+// Table of events
+using EventsTableHost = spp::sparse_hash_set<unsigned>;
 
+// Implements the first stage of the parallel composition: gen tuples
 template<size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
+// Implements the second stage of the parallel composition: calc transitions
 template<size_t NEvents, typename StorageIndex>
 void
 SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
+// Calculate f(q, event) of a virtual system
 template<size_t NEvents, typename StorageIndex>
 StorageIndex
 TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1,
-                  StorageIndex const& q,
-                  cldes::ScalarType const& event);
+                  StorageIndex const& aQ,
+                  cldes::ScalarType const& aEvent);
 
+// Remove bad states recursively
 template<size_t NEvents, typename StorageIndex>
 void
 RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
@@ -115,38 +130,103 @@ RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
                 GraphType<NEvents, StorageIndex> const& aInvGraphP,
                 GraphType<NEvents, StorageIndex> const& aInvGraphE,
-                StatesTableSTL<StorageIndex>& C,
-                StorageIndex const& q,
-                std::bitset<NEvents> const& s_non_contr,
-                StatesTableSTL<StorageIndex>& rmtable);
+                StatesTableHost<StorageIndex>& aC,
+                StorageIndex const& aQ,
+                std::bitset<NEvents> const& aNonContrBit,
+                StatesTableHost<StorageIndex>& aRmTable);
 
+// Calculate the monolithic supervisor of a fiven plant and spec
 template<size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aS,
-                EventsTableSTL const& non_contr);
+                EventsTableHost const& aNonContr);
 } // namespace op
 
+/*! \brief Discrete-Events System on host memory
+ *
+ * Implement a DES on the host memory and their respective operations for CPUs.
+ *
+ * @param NEvents Number of events
+ * @param StorageIndex Unsigned type use for indexing the ajacency matrix
+ */
 template<size_t NEvents, typename StorageIndex>
 class DESystem
 {
 public:
+    /*! \brief Bit array representing an events set
+     *
+     * Each bit represent a different event.
+     * 0 -> does not contain event
+     * 1 -> contains event
+     */
     using EventsSet = std::bitset<NEvents>;
+
+    /*! \brief Adjacency matrix of bitarrays implementing a graph
+     *
+     * The graph represents the DES automata:
+     * Non zero element: contains at least a transition
+     * Each non 0 bit of each element: event that lead to the next stage
+     *
+     * row index: from state
+     * col index: to state
+     */
     using GraphHostData =
       Eigen::SparseMatrix<EventsSet,
                           Eigen::RowMajor,
                           typename std::make_signed<StorageIndex>::type>;
+
+    /*! \brief Adjacency matrix of bit implementing a graph
+     *
+     * Sparse matrix implementing a graph with an adjacency matrix.
+     * The graph represents a simplified DES automata:
+     * Non zero element (true): contains at least a transition
+     *
+     * row index: from state
+     * col index: to state
+     */
     using BitGraphHostData =
       Eigen::SparseMatrix<bool,
                           Eigen::RowMajor,
                           typename std::make_signed<StorageIndex>::type>;
+
+    /*! \brief Adjacency  matrix of bit implementing searching nodes
+     *
+     * Structure used for traversing the graph using a linear algebra approach
+     */
     using StatesVector =
       Eigen::SparseMatrix<bool,
                           Eigen::ColMajor,
                           typename std::make_signed<StorageIndex>::type>;
+
+    /*! \brief Set of states type
+     */
     using StatesSet = std::set<StorageIndex>;
+
+    /*! \brief Table of transitions on a STL container
+     */
     using StatesEventsTable = std::vector<EventsSet>;
+
+    /*! \brief Set of Events implemented as a Hash Table for searching
+     * efficiently.
+     */
     using EventsTable = spp::sparse_hash_set<unsigned>;
+
+    /*! \brief Vector of states type
+     */
+    using StatesTable = std::vector<StorageIndex>;
+
+    /*! \brief Arguments of a transition function vector
+     *
+     * f(s, e) = s_out -> (s, e) are the arguments
+     */
+    using ArgTransition = std::vector<std::pair<StorageIndex, EventsSet>> ;
+
+    /*! \brief Vector of inverted transitions
+     *
+     * f(s, e) = s_out -> (s_out, (s, e)) is the inverted transition.
+     */
+    using InvTransition = std::vector<std::pair<StorageIndex, ArgTransition>>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -163,11 +243,17 @@ public:
                       StatesSet& aMarkedStates,
                       bool const& aDevCacheEnabled = true);
 
+    /*! \brief Copy constructor
+     *
+     * TODO: It will be necessary when the members used only for virtual systems
+     * become pointers.
+     */
     // DESystem(DESystem &aSys);
 
     /*! \brief DESystem destructor
      *
-     * Delete dinamically allocated data: graph and device_graph.
+     * TODO: It will be necessary when the members used only for virtual systems
+     * become pointers.
      */
     // virtual ~DESystem();
 
@@ -238,16 +324,20 @@ public:
      */
     StorageIndex Size() const { return states_number_; }
 
-    /*! \brief Set events_
+    /*! \brief Insert events
      *
      * Set the member events_ with a set containing all events that are present
-     * on the current system.
+     * on the current system. Take care using this method. It was designed for
+     * testing and debugging.
+     *
+     * @params aEvents Set containing all the new events of the current system
      */
     void InsertEvents(EventsSet const& aEvents);
 
     /*
      * TODO:
      * getters
+     * setters: e.g. remove transition, remove state
      * enable dev cache
      * ...
      */
@@ -260,6 +350,17 @@ protected:
     DESystem(){};
 
 private:
+    /*! \brief DESystem operations
+     *
+     * Functions which implement DES operations between two systems and need
+     * to access private members of DESystem. The design constrains that lead to
+     * declare all these friends functions are:
+     *
+     * * Functions which have more than one system as input and returns a
+     * different system should not be a member of DESystem class.
+     * * More efficiency when accessing vars than using getters and setters.
+     * * Define a different namespace for DES operations.
+     */
     friend class TransitionProxy<NEvents, StorageIndex>;
     friend DESystem cldes::op::Synchronize<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex> const& aSys0,
@@ -274,34 +375,45 @@ private:
     friend StorageIndex cldes::op::TransitionVirtual<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1,
-      StorageIndex const& q,
-      cldes::ScalarType const& event);
+      StorageIndex const& aQ,
+      cldes::ScalarType const& aEvent);
     friend void cldes::op::RemoveBadStates<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex>& aVirtualSys,
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
       op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
       op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
-      op::StatesTableSTL<StorageIndex>& C,
-      StorageIndex const& q,
-      std::bitset<NEvents> const& s_non_contr,
-      op::StatesTableSTL<StorageIndex>& rmtable);
+      op::StatesTableHost<StorageIndex>& aC,
+      StorageIndex const& aQ,
+      std::bitset<NEvents> const& aNonContr,
+      op::StatesTableHost<StorageIndex>& aRmTable);
     friend DESystem cldes::op::SupervisorSynth<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
-      op::EventsTableSTL const& non_contr);
+      op::EventsTableHost const& aNonContr);
 
     /*! \brief Graph represented by an adjascency matrix
      *
-     * A sparse matrix who represents the automata as a graph in an
-     * adjascency matrix. It is implemented as a CSR scheme. The pointer is
-     * constant, but its content should not be constant, as the graph should
-     * change many times at runtime.
+     * A sparse matrix which represents the automata as a graph in an
+     * adjascency matrix. It is implemented as a CSR scheme.
      *
+     * Non zero element: transition from <row index> to <col index> when events
+     * represented by the set bit indexes occurs.
+     *
+     * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the condition
+     * event 0 OR event 2.
      */
     GraphHostData graph_;
 
-    /*! \brief Bit graph represented by an adjascency matrix
+    /*! \brief Graph represented by an adjascency matrix
+     *
+     * A sparse bit matrix which represents when a state has any transition to
+     * other states plus the identity matrix. It is used to calculate the
+     * accessible part, coaccessible part and trim operations efficiently. The
+     * matrix is also transposed for making accessible part faster: when
+     * calculating trim states, it is always necessary to calculate the
+     * accessible part first. It implies that the accessible part usually is
+     * calculated with a larger matrix.
      */
     BitGraphHostData bit_graph_;
 
@@ -350,14 +462,39 @@ private:
      */
     StatesEventsTable states_events_;
 
-    /*! \brief data structures used in virtual systems
+    /*! \brief Virtual states contained in the current system
+     *
+     * Valid onnly when this system is virtual.
+     * TODO: Change it to a pointer and allocate only when the system is virtual
+     * and deallocate when it become a concrete system.
      */
-    std::vector<StorageIndex> virtual_states_;
+    StatesTable virtual_states_;
+
+    /*! \brief Events contained only in the left operator of a synchronizing op.
+     *
+     * Valid onnly when this system is virtual.
+     * TODO: Change it to a pointer and allocate only when the system is virtual
+     * and deallocate when it become a concrete system.
+     */
     EventsSet only_in_0_;
+
+    /*! \brief Events contained only in the right operator of a synchronizing
+     * op.
+     *
+     * Valid onnly when this system is virtual.
+     * TODO: Change it to a pointer and allocate only when the system is virtual
+     * and deallocate when it become a concrete system.
+     */
     EventsSet only_in_1_;
-    std::vector<
-      std::pair<StorageIndex, std::vector<std::pair<StorageIndex, EventsSet>>>>
-      transtriplet_;
+
+    /*! \brief Events contained only in the right operator of a synchronizing
+     * op.
+     *
+     * Valid onnly when this system is virtual.
+     * TODO: Change it to a pointer and allocate only when the system is virtual
+     * and deallocate when it become a concrete system.
+     */
+    InvTransition transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
      *
@@ -384,11 +521,16 @@ private:
      * in aInitialNodes. The algorithm is based on SpGEMM.
      *
      * @param aInitialNodes Set of nodes where the searches will start
+     * @param aBfsVisit Function to execute on every accessed state: it can be
+     * null
      */
     template<class StatesType>
     StatesSet* Bfs_(StatesType const& aInitialNodes,
                     std::function<void(StorageIndex const&,
                                        StorageIndex const&)> const& aBfsVisit);
+
+    /*! \brief Overload Bfs_ for the special case of a single initial node
+     */
     StatesSet* Bfs_(StorageIndex const& aInitialNode,
                     std::function<void(StorageIndex const&,
                                        StorageIndex const&)> const& aBfsVisit);
@@ -399,6 +541,10 @@ private:
      * node. The algorithm is based on SpGEMM.
      *
      * @param aInitialNode Where the search will start
+     * @param aBfsVisit Function to execute on every accessed state: it can be
+     * null
+     * @param aStatesMap Map each vector used to implement in a bfs when
+     * multiple ones are execute togheter: it can be null
      */
     StatesSet* BfsCalc_(
       StatesVector& aHostX,

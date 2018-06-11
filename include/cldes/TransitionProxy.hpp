@@ -31,10 +31,15 @@
 #ifndef TRANSITION_PROXY_HPP
 #define TRANSITION_PROXY_HPP
 
-#include "cldes/constants.hpp"
+#include "cldes/Constants.hpp"
 
 namespace cldes {
 
+/*! \brief Proxy to a transition of a Discrete-Events System
+ *
+ * @param NEvents Number of events
+ * @param StorageIndex Unsigned type for storing the indexes of each state
+ */
 template<size_t NEvents, typename StorageIndex>
 class TransitionProxy
 {

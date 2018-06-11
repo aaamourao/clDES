@@ -169,10 +169,9 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
           (aSys1.inv_states_events_[qy] & only_in_1);
 
         // Calculate sys states events
-        auto q_events =
-          (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
-          (aSys0.states_events_[qx] & only_in_0) |
-          (aSys1.states_events_[qy] & only_in_1);
+        auto q_events = (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
+                        (aSys0.states_events_[qx] & only_in_0) |
+                        (aSys1.states_events_[qy] & only_in_1);
         sys.states_events_[q] = q_events;
 
         // Add loop to bit_graph_ : bit graph = graph.in_bits + identity
@@ -183,8 +182,8 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
             if (q_events.test(0)) {
                 StorageIndex qto;
 
-                StorageIndex xto = -1;
-                StorageIndex yto = -1;
+                StorageIndex xto = 0;
+                StorageIndex yto = 0;
 
                 auto const is_in_p = aSys0.events_.test(event);
                 auto const is_in_e = aSys1.events_.test(event);
@@ -499,37 +498,37 @@ StorageIndex
 cldes::op::TransitionVirtual(
   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
   cldes::DESystem<NEvents, StorageIndex> const& aSys1,
-  StorageIndex const& q,
-  cldes::ScalarType const& event)
+  StorageIndex const& aQ,
+  cldes::ScalarType const& aEvent)
 {
     using RowIterator = Eigen::InnerIterator<
       typename DESystem<NEvents, StorageIndex>::GraphHostData const>;
 
-    bool const is_in_p = aSys0.events_.test(event);
-    bool const is_in_e = aSys1.events_.test(event);
+    auto const is_in_p = aSys0.events_.test(aEvent);
+    auto const is_in_e = aSys1.events_.test(aEvent);
 
-    StorageIndex const qx = q % aSys0.states_number_;
-    StorageIndex const qy = q / aSys0.states_number_;
+    auto const qx = aQ % aSys0.states_number_;
+    auto const qy = aQ / aSys0.states_number_;
 
-    StorageIndex xid = -1;
-    StorageIndex yid = -1;
+    StorageIndex xid = 0;
+    StorageIndex yid = 0;
 
     if (is_in_p && is_in_e) {
         for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
-            if (pe.value().test(event)) {
+            if (pe.value().test(aEvent)) {
                 xid = pe.col();
                 break;
             }
         }
         for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
-            if (ee.value().test(event)) {
+            if (ee.value().test(aEvent)) {
                 yid = ee.col();
                 break;
             }
         }
     } else if (is_in_e) {
         for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
-            if (ee.value().test(event)) {
+            if (ee.value().test(aEvent)) {
                 xid = qx;
                 yid = ee.col();
                 break;
@@ -537,7 +536,7 @@ cldes::op::TransitionVirtual(
         }
     } else {
         for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
-            if (pe.value().test(event)) {
+            if (pe.value().test(aEvent)) {
                 xid = pe.col();
                 yid = qy;
                 break;
@@ -556,17 +555,17 @@ __TransitionVirtualInv(
   EventsType const& aEventsE,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
-  StorageIndex const& q,
-  cldes::ScalarType const& event)
+  StorageIndex const& aQ,
+  cldes::ScalarType const& aEvent)
 {
     using RowIterator = Eigen::InnerIterator<
       typename cldes::DESystem<NEvents, StorageIndex>::GraphHostData const>;
 
-    StorageIndex const qx = q % aInvGraphP.rows();
-    StorageIndex const qy = q / aInvGraphP.rows();
+    StorageIndex const qx = aQ % aInvGraphP.rows();
+    StorageIndex const qy = aQ / aInvGraphP.rows();
 
-    bool const is_in_p = aEventsP.test(event);
-    bool const is_in_e = aEventsE.test(event);
+    bool const is_in_p = aEventsP.test(aEvent);
+    bool const is_in_e = aEventsE.test(aEvent);
 
     cldes::op::StatesArray<StorageIndex> ret;
     // ret.reserve(cldes::g_max_events);
@@ -576,12 +575,12 @@ __TransitionVirtualInv(
     if (is_in_p && is_in_e) {
         cldes::op::StatesArray<StorageIndex> pstates;
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
-            if (pe.value().test(event)) {
+            if (pe.value().test(aEvent)) {
                 pstates.push_back(pe.col());
             }
         }
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
-            if (ee.value().test(event)) {
+            if (ee.value().test(aEvent)) {
                 for (StorageIndex sp : pstates) {
                     ret.push_back(ee.col() * p_size + sp);
                 }
@@ -589,13 +588,13 @@ __TransitionVirtualInv(
         }
     } else if (is_in_p) { // Is only in p: is_in_p && !is_in_e
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
-            if (pe.value().test(event)) {
+            if (pe.value().test(aEvent)) {
                 ret.push_back(qy * p_size + pe.col());
             }
         }
     } else { // Is only in e: !is_in_p && is_in_e
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
-            if (ee.value().test(event)) {
+            if (ee.value().test(aEvent)) {
                 ret.push_back(ee.col() * p_size + qx);
             }
         }
@@ -612,14 +611,14 @@ cldes::op::RemoveBadStates(
   cldes::DESystem<NEvents, StorageIndex> const& aE,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
-  cldes::op::StatesTableSTL<StorageIndex>& C,
-  StorageIndex const& q,
-  std::bitset<NEvents> const& bit_non_contr,
-  cldes::op::StatesTableSTL<StorageIndex>& rmtable)
+  cldes::op::StatesTableHost<StorageIndex>& aC,
+  StorageIndex const& aQ,
+  std::bitset<NEvents> const& aNonContrBit,
+  cldes::op::StatesTableHost<StorageIndex>& aRmTable)
 {
     StatesStack<StorageIndex> f;
-    f.push(q);
-    rmtable.insert(q);
+    f.push(aQ);
+    aRmTable.insert(aQ);
 
     while (!f.empty()) {
         StorageIndex const x = f.top();
@@ -628,12 +627,12 @@ cldes::op::RemoveBadStates(
         StorageIndex const x0 = x % aInvGraphP.rows();
         StorageIndex const x1 = x / aInvGraphP.rows();
 
-       auto q_events =
+        auto q_events =
           (aP.inv_states_events_[x0] & aE.inv_states_events_[x1]) |
           (aP.inv_states_events_[x0] & aVirtualSys.only_in_0_) |
           (aE.inv_states_events_[x1] & aVirtualSys.only_in_1_);
 
-        q_events &= bit_non_contr;
+        q_events &= aNonContrBit;
 
         StorageIndex event = 0;
         while (q_events.any()) {
@@ -642,11 +641,11 @@ cldes::op::RemoveBadStates(
                   aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
 
                 for (StorageIndex s : finv) {
-                    if (rmtable.find(s) == rmtable.end()) {
+                    if (aRmTable.find(s) == aRmTable.end()) {
                         f.push(s);
-                        rmtable.insert(s);
-                        if (C.find(s) != C.end()) {
-                            C.erase(s);
+                        aRmTable.insert(s);
+                        if (aC.find(s) != aC.end()) {
+                            aC.erase(s);
                         }
                     }
                 }
@@ -662,20 +661,19 @@ template<size_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                            cldes::DESystem<NEvents, StorageIndex> const& aE,
-                           op::EventsTableSTL const& non_contr)
+                           op::EventsTableHost const& aNonContr)
 {
     typename DESystem<NEvents, StorageIndex>::GraphHostData const p_invgraph =
       aP.graph_.transpose();
     typename DESystem<NEvents, StorageIndex>::GraphHostData const e_invgraph =
       aE.graph_.transpose();
 
-    // TODO: It may be in the new SynchronizeStage1
+    // Define new systems params: Stage1 is not necessary
     DESystem<NEvents, StorageIndex> virtualsys;
     virtualsys.init_state_ =
       aE.init_state_ * aP.states_number_ + aP.init_state_;
     virtualsys.is_cache_outdated_ = true;
     virtualsys.events_ = aP.events_ | aE.events_;
-    // TODO
 
     // Alias to events in both systems
     auto const in_both = aP.events_ & aE.events_;
@@ -690,7 +688,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
 
     // Evaluate which non contr event is in system and convert it to a
     // bitarray
-    for (cldes::ScalarType event : non_contr) {
+    for (cldes::ScalarType event : aNonContr) {
         if (aP.events_.test(event)) {
             p_non_contr_bit.set(event);
             if (virtualsys.events_.test(event)) {
@@ -700,8 +698,8 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     }
 
     // Supervisor states
-    StatesTableSTL<StorageIndex> c;
-    StatesTableSTL<StorageIndex> rmtable;
+    StatesTableHost<StorageIndex> c;
+    StatesTableHost<StorageIndex> rmtable;
 
     // f is a stack of states accessed in a dfs
     StatesStack<StorageIndex> f;
