@@ -50,13 +50,13 @@ main()
     cldes::ScalarType const b1 = 3;
 
     // TODO: Implement a struct to encapsulate StatesTable
-    cldes::DESystem<4>::EventsTable non_contr;
+    cldes::DESystem<4u>::EventsTable non_contr;
     non_contr.insert(b0);
     non_contr.insert(b1);
 
-    std::set<cldes::cldes_size_t> plant_marked_states = { 0 };
+    std::set<int> plant_marked_states = { 0 };
 
-    cldes::DESystem<4> plant{ 4, 0, plant_marked_states };
+    cldes::DESystem<4u> plant{ 4, 0, plant_marked_states };
 
     plant(0, 1) = a0;
     plant(0, 2) = a1;
@@ -69,9 +69,9 @@ main()
 
     PrintGraph(plant.GetGraph(), "Plant");
 
-    std::set<cldes::cldes_size_t> spec_marked_states = { 0, 1 };
+    std::set<int> spec_marked_states = { 0, 1 };
 
-    cldes::DESystem<4> spec{ 2, 0, spec_marked_states };
+    cldes::DESystem<4u> spec{ 2, 0, spec_marked_states };
 
     spec(0, 1) = b0;
     spec(1, 0) = a1;

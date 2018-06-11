@@ -112,7 +112,7 @@ aSys1.states_number_;
 }
 */
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                        cldes::DESystem<NEvents, StorageIndex> const& aSys1)
@@ -122,14 +122,14 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
     using RowIterator = Eigen::InnerIterator<
       typename DESystem<NEvents, StorageIndex>::GraphHostData const>;
 
-    auto const in_both = aSys0.events_ & aSys1.events_;
-    auto const only_in_0 = aSys0.events_ ^ in_both;
-    auto const only_in_1 = aSys1.events_ ^ in_both;
+    std::bitset<NEvents> const in_both = aSys0.events_ & aSys1.events_;
+    std::bitset<NEvents> const only_in_0 = aSys0.events_ ^ in_both;
+    std::bitset<NEvents> const only_in_1 = aSys1.events_ ^ in_both;
 
     // Calculate new marked states
     typename DESystem<NEvents, StorageIndex>::StatesSet marked_states;
-    for (auto s0 : aSys0.marked_states_) {
-        for (auto s1 : aSys1.marked_states_) {
+    for (StorageIndex s0 : aSys0.marked_states_) {
+        for (StorageIndex s1 : aSys1.marked_states_) {
             marked_states.insert(s1 * aSys0.states_number_ + s0);
         }
     }
@@ -145,10 +145,10 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
     sys.events_ = aSys0.events_ | aSys1.events_;
 
     // Alias to states_number_
-    auto const nstates = sys.states_number_;
+    StorageIndex const nstates = sys.states_number_;
 
     // Calculate sparcity pattern
-    auto const sparcitypattern = sys.events_.count() * nstates;
+    StorageIndex const sparcitypattern = sys.events_.count() * nstates;
 
     // Reserve space for transitions
     std::vector<Triplet> triplet;
@@ -158,9 +158,9 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
     bittriplet.reserve(sparcitypattern);
 
     // Calculate transitions
-    for (auto q = 0ul; q < nstates; ++q) {
-        auto const qx = q % aSys0.states_number_;
-        auto const qy = q / aSys0.states_number_;
+    for (StorageIndex q = 0; q < nstates; ++q) {
+        StorageIndex const qx = q % aSys0.states_number_;
+        StorageIndex const qy = q / aSys0.states_number_;
 
         // Calculate sys inverse states events
         sys.inv_states_events_[q] =
@@ -169,21 +169,22 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
           (aSys1.inv_states_events_[qy] & only_in_1);
 
         // Calculate sys states events
-        auto q_events = (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
-                        (aSys0.states_events_[qx] & only_in_0) |
-                        (aSys1.states_events_[qy] & only_in_1);
+        std::bitset<NEvents> q_events =
+          (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
+          (aSys0.states_events_[qx] & only_in_0) |
+          (aSys1.states_events_[qy] & only_in_1);
         sys.states_events_[q] = q_events;
 
         // Add loop to bit_graph_ : bit graph = graph.in_bits + identity
         bittriplet.push_back(BitTriplet(q, q, true));
 
-        auto event = 0ul;
+        cldes::ScalarType event = 0;
         while (q_events.any()) {
             if (q_events.test(0)) {
-                cldes_size_t qto;
+                StorageIndex qto;
 
-                long xto = -1;
-                long yto = -1;
+                StorageIndex xto = -1;
+                StorageIndex yto = -1;
 
                 bool const is_in_p = aSys0.events_.test(event);
                 bool const is_in_e = aSys1.events_.test(event);
@@ -223,12 +224,12 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
 
                 triplet.push_back(
                   Triplet(q, qto, std::bitset<NEvents>{ 1ul << event }));
-                if (q != static_cast<cldes_size_t>(qto)) {
+                if (q != static_cast<StorageIndex>(qto)) {
                     bittriplet.push_back(BitTriplet(qto, q, true));
                 }
             }
             ++event;
-            q_events >>= 1ul;
+            q_events >>= 1;
         }
     }
 
@@ -253,7 +254,7 @@ op::StatesTable *op::SynchronizeStage1(DESystem<NEvents>CL const &aSys0,
 }
 */
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::SynchronizeStage1(
   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
@@ -265,8 +266,8 @@ cldes::op::SynchronizeStage1(
 
     // Calculate new marked states
     typename DESystem<NEvents, StorageIndex>::StatesSet marked_states;
-    for (auto s0 : aSys0.marked_states_) {
-        for (auto s1 : aSys1.marked_states_) {
+    for (StorageIndex s0 : aSys0.marked_states_) {
+        for (StorageIndex s1 : aSys1.marked_states_) {
             marked_states.insert(s1 * aSys0.states_number_ + s0);
         }
     }
@@ -285,9 +286,9 @@ cldes::op::SynchronizeStage1(
                                           aSys1.states_number_);
 
     // Calculate params
-    for (auto ix0 = 0ul; ix0 < aSys0.states_number_; ++ix0) {
-        for (auto ix1 = 0ul; ix1 < aSys1.states_number_; ++ix1) {
-            auto const key = ix1 * aSys0.states_number_ + ix0;
+    for (StorageIndex ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
+        for (StorageIndex ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
+            StorageIndex const key = ix1 * aSys0.states_number_ + ix0;
 
             virtualsys.virtual_states_.push_back(key);
 
@@ -398,7 +399,7 @@ markedstates_sync); viennacl::copy(result_dev, *(sync_sys.graph_));
 }
 */
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 void
 cldes::op::SynchronizeStage2(
   cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
@@ -409,7 +410,7 @@ cldes::op::SynchronizeStage2(
     using BitTriplet = Eigen::Triplet<bool, StorageIndex>;
 
     // Alias to new size
-    auto const nstates = aVirtualSys.virtual_states_.size();
+    StorageIndex const nstates = aVirtualSys.virtual_states_.size();
 
     // Update new size
     aVirtualSys.states_number_ = nstates;
@@ -423,7 +424,7 @@ cldes::op::SynchronizeStage2(
     aVirtualSys.bit_graph_.resize(nstates, nstates);
 
     // Estimate sparcity pattern
-    auto const sparcitypattern = aVirtualSys.events_.count() * nstates;
+    StorageIndex const sparcitypattern = aVirtualSys.events_.count() * nstates;
 
     // Reserve space for transitions
     std::vector<Triplet> triplet;
@@ -432,9 +433,9 @@ cldes::op::SynchronizeStage2(
     triplet.reserve(sparcitypattern);
     bittriplet.reserve(sparcitypattern + aVirtualSys.states_number_);
 
-    SparseStatesMap statesmap;
-    auto cst = 0ul;
-    for (auto s : aVirtualSys.virtual_states_) {
+    SparseStatesMap<StorageIndex> statesmap;
+    StorageIndex cst = 0;
+    for (StorageIndex s : aVirtualSys.virtual_states_) {
         statesmap[s] = cst;
         bittriplet.push_back(BitTriplet(cst, cst, true));
 
@@ -444,16 +445,16 @@ cldes::op::SynchronizeStage2(
     // Calculate transitions
     while (!aVirtualSys.transtriplet_.empty()) {
         auto q_trans = aVirtualSys.transtriplet_.back();
-        auto const q = q_trans.first;
+        StorageIndex const q = q_trans.first;
 
         while (!q_trans.second.empty()) {
             auto const qto_e = q_trans.second.back();
-            auto const qto = qto_e.first;
+            StorageIndex const qto = qto_e.first;
 
             if (statesmap.find(qto) != statesmap.end()) {
-                auto const event = qto_e.second;
-                auto const qto_mapped = statesmap[qto];
-                auto const q_mapped = statesmap[q];
+                std::bitset<NEvents> const event = qto_e.second;
+                StorageIndex const qto_mapped = statesmap[qto];
+                StorageIndex const q_mapped = statesmap[q];
 
                 triplet.push_back(
                   Triplet(q_mapped, qto_mapped, std::bitset<NEvents>{ event }));
@@ -474,9 +475,9 @@ cldes::op::SynchronizeStage2(
     aVirtualSys.bit_graph_.makeCompressed();
 
     // Remap marked states
-    for (auto s0 : aSys0.marked_states_) {
-        for (auto s1 : aSys1.marked_states_) {
-            auto const key = s1 * aSys0.states_number_ + s0;
+    for (StorageIndex s0 : aSys0.marked_states_) {
+        for (StorageIndex s1 : aSys1.marked_states_) {
+            StorageIndex const key = s1 * aSys0.states_number_ + s0;
             if (statesmap.find(key) != statesmap.end()) {
                 aVirtualSys.marked_states_.insert(statesmap[key]);
             }
@@ -493,12 +494,12 @@ cldes::op::SynchronizeStage2(
     aVirtualSys.only_in_1_.reset();
 }
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
-cldes::cldes_size_t
+template<size_t NEvents, typename StorageIndex>
+StorageIndex
 cldes::op::TransitionVirtual(
   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
   cldes::DESystem<NEvents, StorageIndex> const& aSys1,
-  cldes::cldes_size_t const& q,
+  StorageIndex const& q,
   cldes::ScalarType const& event)
 {
     using RowIterator = Eigen::InnerIterator<
@@ -507,11 +508,11 @@ cldes::op::TransitionVirtual(
     bool const is_in_p = aSys0.events_.test(event);
     bool const is_in_e = aSys1.events_.test(event);
 
-    cldes_size_t const qx = q % aSys0.states_number_;
-    cldes_size_t const qy = q / aSys0.states_number_;
+    StorageIndex const qx = q % aSys0.states_number_;
+    StorageIndex const qy = q / aSys0.states_number_;
 
-    long xid = -1;
-    long yid = -1;
+    StorageIndex xid = -1;
+    StorageIndex yid = -1;
 
     if (is_in_p && is_in_e) {
         for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
@@ -548,32 +549,32 @@ cldes::op::TransitionVirtual(
 }
 
 // This function assumes that there is an inverse transition.
-template<class EventsType, cldes::cldes_size_t NEvents, typename StorageIndex>
-static cldes::op::StatesArray
+template<class EventsType, size_t NEvents, typename StorageIndex>
+static typename cldes::op::StatesArray<StorageIndex>
 __TransitionVirtualInv(
   EventsType const& aEventsP,
   EventsType const& aEventsE,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
-  cldes::cldes_size_t const& q,
+  StorageIndex const& q,
   cldes::ScalarType const& event)
 {
     using RowIterator = Eigen::InnerIterator<
       typename cldes::DESystem<NEvents, StorageIndex>::GraphHostData const>;
 
-    cldes::cldes_size_t const qx = q % aInvGraphP.rows();
-    cldes::cldes_size_t const qy = q / aInvGraphP.rows();
+    StorageIndex const qx = q % aInvGraphP.rows();
+    StorageIndex const qy = q / aInvGraphP.rows();
 
     bool const is_in_p = aEventsP.test(event);
     bool const is_in_e = aEventsE.test(event);
 
-    cldes::op::StatesArray ret;
+    cldes::op::StatesArray<StorageIndex> ret;
     // ret.reserve(cldes::g_max_events);
 
-    cldes::cldes_size_t const p_size = aInvGraphP.rows();
+    StorageIndex const p_size = aInvGraphP.rows();
 
     if (is_in_p && is_in_e) {
-        cldes::op::StatesArray pstates;
+        cldes::op::StatesArray<StorageIndex> pstates;
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
             if (pe.value().test(event)) {
                 pstates.push_back(pe.col());
@@ -581,7 +582,7 @@ __TransitionVirtualInv(
         }
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
             if (ee.value().test(event)) {
-                for (auto sp : pstates) {
+                for (StorageIndex sp : pstates) {
                     ret.push_back(ee.col() * p_size + sp);
                 }
             }
@@ -603,7 +604,7 @@ __TransitionVirtualInv(
     return ret;
 }
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 void
 cldes::op::RemoveBadStates(
   cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
@@ -611,54 +612,53 @@ cldes::op::RemoveBadStates(
   cldes::DESystem<NEvents, StorageIndex> const& aE,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
   cldes::op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
-  cldes::op::StatesTableSTL& C,
-  cldes::cldes_size_t const& q,
+  cldes::op::StatesTableSTL<StorageIndex>& C,
+  StorageIndex const& q,
   std::bitset<NEvents> const& bit_non_contr,
-  cldes::op::StatesTableSTL& rmtable)
+  cldes::op::StatesTableSTL<StorageIndex>& rmtable)
 {
-    StatesStack f;
+    StatesStack<StorageIndex> f;
     f.push(q);
     rmtable.insert(q);
 
     while (!f.empty()) {
-        cldes_size_t const x = f.top();
+        StorageIndex const x = f.top();
         f.pop();
 
-        cldes_size_t const x0 = x % aInvGraphP.rows();
-        cldes_size_t const x1 = x / aInvGraphP.rows();
+        StorageIndex const x0 = x % aInvGraphP.rows();
+        StorageIndex const x1 = x / aInvGraphP.rows();
 
-        auto q_events =
+        std::bitset<NEvents> q_events =
           (aP.inv_states_events_[x0] & aE.inv_states_events_[x1]) |
           (aP.inv_states_events_[x0] & aVirtualSys.only_in_0_) |
           (aE.inv_states_events_[x1] & aVirtualSys.only_in_1_);
 
         q_events &= bit_non_contr;
 
-        auto event = 0ul;
+        StorageIndex event = 0;
         while (q_events.any()) {
             if (q_events.test(0)) {
-                auto const finv = __TransitionVirtualInv(
+                StatesArray<StorageIndex> const finv = __TransitionVirtualInv(
                   aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
 
-                for (auto s : finv) {
+                for (StorageIndex s : finv) {
                     if (rmtable.find(s) == rmtable.end()) {
                         f.push(s);
                         rmtable.insert(s);
-                        StatesTableSTL::const_iterator c_it = C.find(s);
-                        if (c_it != C.end()) {
+                        if (C.find(s) != C.end()) {
                             C.erase(s);
                         }
                     }
                 }
             }
             ++event;
-            q_events >>= 1ul;
+            q_events >>= 1;
         }
     }
     return;
 }
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                            cldes::DESystem<NEvents, StorageIndex> const& aE,
@@ -678,7 +678,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     // TODO
 
     // Alias to events in both systems
-    auto const in_both = aP.events_ & aE.events_;
+    std::bitset<NEvents> const in_both = aP.events_ & aE.events_;
 
     // Calculate event parameters
     virtualsys.only_in_0_ = aP.events_ ^ in_both;
@@ -690,7 +690,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
 
     // Evaluate which non contr event is in system and convert it to a
     // bitarray
-    for (auto event : non_contr) {
+    for (cldes::ScalarType event : non_contr) {
         if (aP.events_.test(event)) {
             p_non_contr_bit.set(event);
             if (virtualsys.events_.test(event)) {
@@ -700,11 +700,11 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     }
 
     // Supervisor states
-    StatesTableSTL c;
-    StatesTableSTL rmtable;
+    StatesTableSTL<StorageIndex> c;
+    StatesTableSTL<StorageIndex> rmtable;
 
     // f is a stack of states accessed in a dfs
-    StatesStack f;
+    StatesStack<StorageIndex> f;
 
     // Initialize f and ftable with the initial state
     f.push(virtualsys.init_state_);
@@ -715,20 +715,21 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
 
         if ((rmtable.find(q) == rmtable.end()) && (c.find(q) == c.end())) {
             // q = (qx, qy)
-            auto const qx = q % aP.states_number_;
-            auto const qy = q / aP.states_number_;
+            StorageIndex const qx = q % aP.states_number_;
+            StorageIndex const qy = q / aP.states_number_;
 
-            auto const q_events =
+            std::bitset<NEvents> const q_events =
               (aP.states_events_[qx] & aE.states_events_[qy]) |
               (aP.states_events_[qx] & virtualsys.only_in_0_) |
               (aE.states_events_[qy] & virtualsys.only_in_1_);
 
-            auto const in_ncqx = p_non_contr_bit & aP.states_events_[qx];
-            auto const in_ncqx_and_q = in_ncqx & q_events;
+            std::bitset<NEvents> const in_ncqx =
+              p_non_contr_bit & aP.states_events_[qx];
+            std::bitset<NEvents> const in_ncqx_and_q = in_ncqx & q_events;
 
             if (in_ncqx_and_q != in_ncqx) {
-                auto event = 0ul;
-                auto event_it = in_ncqx_and_q ^ in_ncqx;
+                cldes::ScalarType event = 0;
+                std::bitset<NEvents> event_it = in_ncqx_and_q ^ in_ncqx;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
                         RemoveBadStates(virtualsys,
@@ -742,7 +743,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                                         rmtable);
                     }
                     ++event;
-                    event_it >>= 1ul;
+                    event_it >>= 1;
                 }
             } else {
                 c.insert(q);
@@ -750,13 +751,14 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 virtualsys.transtriplet_.push_back(std::make_pair(
                   q,
                   std::vector<
-                    std::pair<cldes_size_t, std::bitset<NEvents>>>()));
+                    std::pair<StorageIndex, std::bitset<NEvents>>>()));
 
-                auto event = 0ul;
-                auto event_it = q_events;
+                cldes::ScalarType event = 0;
+                std::bitset<NEvents> event_it = q_events;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
-                        auto const fsqe = TransitionVirtual(aP, aE, q, event);
+                        StorageIndex const fsqe =
+                          TransitionVirtual(aP, aE, q, event);
 
                         if (rmtable.find(fsqe) == rmtable.end()) {
                             if (c.find(fsqe) == c.end()) {
@@ -768,7 +770,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                         }
                     }
                     ++event;
-                    event_it >>= 1ul;
+                    event_it >>= 1;
                 }
             }
         }

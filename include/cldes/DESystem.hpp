@@ -38,8 +38,8 @@
 
 #include "cldes/constants.hpp"
 #include <Eigen/Sparse>
-#include <sparsepp/spp.h>
 #include <set>
+#include <sparsepp/spp.h>
 #include <stack>
 #include <tuple>
 #include <vector>
@@ -49,18 +49,18 @@ namespace cldes {
  * Forward declarion of DESystem class necessary for the forward declaration of
  * the DESystem's friend function op::Synchronize
  */
-template<cldes::cldes_size_t NEvents = 32ul, typename StorageIndex = int>
+template<size_t NEvents = 32u, typename StorageIndex = int>
 class DESystem;
 
 /*
  * Forward declarion of DESystem's friends class TransitionProxy. A transition
  * is an element of the adjascency matrix which implements the des graph.
  */
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 class TransitionProxy;
 
 namespace op {
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 using GraphType =
   Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
 
@@ -68,7 +68,7 @@ using GraphType =
  * Forward declarion of DESystem's friend function Synchronize which
  * implements the parallel composition between two DES.
  */
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
             DESystem<NEvents, StorageIndex> const& aSys1);
@@ -77,49 +77,55 @@ struct StatesTable;
 
 struct StatesTuple;
 
-using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
-using StatesTableSTL = spp::sparse_hash_set<cldes_size_t>;
-using StatesStack = std::stack<cldes_size_t>;
-using EventsTableSTL = spp::sparse_hash_set<ScalarType>;
+template<typename StorageIndex>
+using StatesTupleSTL = std::pair<StorageIndex, StorageIndex>;
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<typename StorageIndex>
+using StatesTableSTL = spp::sparse_hash_set<StorageIndex>;
+
+template<typename StorageIndex>
+using StatesStack = std::stack<StorageIndex>;
+
+using EventsTableSTL = spp::sparse_hash_set<unsigned>;
+
+template<size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 void
 SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
-cldes::cldes_size_t
+template<size_t NEvents, typename StorageIndex>
+StorageIndex
 TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1,
-                  cldes::cldes_size_t const& q,
+                  StorageIndex const& q,
                   cldes::ScalarType const& event);
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 void
 RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                 cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
                 GraphType<NEvents, StorageIndex> const& aInvGraphP,
                 GraphType<NEvents, StorageIndex> const& aInvGraphE,
-                StatesTableSTL& C,
-                cldes_size_t const& q,
+                StatesTableSTL<StorageIndex>& C,
+                StorageIndex const& q,
                 std::bitset<NEvents> const& s_non_contr,
-                StatesTableSTL& rmtable);
+                StatesTableSTL<StorageIndex>& rmtable);
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aS,
                 EventsTableSTL const& non_contr);
 } // namespace op
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 class DESystem
 {
 public:
@@ -128,11 +134,11 @@ public:
       Eigen::SparseMatrix<EventsSet, Eigen::RowMajor, StorageIndex>;
     using BitGraphHostData =
       Eigen::SparseMatrix<bool, Eigen::RowMajor, StorageIndex>;
-    using StatesSet = std::set<cldes_size_t>;
+    using StatesSet = std::set<StorageIndex>;
     using StatesVector =
       Eigen::SparseMatrix<bool, Eigen::ColMajor, StorageIndex>;
     using StatesEventsTable = std::vector<EventsSet>;
-    using EventsTable = spp::sparse_hash_set<ScalarType>;
+    using EventsTable = spp::sparse_hash_set<unsigned>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -144,8 +150,8 @@ public:
      * @param aMarkedStates System's marked states
      * @aDevCacheEnabled Enable or disable device cache for graph data
      */
-    explicit DESystem(cldes_size_t const& aStatesNumber,
-                      cldes_size_t const& aInitState,
+    explicit DESystem(StorageIndex const& aStatesNumber,
+                      StorageIndex const& aInitState,
                       StatesSet& aMarkedStates,
                       bool const& aDevCacheEnabled = true);
 
@@ -204,8 +210,8 @@ public:
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    EventsSet const operator()(cldes_size_t const& aLin,
-                               cldes_size_t const& aCol) const;
+    EventsSet const operator()(StorageIndex const& aLin,
+                               StorageIndex const& aCol) const;
 
     /*! \brief Returns value of the specified transition
      *
@@ -215,14 +221,14 @@ public:
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    TransitionProxy<NEvents, StorageIndex> operator()(cldes_size_t const& aLin,
-                                                      cldes_size_t const& aCol);
+    TransitionProxy<NEvents, StorageIndex> operator()(StorageIndex const& aLin,
+                                                      StorageIndex const& aCol);
 
     /*! \brief Returns number of states of the system
      *
      * Returns states_value_ by value.
      */
-    cldes_size_t Size() const { return states_number_; }
+    StorageIndex Size() const { return states_number_; }
 
     /*! \brief Set events_
      *
@@ -257,21 +263,21 @@ private:
       DESystem<NEvents, StorageIndex>& aVirtualSys,
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1);
-    friend cldes_size_t cldes::op::TransitionVirtual<NEvents, StorageIndex>(
+    friend StorageIndex cldes::op::TransitionVirtual<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1,
-      cldes_size_t const& q,
-      ScalarType const& event);
+      StorageIndex const& q,
+      cldes::ScalarType const& event);
     friend void cldes::op::RemoveBadStates<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex>& aVirtualSys,
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
       op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
       op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
-      op::StatesTableSTL& C,
-      cldes_size_t const& q,
+      op::StatesTableSTL<StorageIndex>& C,
+      StorageIndex const& q,
       std::bitset<NEvents> const& s_non_contr,
-      op::StatesTableSTL& rmtable);
+      op::StatesTableSTL<StorageIndex>& rmtable);
     friend DESystem cldes::op::SupervisorSynth<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
@@ -310,13 +316,13 @@ private:
      * Hold the number of states that the automata contains. As the automata
      * can be cut, the states number is not a constant at all.
      */
-    cldes_size_t states_number_;
+    StorageIndex states_number_;
 
     /*! \brief Current system's initial state
      *
      * Hold the initial state position.
      */
-    cldes_size_t init_state_;
+    StorageIndex init_state_;
 
     /*! \brief Current system's marked states
      *
@@ -338,11 +344,11 @@ private:
 
     /*! \brief data structures used in virtual systems
      */
-    std::vector<cldes_size_t> virtual_states_;
+    std::vector<StorageIndex> virtual_states_;
     EventsSet only_in_0_;
     EventsSet only_in_1_;
     std::vector<
-      std::pair<cldes_size_t, std::vector<std::pair<cldes_size_t, EventsSet>>>>
+      std::pair<StorageIndex, std::vector<std::pair<StorageIndex, EventsSet>>>>
       transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
@@ -373,11 +379,11 @@ private:
      */
     template<class StatesType>
     StatesSet* Bfs_(StatesType const& aInitialNodes,
-                    std::function<void(cldes_size_t const&,
-                                       cldes_size_t const&)> const& aBfsVisit);
-    StatesSet* Bfs_(cldes_size_t const& aInitialNode,
-                    std::function<void(cldes_size_t const&,
-                                       cldes_size_t const&)> const& aBfsVisit);
+                    std::function<void(StorageIndex const&,
+                                       StorageIndex const&)> const& aBfsVisit);
+    StatesSet* Bfs_(StorageIndex const& aInitialNode,
+                    std::function<void(StorageIndex const&,
+                                       StorageIndex const&)> const& aBfsVisit);
 
     /*! \brief Calculates Bfs and returns accessed states array
      *
@@ -388,9 +394,9 @@ private:
      */
     StatesSet* BfsCalc_(
       StatesVector& aHostX,
-      std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
+      std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit,
-      std::vector<cldes_size_t> const* const aStatesMap);
+      std::vector<StorageIndex> const* const aStatesMap);
 
     /*! \brief Return a pointer to accessed states from the initial state
      *

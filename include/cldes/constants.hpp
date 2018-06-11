@@ -38,11 +38,6 @@
 namespace cldes {
 // Host adjascency matrix base type which represents an array of bits
 using ScalarType = size_t;
-
-// clDES base type for indexing matrices and arrays
-using cldes_size_t = size_t;
-
-using EventsLong = unsigned long;
 } // namespace cldes
 
 namespace std {

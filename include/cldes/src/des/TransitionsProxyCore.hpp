@@ -28,18 +28,18 @@
  =========================================================================
 */
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 cldes::TransitionProxy<NEvents, StorageIndex>::TransitionProxy(
   cldes::DESystem<NEvents, StorageIndex>* const aSysPtr,
-  cldes::cldes_size_t const& aLin,
-  cldes::cldes_size_t const& aCol)
+  StorageIndex const& aLin,
+  StorageIndex const& aCol)
   : sys_ptr_{ aSysPtr }
   , lin_{ aLin }
   , col_{ aCol }
 {
 }
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 cldes::TransitionProxy<NEvents, StorageIndex>&
 cldes::TransitionProxy<NEvents, StorageIndex>::operator=(
   cldes::ScalarType aEventPos)

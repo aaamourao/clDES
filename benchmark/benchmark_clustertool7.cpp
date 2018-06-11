@@ -42,7 +42,7 @@ using namespace std::chrono;
 int
 main()
 {
-    std::set<cldes::cldes_size_t> marked_states;
+    std::set<long> marked_states;
     cldes::DESystem<56, long> plant{ 1, 0, marked_states };
     cldes::DESystem<56, long> spec{ 1, 0, marked_states };
     cldes::DESystem<56>::EventsTable non_contr;

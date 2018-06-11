@@ -33,19 +33,19 @@
 #include <sparsepp/spp.h>
 #include <vector>
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex = int>
+template<size_t NEvents, typename StorageIndex = int>
 void
 ClusterTool(unsigned long const& aNClusters,
             std::vector<cldes::DESystem<NEvents, StorageIndex>>& aPlants,
             std::vector<cldes::DESystem<NEvents, StorageIndex>>& aSpecs,
-            spp::sparse_hash_set<cldes::ScalarType>& non_contr)
+            spp::sparse_hash_set<unsigned>& non_contr)
 {
     if (aPlants.size() != 0 || aSpecs.size() != 0 || non_contr.size() ||
         aNClusters == 0) {
         throw std::runtime_error("ClusterTool: Invalid inputs");
     }
 
-    std::set<cldes::cldes_size_t> marked_states;
+    std::set<StorageIndex> marked_states;
     marked_states.emplace(0);
 
     for (auto i = 0ul; i < aNClusters; ++i) {

@@ -41,7 +41,7 @@ using namespace std::chrono;
 int
 main()
 {
-    std::set<cldes::cldes_size_t> marked_states;
+    std::set<int> marked_states;
     marked_states.emplace(0);
     cldes::DESystem<32> plant{ 1, 0, marked_states };
     cldes::DESystem<32> spec{ 1, 0, marked_states };

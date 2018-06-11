@@ -54,7 +54,7 @@ main()
     non_contr.insert(b0);
     non_contr.insert(b1);
 
-    std::set<cldes::cldes_size_t> plant_marked_states = { 0 };
+    std::set<int> plant_marked_states = { 0 };
 
     cldes::DESystem<4> g1{ 2, 0, plant_marked_states };
 
@@ -70,7 +70,7 @@ main()
 
     PrintGraph(plant.GetGraph(), "Plant");
 
-    std::set<cldes::cldes_size_t> spec_marked_states = { 0, 1 };
+    std::set<int> spec_marked_states = { 0, 1 };
 
     cldes::DESystem<4> spec{ 2, 0, spec_marked_states };
 

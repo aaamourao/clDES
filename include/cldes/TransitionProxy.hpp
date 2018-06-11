@@ -35,7 +35,7 @@
 
 namespace cldes {
 
-template<cldes::cldes_size_t NEvents, typename StorageIndex>
+template<size_t NEvents, typename StorageIndex>
 class TransitionProxy
 {
 public:
@@ -48,8 +48,8 @@ public:
      * @param aCol Column of the element
      */
     TransitionProxy(DESystem<NEvents, StorageIndex>* const aSysPtr,
-                    cldes_size_t const& aLin,
-                    cldes_size_t const& aCol);
+                    StorageIndex const& aLin,
+                    StorageIndex const& aCol);
 
     /*! \brief Override operator "=" from TransitionProxy class
      *
@@ -58,7 +58,7 @@ public:
      *
      * @param aTransitionValue graph_(lin_, col_) new value
      */
-    TransitionProxy& operator=(ScalarType aTransitionValue);
+    TransitionProxy& operator=(cldes::ScalarType aTransitionValue);
 
     /*! \brief Override cast to ScalarType
      *
@@ -85,13 +85,13 @@ private:
      *
      * Line where the elem is located.
      */
-    cldes_size_t const lin_;
+    StorageIndex const lin_;
 
     /*! \brief Column line.
      *
      * Column where the elem is located.
      */
-    cldes_size_t const col_;
+    StorageIndex const col_;
 };
 
 } // namespace cldes
