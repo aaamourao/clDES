@@ -56,7 +56,8 @@ the system.
 
 **clDES** embedded libraries so far:
 
-* [ViennaCL 1.7.1](Efficient Linear Algebra Algorithms)
+* [ViennaCL 1.7.1](http://viennacl.sourceforge.net/) Efficient linear algebra
+  library for computations on many-core architectures.
 * [Sparsepp](https://github.com/greg7mdp/sparsepp): The faster sparse hash
   sets/maps **C++11** implementation I know.
 
