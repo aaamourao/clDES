@@ -43,6 +43,8 @@ using namespace std::chrono;
 int
 main()
 {
+    using StorageIndex = unsigned;
+
     // Declare transitions: represented by prime numbers
     cldes::ScalarType const a0 = 0; // event value: 1
     cldes::ScalarType const a1 = 1; // event value: 2
@@ -54,7 +56,7 @@ main()
     non_contr.insert(b0);
     non_contr.insert(b1);
 
-    std::set<int> plant_marked_states = { 0 };
+    std::set<StorageIndex> plant_marked_states = { 0 };
 
     cldes::DESystem<4> g1{ 2, 0, plant_marked_states };
 
@@ -70,7 +72,7 @@ main()
 
     PrintGraph(plant.GetGraph(), "Plant");
 
-    std::set<int> spec_marked_states = { 0, 1 };
+    std::set<StorageIndex> spec_marked_states = { 0, 1 };
 
     cldes::DESystem<4> spec{ 2, 0, spec_marked_states };
 

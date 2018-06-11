@@ -49,7 +49,7 @@ namespace cldes {
  * Forward declarion of DESystem class necessary for the forward declaration of
  * the DESystem's friend function op::Synchronize
  */
-template<size_t NEvents = 32u, typename StorageIndex = int>
+template<size_t NEvents = 32u, typename StorageIndex = unsigned>
 class DESystem;
 
 /*
@@ -62,7 +62,9 @@ class TransitionProxy;
 namespace op {
 template<size_t NEvents, typename StorageIndex>
 using GraphType =
-  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
+  Eigen::SparseMatrix<std::bitset<NEvents>,
+                      Eigen::RowMajor,
+                      typename std::make_signed<StorageIndex>::type>;
 
 /*
  * Forward declarion of DESystem's friend function Synchronize which
@@ -131,12 +133,18 @@ class DESystem
 public:
     using EventsSet = std::bitset<NEvents>;
     using GraphHostData =
-      Eigen::SparseMatrix<EventsSet, Eigen::RowMajor, StorageIndex>;
+      Eigen::SparseMatrix<EventsSet,
+                          Eigen::RowMajor,
+                          typename std::make_signed<StorageIndex>::type>;
     using BitGraphHostData =
-      Eigen::SparseMatrix<bool, Eigen::RowMajor, StorageIndex>;
-    using StatesSet = std::set<StorageIndex>;
+      Eigen::SparseMatrix<bool,
+                          Eigen::RowMajor,
+                          typename std::make_signed<StorageIndex>::type>;
     using StatesVector =
-      Eigen::SparseMatrix<bool, Eigen::ColMajor, StorageIndex>;
+      Eigen::SparseMatrix<bool,
+                          Eigen::ColMajor,
+                          typename std::make_signed<StorageIndex>::type>;
+    using StatesSet = std::set<StorageIndex>;
     using StatesEventsTable = std::vector<EventsSet>;
     using EventsTable = spp::sparse_hash_set<unsigned>;
 

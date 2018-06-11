@@ -117,14 +117,14 @@ typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                        cldes::DESystem<NEvents, StorageIndex> const& aSys1)
 {
-    using Triplet = Eigen::Triplet<std::bitset<NEvents>, StorageIndex>;
-    using BitTriplet = Eigen::Triplet<bool, StorageIndex>;
+    using Triplet = cldes::Triplet<NEvents, StorageIndex>;
+    using BitTriplet = cldes::BitTriplet<StorageIndex>;
     using RowIterator = Eigen::InnerIterator<
       typename DESystem<NEvents, StorageIndex>::GraphHostData const>;
 
-    std::bitset<NEvents> const in_both = aSys0.events_ & aSys1.events_;
-    std::bitset<NEvents> const only_in_0 = aSys0.events_ ^ in_both;
-    std::bitset<NEvents> const only_in_1 = aSys1.events_ ^ in_both;
+    auto const in_both = aSys0.events_ & aSys1.events_;
+    auto const only_in_0 = aSys0.events_ ^ in_both;
+    auto const only_in_1 = aSys1.events_ ^ in_both;
 
     // Calculate new marked states
     typename DESystem<NEvents, StorageIndex>::StatesSet marked_states;
@@ -159,8 +159,8 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
 
     // Calculate transitions
     for (StorageIndex q = 0; q < nstates; ++q) {
-        StorageIndex const qx = q % aSys0.states_number_;
-        StorageIndex const qy = q / aSys0.states_number_;
+        auto const qx = q % aSys0.states_number_;
+        auto const qy = q / aSys0.states_number_;
 
         // Calculate sys inverse states events
         sys.inv_states_events_[q] =
@@ -169,7 +169,7 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
           (aSys1.inv_states_events_[qy] & only_in_1);
 
         // Calculate sys states events
-        std::bitset<NEvents> q_events =
+        auto q_events =
           (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
           (aSys0.states_events_[qx] & only_in_0) |
           (aSys1.states_events_[qy] & only_in_1);
@@ -186,8 +186,8 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                 StorageIndex xto = -1;
                 StorageIndex yto = -1;
 
-                bool const is_in_p = aSys0.events_.test(event);
-                bool const is_in_e = aSys1.events_.test(event);
+                auto const is_in_p = aSys0.events_.test(event);
+                auto const is_in_e = aSys1.events_.test(event);
 
                 if (is_in_p && is_in_e) {
                     for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
@@ -224,7 +224,7 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
 
                 triplet.push_back(
                   Triplet(q, qto, std::bitset<NEvents>{ 1ul << event }));
-                if (q != static_cast<StorageIndex>(qto)) {
+                if (q != qto) {
                     bittriplet.push_back(BitTriplet(qto, q, true));
                 }
             }
@@ -288,7 +288,7 @@ cldes::op::SynchronizeStage1(
     // Calculate params
     for (StorageIndex ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
         for (StorageIndex ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
-            StorageIndex const key = ix1 * aSys0.states_number_ + ix0;
+            auto const key = ix1 * aSys0.states_number_ + ix0;
 
             virtualsys.virtual_states_.push_back(key);
 
@@ -406,11 +406,11 @@ cldes::op::SynchronizeStage2(
   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
   cldes::DESystem<NEvents, StorageIndex> const& aSys1)
 {
-    using Triplet = Eigen::Triplet<std::bitset<NEvents>, StorageIndex>;
-    using BitTriplet = Eigen::Triplet<bool, StorageIndex>;
+    using Triplet = cldes::Triplet<NEvents, StorageIndex>;
+    using BitTriplet = cldes::BitTriplet<StorageIndex>;
 
     // Alias to new size
-    StorageIndex const nstates = aVirtualSys.virtual_states_.size();
+    auto const nstates = aVirtualSys.virtual_states_.size();
 
     // Update new size
     aVirtualSys.states_number_ = nstates;
@@ -445,16 +445,16 @@ cldes::op::SynchronizeStage2(
     // Calculate transitions
     while (!aVirtualSys.transtriplet_.empty()) {
         auto q_trans = aVirtualSys.transtriplet_.back();
-        StorageIndex const q = q_trans.first;
+        auto const q = q_trans.first;
 
         while (!q_trans.second.empty()) {
             auto const qto_e = q_trans.second.back();
-            StorageIndex const qto = qto_e.first;
+            auto const qto = qto_e.first;
 
             if (statesmap.find(qto) != statesmap.end()) {
-                std::bitset<NEvents> const event = qto_e.second;
-                StorageIndex const qto_mapped = statesmap[qto];
-                StorageIndex const q_mapped = statesmap[q];
+                auto const event = qto_e.second;
+                auto const qto_mapped = statesmap[qto];
+                auto const q_mapped = statesmap[q];
 
                 triplet.push_back(
                   Triplet(q_mapped, qto_mapped, std::bitset<NEvents>{ event }));
@@ -628,7 +628,7 @@ cldes::op::RemoveBadStates(
         StorageIndex const x0 = x % aInvGraphP.rows();
         StorageIndex const x1 = x / aInvGraphP.rows();
 
-        std::bitset<NEvents> q_events =
+       auto q_events =
           (aP.inv_states_events_[x0] & aE.inv_states_events_[x1]) |
           (aP.inv_states_events_[x0] & aVirtualSys.only_in_0_) |
           (aE.inv_states_events_[x1] & aVirtualSys.only_in_1_);
@@ -678,7 +678,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     // TODO
 
     // Alias to events in both systems
-    std::bitset<NEvents> const in_both = aP.events_ & aE.events_;
+    auto const in_both = aP.events_ & aE.events_;
 
     // Calculate event parameters
     virtualsys.only_in_0_ = aP.events_ ^ in_both;
@@ -718,18 +718,17 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
             StorageIndex const qx = q % aP.states_number_;
             StorageIndex const qy = q / aP.states_number_;
 
-            std::bitset<NEvents> const q_events =
+            auto const q_events =
               (aP.states_events_[qx] & aE.states_events_[qy]) |
               (aP.states_events_[qx] & virtualsys.only_in_0_) |
               (aE.states_events_[qy] & virtualsys.only_in_1_);
 
-            std::bitset<NEvents> const in_ncqx =
-              p_non_contr_bit & aP.states_events_[qx];
-            std::bitset<NEvents> const in_ncqx_and_q = in_ncqx & q_events;
+            auto const in_ncqx = p_non_contr_bit & aP.states_events_[qx];
+            auto const in_ncqx_and_q = in_ncqx & q_events;
 
             if (in_ncqx_and_q != in_ncqx) {
                 cldes::ScalarType event = 0;
-                std::bitset<NEvents> event_it = in_ncqx_and_q ^ in_ncqx;
+                auto event_it = in_ncqx_and_q ^ in_ncqx;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
                         RemoveBadStates(virtualsys,
@@ -754,7 +753,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                     std::pair<StorageIndex, std::bitset<NEvents>>>()));
 
                 cldes::ScalarType event = 0;
-                std::bitset<NEvents> event_it = q_events;
+                auto event_it = q_events;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
                         StorageIndex const fsqe =

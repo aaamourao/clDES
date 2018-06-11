@@ -30,8 +30,8 @@
 */
 
 #include "cldes/DESystem.hpp"
-#include "clustertool.hpp"
 #include "cldes/operations/Operations.hpp"
+#include "clustertool.hpp"
 #include "testlib.hpp"
 #include <chrono>
 #include <cstdlib>
@@ -42,17 +42,19 @@ using namespace std::chrono;
 int
 main()
 {
-    std::set<long> marked_states;
-    cldes::DESystem<48, long> plant{ 1, 0, marked_states };
-    cldes::DESystem<48, long> spec{ 1, 0, marked_states };
-    cldes::DESystem<48, long>::EventsTable non_contr;
+    using StorageIndex = unsigned long;
+
+    std::set<StorageIndex> marked_states;
+    cldes::DESystem<48, StorageIndex> plant{ 1, 0, marked_states };
+    cldes::DESystem<48, StorageIndex> spec{ 1, 0, marked_states };
+    cldes::DESystem<48, StorageIndex>::EventsTable non_contr;
 
     high_resolution_clock::time_point t1;
     high_resolution_clock::time_point t2;
 
     {
-        std::vector<cldes::DESystem<48, long>> plants;
-        std::vector<cldes::DESystem<48, long>> specs;
+        std::vector<cldes::DESystem<48, StorageIndex>> plants;
+        std::vector<cldes::DESystem<48, StorageIndex>> specs;
 
         std::cout << "Generating ClusterTool(2)" << std::endl;
         ClusterTool(6, plants, specs, non_contr);

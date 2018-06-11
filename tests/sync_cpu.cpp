@@ -41,19 +41,21 @@ using namespace std::chrono;
 int
 main()
 {
+    using StorageIndex = unsigned;
+
     // Declare transitions: represented by prime numbers
     cldes::ScalarType a = 0;
     cldes::ScalarType b = 1;
     cldes::ScalarType g = 2;
 
     // Declare system G1
-    int const nstatesG1 = 3;
+    StorageIndex const nstatesG1 = 3;
 
     cldes::DESystem<3>::StatesSet markedstatesG1;
     markedstatesG1.insert(0);
     markedstatesG1.insert(2);
 
-    int const initstateG1 = 0;
+    StorageIndex const initstateG1 = 0;
 
     cldes::DESystem<3> g1{ nstatesG1, initstateG1, markedstatesG1 };
 

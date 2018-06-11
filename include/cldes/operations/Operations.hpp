@@ -42,7 +42,9 @@ namespace op {
 
 template<size_t NEvents, typename StorageIndex>
 using GraphType =
-  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
+  Eigen::SparseMatrix<std::bitset<NEvents>,
+                      Eigen::RowMajor,
+                      typename std::make_signed<StorageIndex>::type>;
 
 template<typename StorageIndex>
 using StatesArray = std::vector<StorageIndex>;
@@ -140,7 +142,6 @@ void SetWorkGroups_(KernelType *k, cldes::cldes_size_t const aGws0,
 cldes::DESystem<NEvents>CL Synchronize(cldes::DESystem<NEvents>CL &aSys0,
                               cldes::DESystem<NEvents>CL &aSys1);
 */
-
 
 } // namespace op
 } // namespace cldes

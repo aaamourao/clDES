@@ -34,15 +34,24 @@
 
 //#include <CL/cl.hpp>
 #include <bitset>
+#include <Eigen/Sparse>
 
 namespace cldes {
 // Host adjascency matrix base type which represents an array of bits
 using ScalarType = size_t;
+
+template<size_t NEvents, typename StorageIndex>
+using Triplet = Eigen::Triplet<std::bitset<NEvents>,
+                               typename std::make_signed<StorageIndex>::type>;
+
+template<typename StorageIndex>
+using BitTriplet =
+  Eigen::Triplet<bool, typename std::make_signed<StorageIndex>::type>;
 } // namespace cldes
 
 namespace std {
 
-template <std::size_t size>
+template<std::size_t size>
 inline bitset<size>
 operator+(bitset<size> const& rhs, bitset<size> const& lhs)
 {

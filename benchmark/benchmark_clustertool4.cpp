@@ -42,7 +42,9 @@ using namespace std::chrono;
 int
 main()
 {
-    std::set<int> marked_states;
+    using StorageIndex = unsigned;
+
+    std::set<StorageIndex> marked_states;
     cldes::DESystem<32> plant{ 1, 0, marked_states };
     cldes::DESystem<32> spec{ 1, 0, marked_states };
     cldes::DESystem<32>::EventsTable non_contr;
