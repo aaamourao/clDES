@@ -1,8 +1,8 @@
-# clDES
+#clDES
 
-## Introduction
+##Introduction
 
-C++11/*OpenCL 1.2* library for **Discrete-Event Systems** modeled as **Automata**
+  C++ 11/*OpenCL 1.2* library for **Discrete-Event Systems** modeled as **Automata**
 and their operations on a **parallel programming approach** . A
 **Supervisor Synthesizer** parallel algorithm is also available.
 
@@ -22,13 +22,13 @@ The following operations are going to be available on **clDES-1.0.0**:
 
 Automata operation | Implementation | Status
 -------------------|----------------|--------
-Accessible part | `cldes::DESystem::AccessiblePart()` | **Implemented**
-Coaccessible part | `cldes::DESystem::CoaccessiblePart()` | **Implemented**
-Trim | `cldes::DESystem::Trim()` | **Implemented**
-Synchronization: parallel composition | `cldes::op::Synchronize()` | **Implemented**
-Virtual parallel composition | `cldes::op::SynchronizeStage1()` | **Implemented**
-Real parallel composition | `cldes::op::SynchronizeStage2()` | **Implemented**
-Controller Synthesis | `cldes::op::SupervisorSynth()` | **Implemented**
+Accessible part | `cldes::DESystem<NEvents, StorageIndex>::AccessiblePart()` | **Implemented**
+Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()` | **Implemented**
+Trim | `cldes::DESystem<NEvents, StorageIndex>::Trim()` | **Implemented**
+Synchronization: parallel composition | `cldes::op::Synchronize<NEvents, StorageIndex>()` | **Implemented**
+Virtual parallel composition | `cldes::op::SynchronizeStage1<NEvents, StorageIndex>()` | **Implemented**
+Real parallel composition | `cldes::op::SynchronizeStage2<NEvents, StorageIndex>()` | **Implemented**
+Controller Synthesis | `cldes::op::SupervisorSynth<NEvents, StorageIndex>()` | **Implemented**
 
 The following operations are going to be available on **clDES-1.1.0**:
 
@@ -42,14 +42,24 @@ Follow the instructions bellow to build the project.
 
 ### Requirements
 
-It is necessary to make sure that **CMake** is installed, such as **LLVM Clang** C/C++
-developer tools.
+It is necessary to make sure that **CMake 3.11** is installed, such as
+**LLVM Clang 5.0.2** or **GCC/G++ 7.3.1** developer tools.
 
-System support to **OpenCL** version `>= 1.2`, **Boost** Library version `>= 1.64`,
-**Eigen3** Library and **Qt5Core**
+and **Eigen3** Library
 are required. So far, you should install it manually. In a near
 future, **CMake** will install it locally if it was not previously installed in
 the system.
+
+> It may compile and run smoothly on older versions. These tools mentioned above
+> are compose the tool chain I'm using to develop and to test so far (Fedora
+> 27).
+
+System support to **OpenCL** version `>= 1.2`, **Boost** Library version `>= 1.58`
+**clDES** embedded libraries so far:
+
+* [ViennaCL 1.7.1](Efficient Linear Algebra Algorithms)
+* [Sparsepp](https://github.com/greg7mdp/sparsepp): The faster sparse hash
+  sets/maps **C++11** implementation I know.
 
 > It is always necessary to set `CLDES_INCLUDE_PATH` to run **clDES** applications
 > which execute operations that use custom *OpenCL* kernels, such as
