@@ -165,7 +165,7 @@ public:
     /*! \brief Adjacency matrix of bitarrays implementing a graph
      *
      * The graph represents the DES automata:
-     * Non zero element: contains at least a transition
+     * Non zero element: contains at least one transition
      * Each non 0 bit of each element: event that lead to the next stage
      *
      * row index: from state
@@ -180,7 +180,7 @@ public:
      *
      * Sparse matrix implementing a graph with an adjacency matrix.
      * The graph represents a simplified DES automata:
-     * Non zero element (true): contains at least a transition
+     * Non zero element: contains at least one transition
      *
      * row index: from state
      * col index: to state
@@ -220,7 +220,7 @@ public:
      *
      * f(s, e) = s_out -> (s, e) are the arguments
      */
-    using ArgTransition = std::vector<std::pair<StorageIndex, EventsSet>> ;
+    using ArgTransition = std::vector<std::pair<StorageIndex, EventsSet>>;
 
     /*! \brief Vector of inverted transitions
      *
@@ -407,13 +407,17 @@ private:
 
     /*! \brief Graph represented by an adjascency matrix
      *
-     * A sparse bit matrix which represents when a state has any transition to
-     * other states plus the identity matrix. It is used to calculate the
-     * accessible part, coaccessible part and trim operations efficiently. The
-     * matrix is also transposed for making accessible part faster: when
-     * calculating trim states, it is always necessary to calculate the
+     * A sparse bit matrix which each non zero elem represents that a state
+     * has at least one transition to other state.
+     * It is used to calculate the accessible part, coaccessible part and trim
+     * operations efficiently.
+     *
+     * The matrix is also transposed and added to the identity in order to
+     * make the accessible part op more efficient:
+     * when calculating trim states, it is always necessary to calculate the
      * accessible part first. It implies that the accessible part usually is
-     * calculated with a larger matrix.
+     * calculated with a larger matrix. Adding the identity avoid to add two
+     * sparse matrices each bfs iteration, which is inneficient.
      */
     BitGraphHostData bit_graph_;
 
