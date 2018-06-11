@@ -1,6 +1,6 @@
-#clDES
+# clDES
 
-##Introduction
+## Introduction
 
   C++ 11/*OpenCL 1.2* library for **Discrete-Event Systems** modeled as **Automata**
 and their operations on a **parallel programming approach** . A
