@@ -45,15 +45,15 @@ Follow the instructions bellow to build the project.
 It is necessary to make sure that **CMake 3.11** is installed, such as
 **LLVM Clang 5.0.2** or **GCC/G++ 7.3.1** developer tools.
 
+> It may compile and run smoothly on older versions. These tools mentioned above
+> compose the tool chain used to develop and to test so far (**Fedora 27**).
+
+System support to **OpenCL** version `>= 1.2`, **Boost** Library version `>= 1.58`
 and **Eigen3** Library
 are required. So far, you should install it manually. In a near
 future, **CMake** will install it locally if it was not previously installed in
 the system.
 
-> It may compile and run smoothly on older versions. These tools mentioned above
-> compose the tool chain used to develop and to test so far (**Fedora 27**).
-
-System support to **OpenCL** version `>= 1.2`, **Boost** Library version `>= 1.58`
 **clDES** embedded libraries so far:
 
 * [ViennaCL 1.7.1](Efficient Linear Algebra Algorithms)
