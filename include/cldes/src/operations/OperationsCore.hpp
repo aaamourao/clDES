@@ -34,7 +34,6 @@
 #include "cldes/DESystem.hpp"
 // #include "desystemcl.hpp"
 #include <Eigen/Sparse>
-#include <QtCore/QVector>
 
 /*
 DESystem<NEvents>CL op::Synchronize(DESystem<NEvents>CL &aSys0,
@@ -433,10 +432,9 @@ cldes::op::SynchronizeStage2(
     triplet.reserve(sparcitypattern);
     bittriplet.reserve(sparcitypattern + aVirtualSys.states_number_);
 
-    QHash<cldes_size_t, cldes_size_t> statesmap;
-    statesmap.reserve(aVirtualSys.virtual_states_.size());
+    SparseStatesMap statesmap;
     auto cst = 0ul;
-    foreach (cldes_size_t s, aVirtualSys.virtual_states_) {
+    for (auto s : aVirtualSys.virtual_states_) {
         statesmap[s] = cst;
         bittriplet.push_back(BitTriplet(cst, cst, true));
 
@@ -452,10 +450,10 @@ cldes::op::SynchronizeStage2(
             auto const qto_e = q_trans.second.back();
             auto const qto = qto_e.first;
 
-            if (statesmap.contains(qto)) {
+            if (statesmap.find(qto) != statesmap.end()) {
                 auto const event = qto_e.second;
-                auto const qto_mapped = statesmap.value(qto);
-                auto const q_mapped = statesmap.value(q);
+                auto const qto_mapped = statesmap[qto];
+                auto const q_mapped = statesmap[q];
 
                 triplet.push_back(
                   Triplet(q_mapped, qto_mapped, std::bitset<NEvents>{ event }));
@@ -479,8 +477,8 @@ cldes::op::SynchronizeStage2(
     for (auto s0 : aSys0.marked_states_) {
         for (auto s1 : aSys1.marked_states_) {
             auto const key = s1 * aSys0.states_number_ + s0;
-            if (statesmap.contains(key)) {
-                aVirtualSys.marked_states_.insert(statesmap.value(key));
+            if (statesmap.find(key) != statesmap.end()) {
+                aVirtualSys.marked_states_.insert(statesmap[key]);
             }
         }
     }
@@ -583,7 +581,7 @@ __TransitionVirtualInv(
         }
         for (RowIterator ee(aInvGraphE, qy); ee; ++ee) {
             if (ee.value().test(event)) {
-                foreach (cldes::cldes_size_t sp, pstates) {
+                for (auto sp : pstates) {
                     ret.push_back(ee.col() * p_size + sp);
                 }
             }
@@ -642,11 +640,14 @@ cldes::op::RemoveBadStates(
                 auto const finv = __TransitionVirtualInv(
                   aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
 
-                foreach (cldes_size_t s, finv) {
-                    if (!rmtable.contains(s)) {
+                for (auto s : finv) {
+                    if (rmtable.find(s) == rmtable.end()) {
                         f.push(s);
-                        C.remove(s);
                         rmtable.insert(s);
+                        StatesTableSTL::const_iterator c_it = C.find(s);
+                        if (c_it != C.end()) {
+                            C.erase(s);
+                        }
                     }
                 }
             }
@@ -689,7 +690,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
 
     // Evaluate which non contr event is in system and convert it to a
     // bitarray
-    foreach (auto event, non_contr) {
+    for (auto event : non_contr) {
         if (aP.events_.test(event)) {
             p_non_contr_bit.set(event);
             if (virtualsys.events_.test(event)) {
@@ -712,7 +713,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
         auto const q = f.top();
         f.pop();
 
-        if (!rmtable.contains(q) && !c.contains(q)) {
+        if ((rmtable.find(q) == rmtable.end()) && (c.find(q) == c.end())) {
             // q = (qx, qy)
             auto const qx = q % aP.states_number_;
             auto const qy = q / aP.states_number_;
@@ -757,8 +758,8 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                     if (event_it.test(0)) {
                         auto const fsqe = TransitionVirtual(aP, aE, q, event);
 
-                        if (!rmtable.contains(fsqe)) {
-                            if (!c.contains(fsqe)) {
+                        if (rmtable.find(fsqe) == rmtable.end()) {
+                            if (c.find(fsqe) == c.end()) {
                                 f.push(fsqe);
                             }
                             virtualsys.transtriplet_.back().second.push_back(
@@ -776,8 +777,10 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     rmtable.clear();
 
     // Swap new system states and sort it
-    virtualsys.virtual_states_ = c.toList();
-    qSort(virtualsys.virtual_states_);
+    std::copy(
+      c.begin(), c.end(), std::back_inserter(virtualsys.virtual_states_));
+    std::sort(virtualsys.virtual_states_.begin(),
+              virtualsys.virtual_states_.end());
     c.clear();
 
     // Make virtualsys a real sys

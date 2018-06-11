@@ -30,6 +30,7 @@
 */
 
 #include "cldes/DESystem.hpp"
+#include <sparsepp/spp.h>
 #include <vector>
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex = int>
@@ -37,7 +38,7 @@ void
 ClusterTool(unsigned long const& aNClusters,
             std::vector<cldes::DESystem<NEvents, StorageIndex>>& aPlants,
             std::vector<cldes::DESystem<NEvents, StorageIndex>>& aSpecs,
-            QSet<cldes::ScalarType>& non_contr)
+            spp::sparse_hash_set<cldes::ScalarType>& non_contr)
 {
     if (aPlants.size() != 0 || aSpecs.size() != 0 || non_contr.size() ||
         aNClusters == 0) {

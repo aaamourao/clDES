@@ -45,7 +45,7 @@ main()
     std::set<cldes::cldes_size_t> marked_states;
     cldes::DESystem<16> plant{ 1, 0, marked_states };
     cldes::DESystem<16> spec{ 1, 0, marked_states };
-    QSet<cldes::ScalarType> non_contr;
+    cldes::DESystem<16>::EventsTable non_contr;
 
     high_resolution_clock::time_point t1;
     high_resolution_clock::time_point t2;

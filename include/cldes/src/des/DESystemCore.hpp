@@ -29,12 +29,11 @@
  =========================================================================
 */
 
-#include <QtCore/QSet>
+#include "cldes/TransitionProxy.hpp"
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <functional>
 #include <vector>
-#include "cldes/TransitionProxy.hpp"
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>::DESystem(
@@ -301,7 +300,7 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
     using BitTriplet = Eigen::Triplet<bool, StorageIndex>;
 
     StatesSet const accpartstl = AccessiblePart();
-    QSet<cldes_size_t> accpart;
+    spp::sparse_hash_set<cldes_size_t> accpart;
     for (auto s : accpartstl) {
         accpart.insert(s);
     }
@@ -346,7 +345,7 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
     StatesSet trimstates;
     for (auto s = 0; s < y.outerSize(); ++s) {
         for (RowIteratorConst e(y, s); e; ++e) {
-            if (accpart.contains(e.row())) {
+            if (accpart.find(e.row()) != accpart.end()) {
                 trimstates.emplace(e.row());
             }
         }

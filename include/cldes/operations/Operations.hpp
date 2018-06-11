@@ -33,8 +33,6 @@
 
 #include "cldes/constants.hpp"
 #include <Eigen/Sparse>
-#include <QtCore/QHash>
-#include <QtCore/QSet>
 #include <stack>
 #include <tuple>
 
@@ -68,8 +66,9 @@ using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
 
 /*! \brief Hash table of tuples representing a virtual synch (stage 1)
  */
-using StatesTableSTL = QSet<cldes_size_t>;
-using EventsTableSTL = QSet<ScalarType>;
+using StatesTableSTL = spp::sparse_hash_set<cldes_size_t>;
+using SparseStatesMap = spp::sparse_hash_map<cldes_size_t, cldes_size_t>;
+using EventsTableSTL = spp::sparse_hash_set<ScalarType>;
 
 using StatesStack = std::stack<cldes_size_t>;
 

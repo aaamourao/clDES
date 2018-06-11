@@ -38,11 +38,11 @@
 
 #include "cldes/constants.hpp"
 #include <Eigen/Sparse>
-#include <QtCore/QPair>
-#include <QtCore/QStack>
+#include <sparsepp/spp.h>
 #include <set>
 #include <stack>
 #include <tuple>
+#include <vector>
 
 namespace cldes {
 /*
@@ -78,9 +78,9 @@ struct StatesTable;
 struct StatesTuple;
 
 using StatesTupleSTL = std::pair<cldes_size_t, cldes_size_t>;
-using StatesTableSTL = QSet<cldes_size_t>;
+using StatesTableSTL = spp::sparse_hash_set<cldes_size_t>;
 using StatesStack = std::stack<cldes_size_t>;
-using EventsTableSTL = QSet<ScalarType>;
+using EventsTableSTL = spp::sparse_hash_set<ScalarType>;
 
 template<cldes::cldes_size_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
@@ -132,6 +132,7 @@ public:
     using StatesVector =
       Eigen::SparseMatrix<bool, Eigen::ColMajor, StorageIndex>;
     using StatesEventsTable = std::vector<EventsSet>;
+    using EventsTable = spp::sparse_hash_set<ScalarType>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -267,14 +268,14 @@ private:
       DESystem<NEvents, StorageIndex> const& aE,
       op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
       op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
-      QSet<cldes_size_t>& C,
+      op::StatesTableSTL& C,
       cldes_size_t const& q,
       std::bitset<NEvents> const& s_non_contr,
-      QSet<cldes_size_t>& rmtable);
+      op::StatesTableSTL& rmtable);
     friend DESystem cldes::op::SupervisorSynth<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
-      QSet<ScalarType> const& non_contr);
+      op::EventsTableSTL const& non_contr);
 
     /*! \brief Graph represented by an adjascency matrix
      *
@@ -337,7 +338,7 @@ private:
 
     /*! \brief data structures used in virtual systems
      */
-    QList<cldes_size_t> virtual_states_;
+    std::vector<cldes_size_t> virtual_states_;
     EventsSet only_in_0_;
     EventsSet only_in_1_;
     std::vector<

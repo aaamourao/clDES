@@ -11,13 +11,13 @@ add_executable(benchmark_clustertool7 ./benchmark_clustertool7.cpp)
 add_executable(benchmark_fsm ./benchmark_fsm.cpp)
 
 # Link libraries
-target_link_libraries(benchmark_clustertool2 Qt5::Core)# OpenCL::OpenCL)
-target_link_libraries(benchmark_clustertool3 Qt5::Core)# OpenCL::OpenCL)
-target_link_libraries(benchmark_clustertool4 Qt5::Core)# OpenCL::OpenCL)
-target_link_libraries(benchmark_clustertool5 Qt5::Core)# OpenCL::OpenCL)
-target_link_libraries(benchmark_clustertool6 Qt5::Core)# OpenCL::OpenCL)
-target_link_libraries(benchmark_clustertool7 Qt5::Core)# OpenCL::OpenCL)
-target_link_libraries(benchmark_fsm Qt5::Core)# OpenCL::OpenCL)
+# target_link_libraries(benchmark_clustertool2 Qt5::Core)# OpenCL::OpenCL)
+# target_link_libraries(benchmark_clustertool3 Qt5::Core)# OpenCL::OpenCL)
+# target_link_libraries(benchmark_clustertool4 Qt5::Core)# OpenCL::OpenCL)
+# target_link_libraries(benchmark_clustertool5 Qt5::Core)# OpenCL::OpenCL)
+# target_link_libraries(benchmark_clustertool6 Qt5::Core)# OpenCL::OpenCL)
+# target_link_libraries(benchmark_clustertool7 Qt5::Core)# OpenCL::OpenCL)
+# target_link_libraries(benchmark_fsm Qt5::Core)# OpenCL::OpenCL)
 
 # Link OpenCL library
 # target_link_libraries(viennacl OpenCL::OpenCL)

@@ -49,7 +49,10 @@ main()
     cldes::ScalarType const b0 = 2;
     cldes::ScalarType const b1 = 3;
 
-    QSet<cldes::ScalarType> non_contr = { b0, b1 };
+    // TODO: Implement a struct to encapsulate StatesTable
+    cldes::DESystem<4>::EventsTable non_contr;
+    non_contr.insert(b0);
+    non_contr.insert(b1);
 
     std::set<cldes::cldes_size_t> plant_marked_states = { 0 };
 
