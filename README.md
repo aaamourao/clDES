@@ -51,8 +51,7 @@ future, **CMake** will install it locally if it was not previously installed in
 the system.
 
 > It may compile and run smoothly on older versions. These tools mentioned above
-> are compose the tool chain I'm using to develop and to test so far (Fedora
-> 27).
+> compose the tool chain used to develop and to test so far (**Fedora 27**).
 
 System support to **OpenCL** version `>= 1.2`, **Boost** Library version `>= 1.58`
 **clDES** embedded libraries so far:
