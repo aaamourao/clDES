@@ -220,7 +220,7 @@ public:
      *
      * f(s, e) = s_out -> (s, e) are the arguments
      */
-    using ArgTransition = std::vector<std::pair<StorageIndex, EventsSet>>;
+    using ArgTransition = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
 
     /*! \brief Vector of inverted transitions
      *

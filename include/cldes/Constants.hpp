@@ -38,7 +38,7 @@
 
 namespace cldes {
 // Host adjascency matrix base type which represents an array of bits
-using ScalarType = size_t;
+using ScalarType = uint8_t;
 
 template<size_t NEvents, typename StorageIndex>
 using Triplet = Eigen::Triplet<std::bitset<NEvents>,

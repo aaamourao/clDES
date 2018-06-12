@@ -455,8 +455,8 @@ cldes::op::SynchronizeStage2(
                 auto const qto_mapped = statesmap[qto];
                 auto const q_mapped = statesmap[q];
 
-                triplet.push_back(
-                  Triplet(q_mapped, qto_mapped, std::bitset<NEvents>{ event }));
+                triplet.push_back(Triplet(
+                  q_mapped, qto_mapped, std::bitset<NEvents>{ 1ul << event }));
                 bittriplet.push_back(BitTriplet(qto_mapped, q_mapped, true));
             }
             q_trans.second.pop_back();
@@ -666,7 +666,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
       aE.graph_.transpose();
 
     // Define new systems params: Stage1 is not necessary
-    DESystem<NEvents, StorageIndex> virtualsys;
+    DESystem<NEvents, StorageIndex> virtualsys{};
     virtualsys.init_state_ =
       aE.init_state_ * aP.states_number_ + aP.init_state_;
     virtualsys.is_cache_outdated_ = true;
@@ -736,8 +736,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
 
                 virtualsys.transtriplet_.push_back(std::make_pair(
                   q,
-                  std::vector<
-                    std::pair<StorageIndex, std::bitset<NEvents>>>()));
+                  std::vector<std::pair<StorageIndex, cldes::ScalarType>>()));
 
                 cldes::ScalarType event = 0;
                 auto event_it = q_events;
@@ -750,8 +749,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                                 f.push(fsqe);
                             }
                             virtualsys.transtriplet_.back().second.push_back(
-                              std::make_pair(
-                                fsqe, std::bitset<NEvents>{ 1ul << event }));
+                              std::make_pair(fsqe, event));
                         }
                     }
                     ++event;
