@@ -23,9 +23,9 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: desystem.hpp
- Description: DESystemCL class definition. DESystemCL is a graph, which is
- modeled as a Sparce Adjacency Matrix.
+ File: cldes/DESystemCL.hpp
+ Description: DESystemCL class definition. DESystemCL is a Discrete-Event
+ System on the device memory.
  =========================================================================
 */
 
@@ -36,31 +36,23 @@
 #define VIENNACL_WITH_OPENCL
 #endif
 
-#include "constants.hpp"
+#include "cldes/Constants.hpp"
+#include "cldes/DESystemCLCore.hpp"
 #include "viennacl/compressed_matrix.hpp"
-#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <Eigen/Sparse>
 #include <set>
-#include "DESystemCLCore.hpp"
 
 namespace cldes {
 
-namespace ublas = boost::numeric::ublas;
-
-/*
- * Forward declarion of DESystemCL class necessary for the forward declaration
- * of the DESystemCL's friend function op::Synchronize
- */
-class DESystemCL;
-
 namespace op {
+struct StatesTable;
+
 /*
  * Forward declarion of DESystemCL's friend function Synchronize which
  * implements the parallel composition between two DES.
  */
 cldes::DESystemCL
 Synchronize(DESystemCL& aSys0, DESystemCL& aSys1);
-
-struct StatesTable;
 
 StatesTable*
 SynchronizeStage1(DESystemCL const& aSys0, DESystemCL const& aSys1);
@@ -75,65 +67,39 @@ namespace backend {
 class OclBackend;
 }
 
+/*! \brief Discrete-Events System on device memory
+ *
+ * Implement a DES on the device memory and their respective operations for GPUs.
+ *
+ * @param NEvents Number of events
+ * @param StorageIndex Unsigned type use for indexing the ajacency matrix
+ */
+template<uint8_t NEvents, typename StorageIndex>
 class DESystemCL
 {
 public:
-    using GraphHostData = ublas::compressed_matrix<ScalarType>;
     using GraphDeviceData = viennacl::compressed_matrix<ScalarType>;
-    using StatesSet = std::set<cldes_size_t>;
-    using StatesVector = ublas::compressed_matrix<ScalarType>;
     using StatesDeviceVector = viennacl::compressed_matrix<ScalarType>;
-    using StatesDenseVector = ublas::vector<ScalarType>;
-    using StatesDeviceDenseVector = viennacl::vector<ScalarType>;
-    using EventsSet = std::set<ScalarType>;
+    using StatesSet = std::set<cldes_size_t>;
 
     /*! \brief DESystemCL constructor by copying ublas object
      *
-     * Creates the DESystemCL object with N states defined by the argument
-     * aStatesNumber and represented by its graph defined by argument the
-     * ublas compressed matrix aGraph.
+     * Creates a new system based on a existent host system.
      *
-     * @param aGraph Ublas matrix containing the graph data
-     * @param aStatesNumber Number of states of the system
-     * @param aInitState System's initial state
-     * @param aMarkedStates System's marked states
-     * @aDevCacheEnabled Enable or disable device cache for graph data
+     * @param aSys System on device memory
      */
-    explicit DESystemCL(GraphHostData const& aGraph,
-                        cldes_size_t const& aStatesNumber,
-                        cldes_size_t const& aInitState,
-                        StatesSet& aMarkedStates,
-                        bool const& aDevCacheEnabled = true);
-
-    /*! \brief DESystemCL constructor with empty matrix
-     *
-     * Overloads DESystemCL constructor: does not require to create a
-     * ublas::compressed_matrix by the class user.
-     *
-     * @param aStatesNumber Number of states of the system
-     * @param aInitState System's initial state
-     * @param aMarkedStates System's marked states
-     * @aDevCacheEnabled Enable or disable device cache for graph data
-     */
-    explicit DESystemCL(cldes_size_t const& aStatesNumber,
-                        cldes_size_t const& aInitState,
-                        StatesSet& aMarkedStates,
-                        bool const& aDevCacheEnabled = true);
-
-    DESystemCL(DESystemCL const& aSys);
+    explicit DESystemCL(DESystem const& aSys);
 
     /*! \brief DESystemCL destructor
-     *
-     * Delete dinamically allocated data: graph and device_graph.
      */
-    virtual ~DESystemCL();
+    // virtual ~DESystemCL();
 
     /*! \brief Graph getter
      *
      * Returns a copy of DESystemCL's private data member graph. Considering
      * that graph is a pointer, it returns the contents of graph.
      */
-    GraphHostData GetGraph() const;
+    GraphDeviceData GetGraph() const;
 
     /*! \brief Returns state set containing the accessible part of automa
      *
@@ -141,37 +107,35 @@ public:
      * starting from its initial state. It returns a set containing all nodes
      * which are accessible from the initial state.
      */
-    StatesSet AccessiblePart();
+    StatesSetDevice AccessiblePart();
 
     /*! \brief Returns state set containing the coaccessible part of automata
      *
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart();
+    StatesSetDevice CoaccessiblePart();
 
     /*! \brief Returns States Set which is the Trim part of the system
      *
      * Gets the intersection between the accessible part and the coaccessible
      * part.
      */
-    StatesSet TrimStates();
+    StatesSetDevice TrimStates();
 
     /*! \brief Returns DES which is the Trim part of this
      *
      * Cut the non-accessible part of current system and then cut the
      * non-coaccessible part of the last result. The final resultant system
      * is called a trim system.
-     *
-     * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    DESystemCL Trim(bool const& aDevCacheEnabled = true);
+    DESystemCL Trim();
 
     /*! \brief Returns number of states of the system
      *
      * Returns states_value_ by value.
      */
-    cldes_size_t Size() const { return states_number_; }
+    StorageIndex Size() const { return states_number_; }
 
     /*! \brief Set events_
      *
@@ -202,54 +166,27 @@ private:
                                             DESystemCL& aSys0,
                                             DESystemCL& aSys1);
 
-    /*! \brief Graph represented by an adjascency matrix
-     *
-     * A sparse matrix who represents the automata as a graph in an adjascency
-     * matrix. It is implemented as a CSR scheme. The pointer is constant, but
-     * its content should not be constant, as the graph should change many times
-     * at runtime.
-     *
-     * TODO: Explain transition scheme.
-     * TODO: Should it be a smart pointer?
-     */
-    GraphHostData* const graph_;
-
     /*! \brief Graph data on device memory
      *
      * Transposed graph_ data, but on device memory (usually a GPU). It is a
      * dev_cache_enabled_ is false. It cannot be const, since it may change as
      * dev_cache_enabled_ changes.
      *
-     * TODO: Should it be a smart pointer?
      */
-    GraphDeviceData* device_graph_;
-
-    /*! \brief Keeps if caching graph data on device is enabled
-     *
-     * If dev_cache_enabled_ is true, the graph should be cached on the device
-     * memory, so device_graph_ is not nullptr. It can be set at any time at run
-     * time, so it is not a constant.
-     */
-    bool dev_cache_enabled_;
-
-    /*! \brief Keeps track if the device graph cache is outdated
-     *
-     * Tracks if cache, dev_graph_, needs to be updated or not.
-     */
-    bool is_cache_outdated_;
+    GraphDeviceData device_graph_;
 
     /*! \brief Current system's states number
      *
      * Hold the number of states that the automata contains. As the automata can
      * be cut, the states number is not a constant at all.
      */
-    cldes_size_t states_number_;
+    StorageIndex states_number_;
 
     /*! \brief Current system's initial state
      *
      * Hold the initial state position.
      */
-    cldes_size_t const init_state_;
+    StorageIndex init_state_;
 
     /*! \brief Current system's marked states
      *
@@ -265,18 +202,6 @@ private:
     EventsSet events_;
 
     static backend::OclBackend* backend_ptr_;
-
-    /*! \brief Method for caching the graph
-     *
-     * Put graph transposed data on the device memory.
-     */
-    void CacheGraph_();
-
-    /*! \brief Method for updating the graph
-     *
-     * Refresh the graph data on device memory.
-     */
-    void UpdateGraphCache_();
 
     /*! \brief Setup BFS and return accessed states array
      *

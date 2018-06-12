@@ -174,7 +174,7 @@ RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
                 GraphType<NEvents> const& aInvGraphP,
                 GraphType<NEvents> const& aInvGraphE,
-                StatesTableHost<StorageIndex>& aC,
+                TransMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
                 StatesTableHost<StorageIndex>& aRmTable);

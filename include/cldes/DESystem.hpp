@@ -43,6 +43,22 @@
 
 // Forward declarations
 namespace cldes {
+/*! \brief Vector that contains arguments of inverse transition function
+ *
+ * V f(s_from, e) = s_to |-> f^-1(s_to, e) = s_from
+ * f^-1 args are (s_to, e)
+ */
+template<typename StorageIndex>
+using InvArgTrans = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
+
+/*! \brief Hash map containing transitions
+ *
+ * V f(s_from, e) = s_to |-> f^-1(s_to, e) = s_from
+ * {key = s_from, value= vec(s_from, e))
+ */
+template<typename StorageIndex>
+using TransMap = spp::sparse_hash_map<StorageIndex, InvArgTrans<StorageIndex>*>;
+
 /*
  * Forward declarion of DESystem class necessary for the forward declaration of
  * the DESystem's friend function op::Synchronize
@@ -124,7 +140,7 @@ RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
                 GraphType<NEvents> const& aInvGraphP,
                 GraphType<NEvents> const& aInvGraphE,
-                StatesTableHost<StorageIndex>& aC,
+                TransMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
                 StatesTableHost<StorageIndex>& aRmTable);
@@ -194,18 +210,12 @@ public:
      */
     using StatesTable = std::vector<StorageIndex>;
 
-    /*! \brief Arguments of a transition function vector
-     *
-     * f(s, e) = s_out -> (s, e) are the arguments
-     */
-    using ArgTransition =
-      std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
-
     /*! \brief Vector of inverted transitions
      *
      * f(s, e) = s_out -> (s_out, (s, e)) is the inverted transition.
      */
-    using InvTransition = std::vector<std::pair<StorageIndex, ArgTransition>>;
+    using TrVector =
+      std::vector<std::pair<StorageIndex, InvArgTrans<StorageIndex>*>>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -362,7 +372,7 @@ private:
       DESystem<NEvents, StorageIndex> const& aE,
       op::GraphType<NEvents> const& aInvGraphP,
       op::GraphType<NEvents> const& aInvGraphE,
-      op::StatesTableHost<StorageIndex>& aC,
+      TransMap<StorageIndex>& aC,
       StorageIndex const& aQ,
       EventsSet<NEvents> const& aNonContr,
       op::StatesTableHost<StorageIndex>& aRmTable);
@@ -477,7 +487,7 @@ private:
      * TODO: Change it to a pointer and allocate only when the system is virtual
      * and deallocate when it become a concrete system.
      */
-    InvTransition transtriplet_;
+    TrVector transtriplet_;
 
     /*! \brief Vector containing a events hash table per state
      *

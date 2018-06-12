@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include <iostream>
+
 template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
@@ -267,11 +269,11 @@ cldes::op::SynchronizeStage2(
         auto q_trans = aVirtualSys.transtriplet_.back();
         auto const q = q_trans.first;
 
-        while (!q_trans.second.empty()) {
-            auto const qto_e = q_trans.second.back();
+        while (!q_trans.second->empty()) {
+            auto const qto_e = q_trans.second->back();
             auto const qto = qto_e.first;
 
-            if (statesmap.find(qto) != statesmap.end()) {
+            if (statesmap.contains(qto)) {
                 auto const event = qto_e.second;
                 auto const qto_mapped = statesmap[qto];
                 auto const q_mapped = statesmap[q];
@@ -280,8 +282,9 @@ cldes::op::SynchronizeStage2(
                   q_mapped, qto_mapped, EventsSet<NEvents>{ 1ul << event }));
                 bittriplet.push_back(BitTriplet(qto_mapped, q_mapped, true));
             }
-            q_trans.second.pop_back();
+            q_trans.second->pop_back();
         }
+        delete q_trans.second;
         aVirtualSys.transtriplet_.pop_back();
     }
 
@@ -298,7 +301,7 @@ cldes::op::SynchronizeStage2(
     for (StorageIndex s0 : aSys0.marked_states_) {
         for (StorageIndex s1 : aSys1.marked_states_) {
             StorageIndex const key = s1 * aSys0.states_number_ + s0;
-            if (statesmap.find(key) != statesmap.end()) {
+            if (statesmap.contains(key)) {
                 aVirtualSys.marked_states_.insert(statesmap[key]);
             }
         }
@@ -429,7 +432,7 @@ cldes::op::RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                            cldes::DESystem<NEvents, StorageIndex> const& aE,
                            cldes::op::GraphType<NEvents> const& aInvGraphP,
                            cldes::op::GraphType<NEvents> const& aInvGraphE,
-                           cldes::op::StatesTableHost<StorageIndex>& aC,
+                           TransMap<StorageIndex>& aC,
                            StorageIndex const& aQ,
                            EventsSet<NEvents> const& aNonContrBit,
                            cldes::op::StatesTableHost<StorageIndex>& aRmTable)
@@ -465,7 +468,10 @@ cldes::op::RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                     if (!aRmTable.contains(s)) {
                         f.push(s);
                         aRmTable.insert(s);
-                        aC.erase(s);
+                        if (aC.contains(s)) {
+                            delete aC[s];
+                            aC.erase(s);
+                        }
                     }
                 }
             }
@@ -515,7 +521,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     }
 
     // Supervisor states
-    StatesTableHost<StorageIndex> c;
+    TransMap<StorageIndex> c;
     StatesTableHost<StorageIndex> rmtable;
 
     // f is a stack of states accessed in a dfs
@@ -553,11 +559,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                                                        non_contr_bit,
                                                        rmtable);
             } else {
-                c.insert(q);
-
-                virtualsys.transtriplet_.push_back(std::make_pair(
-                  q,
-                  std::vector<std::pair<StorageIndex, cldes::ScalarType>>()));
+                c[q] = new InvArgTrans<StorageIndex>();
 
                 cldes::ScalarType event = 0;
                 auto event_it = q_events;
@@ -569,9 +571,8 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
                             }
-                            virtualsys.transtriplet_.back().second.push_back(
-                              std::make_pair(fsqe, event));
                         }
+                        c[q]->push_back(std::make_pair(fsqe, event));
                     }
                     ++event;
                     event_it >>= 1;
@@ -583,8 +584,13 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     rmtable.clear();
 
     // Swap new system states and sort it
-    std::copy(
-      c.begin(), c.end(), std::back_inserter(virtualsys.virtual_states_));
+    virtualsys.virtual_states_.reserve(c.size());
+    virtualsys.transtriplet_.reserve(c.size());
+    for (auto tr : c) {
+        virtualsys.virtual_states_.push_back(tr.first);
+        virtualsys.transtriplet_.push_back(
+          std::make_pair(tr.first, tr.second));
+    }
     std::sort(virtualsys.virtual_states_.begin(),
               virtualsys.virtual_states_.end());
     c.clear();
