@@ -33,7 +33,7 @@
 #include <sparsepp/spp.h>
 #include <vector>
 
-template<size_t NEvents, typename StorageIndex = int>
+template<size_t NEvents, typename StorageIndex = unsigned>
 void
 ClusterTool(unsigned long const& aNClusters,
             std::vector<cldes::DESystem<NEvents, StorageIndex>>& aPlants,

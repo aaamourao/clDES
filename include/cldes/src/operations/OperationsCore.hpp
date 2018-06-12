@@ -561,16 +561,15 @@ __TransitionVirtualInv(
     using RowIterator = Eigen::InnerIterator<
       typename cldes::DESystem<NEvents, StorageIndex>::GraphHostData const>;
 
-    StorageIndex const qx = aQ % aInvGraphP.rows();
-    StorageIndex const qy = aQ / aInvGraphP.rows();
+    auto const qx = aQ % aInvGraphP.rows();
+    auto const qy = aQ / aInvGraphP.rows();
 
     bool const is_in_p = aEventsP.test(aEvent);
     bool const is_in_e = aEventsE.test(aEvent);
 
     cldes::op::StatesArray<StorageIndex> ret;
-    // ret.reserve(cldes::g_max_events);
 
-    StorageIndex const p_size = aInvGraphP.rows();
+    auto const p_size = aInvGraphP.rows();
 
     if (is_in_p && is_in_e) {
         cldes::op::StatesArray<StorageIndex> pstates;
@@ -621,11 +620,11 @@ cldes::op::RemoveBadStates(
     aRmTable.insert(aQ);
 
     while (!f.empty()) {
-        StorageIndex const x = f.top();
+        auto const x = f.top();
         f.pop();
 
-        StorageIndex const x0 = x % aInvGraphP.rows();
-        StorageIndex const x1 = x / aInvGraphP.rows();
+        auto const x0 = x % aInvGraphP.rows();
+        auto const x1 = x / aInvGraphP.rows();
 
         auto q_events =
           (aP.inv_states_events_[x0] & aE.inv_states_events_[x1]) |
@@ -634,19 +633,17 @@ cldes::op::RemoveBadStates(
 
         q_events &= aNonContrBit;
 
-        StorageIndex event = 0;
+        cldes::ScalarType event = 0;
         while (q_events.any()) {
             if (q_events.test(0)) {
                 StatesArray<StorageIndex> const finv = __TransitionVirtualInv(
                   aP.events_, aE.events_, aInvGraphP, aInvGraphE, x, event);
 
                 for (StorageIndex s : finv) {
-                    if (aRmTable.find(s) == aRmTable.end()) {
+                    if (!aRmTable.contains(s)) {
                         f.push(s);
                         aRmTable.insert(s);
-                        if (aC.find(s) != aC.end()) {
-                            aC.erase(s);
-                        }
+                        aC.erase(s);
                     }
                 }
             }
@@ -711,10 +708,10 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
         auto const q = f.top();
         f.pop();
 
-        if ((rmtable.find(q) == rmtable.end()) && (c.find(q) == c.end())) {
+        if (!rmtable.contains(q) && !c.contains(q)) {
             // q = (qx, qy)
-            StorageIndex const qx = q % aP.states_number_;
-            StorageIndex const qy = q / aP.states_number_;
+            auto const qx = q % aP.states_number_;
+            auto const qy = q / aP.states_number_;
 
             auto const q_events =
               (aP.states_events_[qx] & aE.states_events_[qy]) |
@@ -725,23 +722,15 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
             auto const in_ncqx_and_q = in_ncqx & q_events;
 
             if (in_ncqx_and_q != in_ncqx) {
-                cldes::ScalarType event = 0;
-                auto event_it = in_ncqx_and_q ^ in_ncqx;
-                while (event_it.any()) {
-                    if (event_it.test(0)) {
-                        RemoveBadStates(virtualsys,
-                                        aP,
-                                        aE,
-                                        p_invgraph,
-                                        e_invgraph,
-                                        c,
-                                        q,
-                                        non_contr_bit,
-                                        rmtable);
-                    }
-                    ++event;
-                    event_it >>= 1;
-                }
+                RemoveBadStates(virtualsys,
+                                aP,
+                                aE,
+                                p_invgraph,
+                                e_invgraph,
+                                c,
+                                q,
+                                non_contr_bit,
+                                rmtable);
             } else {
                 c.insert(q);
 
@@ -754,11 +743,10 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 auto event_it = q_events;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
-                        StorageIndex const fsqe =
-                          TransitionVirtual(aP, aE, q, event);
+                        auto const fsqe = TransitionVirtual(aP, aE, q, event);
 
-                        if (rmtable.find(fsqe) == rmtable.end()) {
-                            if (c.find(fsqe) == c.end()) {
+                        if (!rmtable.contains(fsqe)) {
+                            if (!c.contains(fsqe)) {
                                 f.push(fsqe);
                             }
                             virtualsys.transtriplet_.back().second.push_back(
