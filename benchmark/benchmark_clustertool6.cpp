@@ -42,7 +42,7 @@ using namespace std::chrono;
 int
 main()
 {
-    using StorageIndex = unsigned long;
+    using StorageIndex = uint64_t;
 
     std::set<StorageIndex> marked_states;
     cldes::DESystem<48, StorageIndex> plant{ 1, 0, marked_states };

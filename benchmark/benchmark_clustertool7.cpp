@@ -29,6 +29,8 @@
  =========================================================================
 */
 
+#define SPP_ALLOC_SZ 1
+
 #include "cldes/DESystem.hpp"
 #include "cldes/operations/Operations.hpp"
 #include "clustertool.hpp"
@@ -42,7 +44,7 @@ using namespace std::chrono;
 int
 main()
 {
-    using StorageIndex = unsigned;
+    using StorageIndex = uint64_t;
 
     std::set<StorageIndex> marked_states;
     cldes::DESystem<56, StorageIndex> plant{ 1, 0, marked_states };
