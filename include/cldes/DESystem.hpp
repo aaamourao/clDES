@@ -32,10 +32,6 @@
 #ifndef DESYSTEM_HPP
 #define DESYSTEM_HPP
 
-#ifndef VIENNACL_WITH_OPENCL
-#define VIENNACL_WITH_OPENCL
-#endif
-
 #include "cldes/Constants.hpp"
 #include "cldes/EventsSet.hpp"
 #include <Eigen/Sparse>
