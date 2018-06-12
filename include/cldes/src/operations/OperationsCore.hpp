@@ -28,89 +28,10 @@
  =========================================================================
 */
 
+#include "cldes/DESystem.hpp"
+#include <Eigen/Sparse>
 #include <algorithm>
 #include <cmath>
-// #include "backend/oclbackend.hpp"
-#include "cldes/DESystem.hpp"
-// #include "desystemcl.hpp"
-#include <Eigen/Sparse>
-
-/*
-DESystem<NEvents>CL op::Synchronize(DESystem<NEvents>CL &aSys0,
-DESystem<NEvents>CL &aSys1) { auto table_size = aSys0.states_number_ *
-aSys1.states_number_;
-
-    // Allocate memory on the device
-    auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
-        CL_MEM_READ_WRITE, table_size * sizeof(StatesTuple), nullptr);
-
-    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage1");
-
-    // Set Work groups size
-    SetWorkGroups_(&syncstage1kernel, aSys0.states_number_,
-                   aSys1.states_number_, 1, 1);
-
-    // Execute kernel on the device
-    aSys0.backend_ptr_->Enqueue(syncstage1kernel(
-        states_tuple_dev, static_cast<cl_uint>(aSys0.states_number_)));
-
-    // Get the result and saves it on host memory
-    auto states_tuple_host = new StatesTuple[table_size];
-    clEnqueueReadBuffer(aSys0.backend_ptr_->CommandQueue(), states_tuple_dev,
-                        CL_TRUE, 0, table_size * sizeof(StatesTuple),
-                        (void *)states_tuple_host, 0, NULL, NULL);
-
-    if (aSys0.is_cache_outdated_) {
-        aSys0.UpdateGraphCache_();
-    }
-
-    if (aSys1.is_cache_outdated_) {
-        aSys1.UpdateGraphCache_();
-    }
-
-    auto initstate_sync = op::TablePos_(aSys0.init_state_, aSys1.init_state_,
-                                        aSys0.states_number_);
-
-    std::set<cldes_size_t> markedstates_sync;
-    std::set_union(aSys0.marked_states_.begin(), aSys0.marked_states_.end(),
-                   aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
-                   std::inserter(markedstates_sync, markedstates_sync.begin()));
-
-    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage2");
-
-    // Set Work groups size
-    SetWorkGroups_(&syncstage2kernel, table_size, aSys0.events_.size(), 1, 1);
-
-    auto asys0_events = CalcEventsInt_(aSys0.events_);
-    auto asys1_events = CalcEventsInt_(aSys1.events_);
-
-    auto gcd_private = CalcGCD_(asys0_events, asys1_events);
-    auto asys0_private = asys0_events / gcd_private;
-    auto asys1_private = asys1_events / gcd_private;
-
-    viennacl::matrix<float> result_dev(table_size, table_size);
-    result_dev.clear();
-
-    // Execute kernel on the device
-    aSys0.backend_ptr_->Enqueue(syncstage2kernel(
-        states_tuple_dev, aSys0.device_graph_->handle1().opencl_handle(),
-        aSys0.device_graph_->handle2().opencl_handle(),
-        aSys0.device_graph_->handle().opencl_handle(),
-        static_cast<cl_uint>(aSys0.device_graph_->rows()), asys0_private,
-        aSys1.device_graph_->handle1().opencl_handle(),
-        aSys1.device_graph_->handle2().opencl_handle(),
-        aSys1.device_graph_->handle().opencl_handle(), asys1_private,
-        result_dev.handle().opencl_handle(),
-        static_cast<cl_uint>(result_dev.internal_rows())));
-
-    // Copy device graph to host memory
-    DESystem<NEvents>CL sync_sys(table_size, initstate_sync, markedstates_sync);
-    viennacl::copy(result_dev, *(sync_sys.graph_));
-    viennacl::copy(trans(*(sync_sys.graph_)), *(sync_sys.device_graph_));
-
-    return sync_sys;
-}
-*/
 
 template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
@@ -244,14 +165,6 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
     return sys;
 }
 
-/*
-op::StatesTable *op::SynchronizeStage1(DESystem<NEvents>CL const &aSys0,
-                                       DESystem<NEvents>CL const &aSys1) {
-    SynchronizeStage2(syncsys, aSys0, aSys1);
-    return syncsys;
-}
-*/
-
 template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::SynchronizeStage1(
@@ -306,96 +219,6 @@ cldes::op::SynchronizeStage1(
 
     return virtualsys;
 }
-
-/*
-op::StatesTable *op::SynchronizeStage1(DESystem<NEvents>CL const &aSys0,
-                                       DESystem<NEvents>CL const &aSys1) {
-    auto table_size = aSys0.states_number_ * aSys1.states_number_;
-
-    // Allocate memory on the device
-    auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
-        CL_MEM_WRITE_ONLY, table_size * sizeof(StatesTuple), nullptr);
-
-    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage1");
-
-    // Set Work groups size
-    SetWorkGroups_(&syncstage1kernel, aSys0.states_number_,
-                   aSys1.states_number_, 1, 1);
-
-    // Execute kernel on the device
-    aSys0.backend_ptr_->Enqueue(syncstage1kernel(
-        states_tuple_dev, static_cast<cl_uint>(aSys0.states_number_)));
-
-    // Get the result and saves it on host memory
-    auto states_tuple_host = new StatesTuple[table_size];
-    clEnqueueReadBuffer(aSys0.backend_ptr_->CommandQueue(), states_tuple_dev,
-                        CL_TRUE, 0, table_size * sizeof(StatesTuple),
-                        (void *)states_tuple_host, 0, NULL, NULL);
-
-    auto states_table = new StatesTable;
-    states_table->tsize = table_size;
-    states_table->table = states_tuple_host;
-
-    return states_table;
-}
-
-DESystem<NEvents>CL op::SynchronizeStage2(op::StatesTable const *aTable,
-                                 DESystem<NEvents>CL &aSys0, DESystem<NEvents>CL
-&aSys1) { if (aSys0.is_cache_outdated_) { aSys0.UpdateGraphCache_();
-    }
-
-    if (aSys1.is_cache_outdated_) {
-        aSys1.UpdateGraphCache_();
-    }
-
-    auto initstate_sync = op::TablePos_(aSys0.init_state_, aSys1.init_state_,
-                                        aSys0.states_number_);
-
-    std::set<cldes_size_t> markedstates_sync;
-    std::set_union(aSys0.marked_states_.begin(), aSys0.marked_states_.end(),
-                   aSys1.marked_states_.begin(), aSys1.marked_states_.end(),
-                   std::inserter(markedstates_sync, markedstates_sync.begin()));
-
-    // Allocate memory on the device
-    auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
-        CL_MEM_READ_ONLY, aTable->tsize * sizeof(StatesTuple), aTable->table);
-
-    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage2");
-
-    // Set Work groups size
-    SetWorkGroups_(&syncstage2kernel, aTable->tsize, aSys0.events_.size(), 1,
-                   1);
-
-    auto asys0_events = CalcEventsInt_(aSys0.events_);
-    auto asys1_events = CalcEventsInt_(aSys1.events_);
-
-    auto gcd_private = CalcGCD_(asys0_events, asys1_events);
-    auto asys0_private = asys0_events / gcd_private;
-    auto asys1_private = asys1_events / gcd_private;
-
-    viennacl::matrix<float> result_dev(aTable->tsize, aTable->tsize);
-    result_dev.clear();
-
-    // Execute kernel on the device
-    aSys0.backend_ptr_->Enqueue(syncstage2kernel(
-        states_tuple_dev, aSys0.device_graph_->handle1().opencl_handle(),
-        aSys0.device_graph_->handle2().opencl_handle(),
-        aSys0.device_graph_->handle().opencl_handle(),
-        static_cast<cl_uint>(aSys0.device_graph_->rows()), asys0_private,
-        aSys1.device_graph_->handle1().opencl_handle(),
-        aSys1.device_graph_->handle2().opencl_handle(),
-        aSys1.device_graph_->handle().opencl_handle(), asys1_private,
-        result_dev.handle().opencl_handle(),
-        static_cast<cl_uint>(result_dev.internal_rows())));
-
-    // Copy device graph to host memory
-    DESystem<NEvents>CL sync_sys(aTable->tsize, initstate_sync,
-markedstates_sync); viennacl::copy(result_dev, *(sync_sys.graph_));
-    viennacl::copy(trans(*(sync_sys.graph_)), *(sync_sys.device_graph_));
-
-    return sync_sys;
-}
-*/
 
 template<uint8_t NEvents, typename StorageIndex>
 void

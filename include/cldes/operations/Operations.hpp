@@ -191,38 +191,6 @@ SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
                 EventsTableHost const& aNonContr);
 
-/*
-cldes::DESystem<NEvents>CL SynchronizeStage2(StatesTable const *aTable,
-                                    cldes::DESystem<NEvents>CL &aSys0,
-                                    cldes::DESystem<NEvents>CL &aSys1);
-
-StatesTable *SynchronizeStage1(cldes::DESystem<NEvents>CL const &aSys0,
-                               cldes::DESystem<NEvents>CL const &aSys1);
-typedef struct StatesTuple {
-    cl_uint x0;
-    cl_uint x1;
-} StatesTuple;
-
-typedef struct StatesTable {
-    cl_uint tsize;
-    StatesTuple *table;
-} StatesTable;
-
-template <class KernelType>
-void SetWorkGroups_(KernelType *k, cldes::cldes_size_t const aGws0,
-                    cldes::cldes_size_t const aGws1,
-                    cldes::cldes_size_t const aLws0,
-                    cldes::cldes_size_t const aLws1) {
-    k->local_work_size(0, aLws0);
-    k->local_work_size(1, aLws1);
-    k->global_work_size(0, aGws0);
-    k->global_work_size(1, aGws1);
-}
-
-cldes::DESystem<NEvents>CL Synchronize(cldes::DESystem<NEvents>CL &aSys0,
-                              cldes::DESystem<NEvents>CL &aSys1);
-*/
-
 } // namespace op
 } // namespace cldes
 
