@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: EventsSet.hpp
- Description: Events set encapsulated as a std::bitset with overload
+ Description: Events set encapsulated as a std::bitset with overloaded
  operators.
  =========================================================================
 */
