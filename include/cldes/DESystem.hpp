@@ -330,7 +330,7 @@ protected:
      * Declare default constructor as protected to avoid the class user of
      * calling it.
      */
-    DESystem(){};
+    explicit DESystem(){};
 
 private:
     /*! \brief DESystem operations
