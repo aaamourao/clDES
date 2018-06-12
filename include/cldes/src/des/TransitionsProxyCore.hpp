@@ -28,7 +28,7 @@
  =========================================================================
 */
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::TransitionProxy<NEvents, StorageIndex>::TransitionProxy(
   cldes::DESystem<NEvents, StorageIndex>* const aSysPtr,
   StorageIndex const& aLin,
@@ -39,7 +39,7 @@ cldes::TransitionProxy<NEvents, StorageIndex>::TransitionProxy(
 {
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::TransitionProxy<NEvents, StorageIndex>&
 cldes::TransitionProxy<NEvents, StorageIndex>::operator=(
   cldes::ScalarType aEventPos)
@@ -48,7 +48,7 @@ cldes::TransitionProxy<NEvents, StorageIndex>::operator=(
     sys_ptr_->events_[aEventPos] = true;
 
     // Create a unsigned long long representing the event
-    std::bitset<NEvents> const event_ull{ 1ul << aEventPos };
+    EventsSet<NEvents> const event_ull{ 1ul << aEventPos };
 
     // Add transition to the state events hash table
     sys_ptr_->states_events_[lin_] |= event_ull;
@@ -57,7 +57,7 @@ cldes::TransitionProxy<NEvents, StorageIndex>::operator=(
     sys_ptr_->inv_states_events_[col_] |= event_ull;
 
     // Add transition to graph
-    std::bitset<NEvents> const last_value = sys_ptr_->graph_.coeff(lin_, col_);
+    EventsSet<NEvents> const last_value = sys_ptr_->graph_.coeff(lin_, col_);
     sys_ptr_->graph_.coeffRef(lin_, col_) = last_value | event_ull;
 
     // Add transition to bit graph, which is transposed

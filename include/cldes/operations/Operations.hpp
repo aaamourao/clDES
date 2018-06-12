@@ -43,11 +43,8 @@ namespace op {
  *
  * Graph of events represented by a bit array.
  */
-template<size_t NEvents, typename StorageIndex>
-using GraphType =
-  Eigen::SparseMatrix<std::bitset<NEvents>,
-                      Eigen::RowMajor,
-                      typename std::make_signed<StorageIndex>::type>;
+template<uint8_t NEvents>
+using GraphType = Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
 
 /*! \brief Vector of states type
  */
@@ -82,7 +79,7 @@ using StatesStack = std::stack<StorageIndex>;
 
 /*! \brief Hash set containing events indexes
  */
-using EventsTableHost = spp::sparse_hash_set<unsigned>;
+using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
 /*! \brief Returns a system which represents a parallel composition
  * between two systems.
@@ -94,7 +91,7 @@ using EventsTableHost = spp::sparse_hash_set<unsigned>;
  * @param aSys0 The left operand of the parallel composition.
  * @param aSys1 The right operand of the parallel composition.
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
             cldes::DESystem<NEvents, StorageIndex> const& aSys1);
@@ -110,7 +107,7 @@ Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
  * @param aSys0 The left operand of the parallel composition.
  * @param aSys1 The right operand of the parallel composition.
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
@@ -124,7 +121,7 @@ SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
  * @param aSys0 The left operand of the parallel composition.
  * @param aSys1 The right operand of the parallel composition.
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
@@ -144,7 +141,7 @@ SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
  * @param aQ The "from state"
  * @param aEvent Event of transition
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 StorageIndex
 TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1,
@@ -170,16 +167,16 @@ TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
  * events.
  * @param aRmTable A hash table containing all the removed states so far
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                 cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
-                GraphType<NEvents, StorageIndex> const& aInvGraphP,
-                GraphType<NEvents, StorageIndex> const& aInvGraphE,
+                GraphType<NEvents> const& aInvGraphP,
+                GraphType<NEvents> const& aInvGraphE,
                 StatesTableHost<StorageIndex>& aC,
                 StorageIndex const& aQ,
-                std::bitset<NEvents> const& aNonContrBit,
+                EventsSet<NEvents> const& aNonContrBit,
                 StatesTableHost<StorageIndex>& aRmTable);
 
 /*! \brief Returns the monolithic supervisor of a plant and a pec
@@ -188,7 +185,7 @@ RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
  * @param aE Specs system const reference
  * @param aNonContr Hash table containing all non-controllable events indexes.
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,

@@ -23,24 +23,40 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: Constants.hpp
- Description: Library constants and default alias
+ File: EventsSet.hpp
+ Description: Events set encapsulated as a std::bitset with overload
+ operators.
  =========================================================================
 */
-#ifndef CLDES_CONSTANTS_HPP
-#define CLDES_CONSTANTS_HPP
+#ifndef CLDES_EVENTSSET_HPP
+#define CLDES_EVENTSSET_HPP
 
-#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
-
-//#include <CL/cl.hpp>
-#include <Eigen/Sparse>
 #include <bitset>
 
 namespace cldes {
 
-// Host adjascency matrix base type which represents an array of bits
-using ScalarType = uint8_t;
+/*! \brief Bit array representing an events set
+ *
+ * Each bit represent a different event.
+ * 0 -> does not contain event
+ * 1 -> contains event
+ * index -> Event value
+ */
+template<uint8_t NEvents>
+using EventsSet = std::bitset<NEvents>;
 
 } // namespace cldes
 
-#endif // CLDES_CONSTANTS_HPP
+namespace std {
+
+/*! \brief Overload operator+ from base class
+ */
+template<std::size_t size>
+inline bitset<size>
+operator+(bitset<size> const& aLhs, bitset<size> const& aRhs)
+{
+    return aLhs | aRhs;
+}
+}
+
+#endif // CLDES_EVENTSSET_HPP

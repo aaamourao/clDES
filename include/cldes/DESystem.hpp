@@ -37,6 +37,7 @@
 #endif
 
 #include "cldes/Constants.hpp"
+#include "cldes/EventsSet.hpp"
 #include <Eigen/Sparse>
 #include <set>
 #include <sparsepp/spp.h>
@@ -50,29 +51,26 @@ namespace cldes {
  * Forward declarion of DESystem class necessary for the forward declaration of
  * the DESystem's friend function op::Synchronize
  */
-template<size_t NEvents = 32u, typename StorageIndex = unsigned>
+template<uint8_t NEvents = 32u, typename StorageIndex = unsigned>
 class DESystem;
 
 /*
  * Forward declarion of DESystem's friends class TransitionProxy. A transition
  * is an element of the adjascency matrix which implements the des graph.
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 class TransitionProxy;
 
 // Forward declartions of friends functions which implement des operations
 namespace op {
-template<size_t NEvents, typename StorageIndex>
-using GraphType =
-  Eigen::SparseMatrix<std::bitset<NEvents>,
-                      Eigen::RowMajor,
-                      typename std::make_signed<StorageIndex>::type>;
+template<uint8_t NEvents>
+using GraphType = Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
 
 /*
  * Forward declarion of DESystem's friend function Synchronize which
  * implements the parallel composition between two DES.
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
             DESystem<NEvents, StorageIndex> const& aSys1);
@@ -99,23 +97,23 @@ template<typename StorageIndex>
 using StatesStack = std::stack<StorageIndex>;
 
 // Table of events
-using EventsTableHost = spp::sparse_hash_set<unsigned>;
+using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
 // Implements the first stage of the parallel composition: gen tuples
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
 // Implements the second stage of the parallel composition: calc transitions
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
 
 // Calculate f(q, event) of a virtual system
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 StorageIndex
 TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1,
@@ -123,20 +121,20 @@ TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::ScalarType const& aEvent);
 
 // Remove bad states recursively
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
                 cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aE,
-                GraphType<NEvents, StorageIndex> const& aInvGraphP,
-                GraphType<NEvents, StorageIndex> const& aInvGraphE,
+                GraphType<NEvents> const& aInvGraphP,
+                GraphType<NEvents> const& aInvGraphE,
                 StatesTableHost<StorageIndex>& aC,
                 StorageIndex const& aQ,
-                std::bitset<NEvents> const& aNonContrBit,
+                EventsSet<NEvents> const& aNonContrBit,
                 StatesTableHost<StorageIndex>& aRmTable);
 
 // Calculate the monolithic supervisor of a fiven plant and spec
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
                 cldes::DESystem<NEvents, StorageIndex> const& aS,
@@ -150,18 +148,10 @@ SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
  * @param NEvents Number of events
  * @param StorageIndex Unsigned type use for indexing the ajacency matrix
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 class DESystem
 {
 public:
-    /*! \brief Bit array representing an events set
-     *
-     * Each bit represent a different event.
-     * 0 -> does not contain event
-     * 1 -> contains event
-     */
-    using EventsSet = std::bitset<NEvents>;
-
     /*! \brief Adjacency matrix of bitarrays implementing a graph
      *
      * The graph represents the DES automata:
@@ -172,9 +162,7 @@ public:
      * col index: to state
      */
     using GraphHostData =
-      Eigen::SparseMatrix<EventsSet,
-                          Eigen::RowMajor,
-                          typename std::make_signed<StorageIndex>::type>;
+      Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
 
     /*! \brief Adjacency matrix of bit implementing a graph
      *
@@ -185,19 +173,13 @@ public:
      * row index: from state
      * col index: to state
      */
-    using BitGraphHostData =
-      Eigen::SparseMatrix<bool,
-                          Eigen::RowMajor,
-                          typename std::make_signed<StorageIndex>::type>;
+    using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::RowMajor>;
 
     /*! \brief Adjacency  matrix of bit implementing searching nodes
      *
      * Structure used for traversing the graph using a linear algebra approach
      */
-    using StatesVector =
-      Eigen::SparseMatrix<bool,
-                          Eigen::ColMajor,
-                          typename std::make_signed<StorageIndex>::type>;
+    using StatesVector = Eigen::SparseMatrix<bool, Eigen::ColMajor>;
 
     /*! \brief Set of states type
      */
@@ -205,12 +187,12 @@ public:
 
     /*! \brief Table of transitions on a STL container
      */
-    using StatesEventsTable = std::vector<EventsSet>;
+    using StatesEventsTable = std::vector<EventsSet<NEvents>>;
 
     /*! \brief Set of Events implemented as a Hash Table for searching
      * efficiently.
      */
-    using EventsTable = spp::sparse_hash_set<unsigned>;
+    using EventsTable = spp::sparse_hash_set<uint8_t>;
 
     /*! \brief Vector of states type
      */
@@ -220,7 +202,8 @@ public:
      *
      * f(s, e) = s_out -> (s, e) are the arguments
      */
-    using ArgTransition = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
+    using ArgTransition =
+      std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
 
     /*! \brief Vector of inverted transitions
      *
@@ -304,8 +287,8 @@ public:
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    EventsSet const operator()(StorageIndex const& aLin,
-                               StorageIndex const& aCol) const;
+    EventsSet<NEvents> const operator()(StorageIndex const& aLin,
+                                        StorageIndex const& aCol) const;
 
     /*! \brief Returns value of the specified transition
      *
@@ -332,7 +315,7 @@ public:
      *
      * @params aEvents Set containing all the new events of the current system
      */
-    void InsertEvents(EventsSet const& aEvents);
+    void InsertEvents(EventsSet<NEvents> const& aEvents);
 
     /*
      * TODO:
@@ -381,11 +364,11 @@ private:
       DESystem<NEvents, StorageIndex>& aVirtualSys,
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
-      op::GraphType<NEvents, StorageIndex> const& aInvGraphP,
-      op::GraphType<NEvents, StorageIndex> const& aInvGraphE,
+      op::GraphType<NEvents> const& aInvGraphP,
+      op::GraphType<NEvents> const& aInvGraphE,
       op::StatesTableHost<StorageIndex>& aC,
       StorageIndex const& aQ,
-      std::bitset<NEvents> const& aNonContr,
+      EventsSet<NEvents> const& aNonContr,
       op::StatesTableHost<StorageIndex>& aRmTable);
     friend DESystem cldes::op::SupervisorSynth<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex> const& aP,
@@ -460,7 +443,7 @@ private:
      * A hash table containing all the events that matter for the current
      * system.
      */
-    EventsSet events_;
+    EventsSet<NEvents> events_;
 
     /*! \brief Vector containing a events hash table per state
      */
@@ -480,7 +463,7 @@ private:
      * TODO: Change it to a pointer and allocate only when the system is virtual
      * and deallocate when it become a concrete system.
      */
-    EventsSet only_in_0_;
+    EventsSet<NEvents> only_in_0_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
@@ -489,7 +472,7 @@ private:
      * TODO: Change it to a pointer and allocate only when the system is virtual
      * and deallocate when it become a concrete system.
      */
-    EventsSet only_in_1_;
+    EventsSet<NEvents> only_in_1_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
@@ -564,6 +547,18 @@ private:
     StatesSet* Bfs_();
 };
 
+/*! \brief Alias for graph 3-tuple
+ *
+ * (s_from, s_to, transition_events)
+ */
+template<uint8_t NEvents>
+using Triplet = Eigen::Triplet<EventsSet<NEvents>>;
+
+/*! \brief Alias for bit graph 3-tuple
+ *
+ * (s_from, s_to, true)
+ */
+using BitTriplet = Eigen::Triplet<bool>;
 } // namespace cldes
 
 // Include DESystem implementation

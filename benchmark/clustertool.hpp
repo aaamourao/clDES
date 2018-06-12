@@ -33,12 +33,12 @@
 #include <sparsepp/spp.h>
 #include <vector>
 
-template<size_t NEvents, typename StorageIndex = unsigned>
+template<uint8_t NEvents, typename StorageIndex = unsigned>
 void
 ClusterTool(unsigned long const& aNClusters,
             std::vector<cldes::DESystem<NEvents, StorageIndex>>& aPlants,
             std::vector<cldes::DESystem<NEvents, StorageIndex>>& aSpecs,
-            spp::sparse_hash_set<unsigned>& non_contr)
+            spp::sparse_hash_set<uint8_t>& non_contr)
 {
     if (aPlants.size() != 0 || aSpecs.size() != 0 || non_contr.size() ||
         aNClusters == 0) {

@@ -35,7 +35,7 @@
 #include <functional>
 #include <vector>
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>::DESystem(
   StorageIndex const& aStatesNumber,
   StorageIndex const& aInitState,
@@ -84,22 +84,22 @@ DESystem<NEvents>::DESystem(DESystem<NEvents> const &aSys) {
 }
 */
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::GraphHostData
 cldes::DESystem<NEvents, StorageIndex>::GetGraph() const
 {
     return graph_;
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 cldes::DESystem<NEvents, StorageIndex>::CacheGraph_()
 {
     is_cache_outdated_ = false;
 }
 
-template<size_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::EventsSet const
+template<uint8_t NEvents, typename StorageIndex>
+typename cldes::EventsSet<NEvents> const
 cldes::DESystem<NEvents, StorageIndex>::operator()(
   StorageIndex const& aLin,
   StorageIndex const& aCol) const
@@ -107,7 +107,7 @@ cldes::DESystem<NEvents, StorageIndex>::operator()(
     return graph_.coeff(aLin, aCol);
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 cldes::TransitionProxy<NEvents, StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aLin,
                                                    StorageIndex const& aCol)
@@ -115,14 +115,14 @@ cldes::DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aLin,
     return TransitionProxy<NEvents, StorageIndex>(this, aLin, aCol);
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 cldes::DESystem<NEvents, StorageIndex>::UpdateGraphCache_()
 {
     is_cache_outdated_ = false;
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 template<typename StatesType>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet*
 cldes::DESystem<NEvents, StorageIndex>::Bfs_(
@@ -154,7 +154,7 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
     return BfsCalc_(host_x, aBfsVisit, &states_map);
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet*
 cldes::DESystem<NEvents, StorageIndex>::Bfs_(
   StorageIndex const& aInitialNode,
@@ -176,14 +176,14 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
     return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet*
 cldes::DESystem<NEvents, StorageIndex>::Bfs_()
 {
     return Bfs_(init_state_, nullptr);
 };
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet*
 cldes::DESystem<NEvents, StorageIndex>::BfsCalc_(
   StatesVector& aHostX,
@@ -234,7 +234,7 @@ cldes::DESystem<NEvents, StorageIndex>::BfsCalc_(
     return accessed_states;
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet
 cldes::DESystem<NEvents, StorageIndex>::AccessiblePart()
 {
@@ -247,7 +247,7 @@ cldes::DESystem<NEvents, StorageIndex>::AccessiblePart()
     return accessible_states;
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet
 cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()
 {
@@ -296,13 +296,12 @@ cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()
     return coaccessible_states;
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet
 cldes::DESystem<NEvents, StorageIndex>::TrimStates()
 {
     using RowIteratorConst =
       Eigen::InnerIterator<DESystem<NEvents, StorageIndex>::StatesVector const>;
-    using BitTriplet = cldes::BitTriplet<StorageIndex>;
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
 
     auto const accpartstl = AccessiblePart();
@@ -360,14 +359,13 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
     return trimstates;
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 cldes::DESystem<NEvents, StorageIndex>::Trim()
 {
     using RowIteratorGraph =
       Eigen::InnerIterator<DESystem<NEvents, StorageIndex>::GraphHostData>;
-    using Triplet = cldes::Triplet<NEvents, StorageIndex>;
-    using BitTriplet = cldes::BitTriplet<StorageIndex>;
+    using Triplet = cldes::Triplet<NEvents>;
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
 
     auto trimstates = this->TrimStates();
@@ -458,10 +456,10 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     return;
 }
 
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 void
 cldes::DESystem<NEvents, StorageIndex>::InsertEvents(
-  cldes::DESystem<NEvents, StorageIndex>::EventsSet const& aEvents)
+  cldes::EventsSet<NEvents> const& aEvents)
 {
-    events_ = EventsSet(aEvents);
+    events_ = EventsSet<NEvents>(aEvents);
 }

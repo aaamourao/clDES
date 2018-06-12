@@ -40,7 +40,7 @@ namespace cldes {
  * @param NEvents Number of events
  * @param StorageIndex Unsigned type for storing the indexes of each state
  */
-template<size_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 class TransitionProxy
 {
 public:
