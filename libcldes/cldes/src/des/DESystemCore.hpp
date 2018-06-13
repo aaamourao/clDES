@@ -304,7 +304,7 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
       Eigen::InnerIterator<DESystem<NEvents, StorageIndex>::StatesVector const>;
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
 
-    auto const accpartstl = AccessiblePart();
+    auto accpartstl = AccessiblePart();
     spp::sparse_hash_set<StorageIndex> accpart;
     for (StorageIndex s : accpartstl) {
         accpart.insert(s);

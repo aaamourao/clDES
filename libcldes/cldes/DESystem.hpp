@@ -232,19 +232,33 @@ public:
                       StatesSet& aMarkedStates,
                       bool const& aDevCacheEnabled = true);
 
+    /*! \brief Move constructor
+     *
+     * Enable move semantics
+     */
+    DESystem(DESystem &&) = default;
+
     /*! \brief Copy constructor
      *
-     * TODO: It will be necessary when the members used only for virtual systems
-     * become pointers.
+     * Needs to define this, since move semantics is enabled
      */
-    // DESystem(DESystem &aSys);
+    DESystem(DESystem const &) = default;
+
+    /*! \brief Operator =
+     *
+     * Uses move semantics
+     */
+    DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
+
+    /*! \brief Operator = to const type
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
 
     /*! \brief DESystem destructor
-     *
-     * TODO: It will be necessary when the members used only for virtual systems
-     * become pointers.
      */
-    // virtual ~DESystem();
+    virtual ~DESystem() = default;
 
     /*! \brief Graph getter
      *
