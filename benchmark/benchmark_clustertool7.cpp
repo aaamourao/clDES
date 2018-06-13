@@ -58,8 +58,9 @@ main()
         std::vector<cldes::DESystem<56, StorageIndex>> plants;
         std::vector<cldes::DESystem<56, StorageIndex>> specs;
 
-        std::cout << "Generating ClusterTool(2)" << std::endl;
+        std::cout << "Generating ClusterTool(7)" << std::endl;
         ClusterTool(7, plants, specs, non_contr);
+        std::cout << std::endl;
 
         std::cout << "Synchronizing plants" << std::endl;
         high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -127,6 +128,7 @@ main()
     std::cout << "Supervisor synth time spent: " << duration << " microseconds"
               << std::endl;
 
+    std::cout << std::endl;
     std::cout << "Number of states of the supervisor: " << supervisor.Size()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
