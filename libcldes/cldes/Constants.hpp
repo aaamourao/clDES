@@ -23,23 +23,35 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: Constants.hpp
- Description: Library constants and default alias
+ File: cldes/Constants.hpp
+ Description: Library constants and default alias definitions
  =========================================================================
 */
 #ifndef CLDES_CONSTANTS_HPP
 #define CLDES_CONSTANTS_HPP
 
+// Need to define it, since it could be compiled on platforms which support
+// newer OpenCL standards.
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
-//#include <CL/cl.hpp>
 #include <Eigen/Sparse>
 #include <bitset>
+#include <limits>
 
 namespace cldes {
 
 // Host adjascency matrix base type which represents an array of bits
 using ScalarType = uint8_t;
+
+/*
+ * Global const definitions: preferred over defines
+ */
+// Max number of events
+ScalarType const kMaxEvents = std::numeric_limits<ScalarType>::max();
+
+// Max number of events on GPU objects
+// TODO: Change this limit to an OpenCL definition for different platforms
+ScalarType const kMaxEventsGPU = std::numeric_limits<uint64_t>::max();
 
 } // namespace cldes
 

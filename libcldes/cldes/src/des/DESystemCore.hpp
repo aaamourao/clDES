@@ -23,9 +23,9 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: desystem.cpp
- Description: DESystem<NEvents> class implementation. DESystem<NEvents> is a
- graph, which is modeled as a Sparce Adjacency Matrix.
+ File: cldes/src/des/DESystemCore.cpp
+ Description: DESystem class implementation. DESystem is a graph, on the
+ host memory which is modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
 

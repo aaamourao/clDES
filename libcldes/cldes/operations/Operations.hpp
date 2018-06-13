@@ -23,8 +23,9 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: operations.hpp
- Description: Declaration of operation functions.
+ File: cldes/operations/Operations.hpp
+ Description: Declaration of operation functions: Parallel composition,
+ virtual parallel composition and supervisor synthesis.
  =========================================================================
 */
 

@@ -23,7 +23,7 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: EventsSet.hpp
+ File: cldes/EventsSet.hpp
  Description: Events set encapsulated as a std::bitset with overloaded
  operators.
  =========================================================================
@@ -37,10 +37,18 @@ namespace cldes {
 
 /*! \brief Bit array representing an events set
  *
+ * So far, it could be alias. It is more efficient than defining a class for
+ * overloading a single operator.
+ *
+ * However, it leads to an issue when deducing template parameters on
+ * cldes::op::RemoveBadStates and static cldes::op::__TransitionVirtualInv
+ *
  * Each bit represent a different event.
  * 0 -> does not contain event
  * 1 -> contains event
  * index -> Event value
+ *
+ * @param NEvents Number of events: max = 255
  */
 template<uint8_t NEvents>
 using EventsSet = std::bitset<NEvents>;

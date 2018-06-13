@@ -23,8 +23,9 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: operations.cpp
- Description: Definition of operation functions.
+ File: cldes/src/operations/OperationsCore.cpp
+ Description: Definition of operation functions: Parallel composition,
+ virtual parallel composition and supervisor synthesis.
  =========================================================================
 */
 

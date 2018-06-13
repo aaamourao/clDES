@@ -23,7 +23,7 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: transition_proxy.hpp
+ File: cldes/TransitionProxy.hpp
  Description: Proxy to an element of the graph_ data member from DESystem.
  =========================================================================
 */
