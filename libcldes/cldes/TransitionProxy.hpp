@@ -24,7 +24,8 @@
  Universidade Federal de Minas Gerais
 
  File: cldes/TransitionProxy.hpp
- Description: Proxy to an element of the graph_ data member from DESystem.
+ Description: Proxy to an element of the graph_ data member from
+ DESystemBase.
  =========================================================================
 */
 
@@ -52,7 +53,7 @@ public:
      * @param aLin Line of the element
      * @param aCol Column of the element
      */
-    TransitionProxy(DESystem<NEvents, StorageIndex>* const aSysPtr,
+    TransitionProxy(DESystemBase<NEvents, StorageIndex>* const aSysPtr,
                     StorageIndex const& aLin,
                     StorageIndex const& aCol);
 
@@ -80,11 +81,11 @@ protected:
     TransitionProxy();
 
 private:
-    /*! \brief Raw pointer to DESystem object
+    /*! \brief Raw pointer to DESystemBase object
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystem<NEvents, StorageIndex>* sys_ptr_;
+    DESystemBase<NEvents, StorageIndex>* sys_ptr_;
 
     /*! \brief Element line.
      *

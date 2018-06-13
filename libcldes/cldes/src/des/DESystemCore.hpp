@@ -29,7 +29,6 @@
  =========================================================================
 */
 
-#include "cldes/TransitionProxy.hpp"
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <functional>
@@ -41,27 +40,21 @@ cldes::DESystem<NEvents, StorageIndex>::DESystem(
   StorageIndex const& aInitState,
   StatesSet& aMarkedStates,
   bool const& aDevCacheEnabled)
+  : DESystemBase<NEvents, StorageIndex>{ aStatesNumber,
+                                         aInitState,
+                                         aMarkedStates }
 {
-    init_state_ = aInitState;
-    states_number_ = aStatesNumber;
-    marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
 
     // Resize graphs and do not preserve elements
-    graph_.resize(states_number_, states_number_);
-    bit_graph_.resize(states_number_, states_number_);
+    bit_graph_.resize(this->states_number_, this->states_number_);
 
     // Change graphs storage type to CSR
-    graph_.makeCompressed();
     bit_graph_.makeCompressed();
 
     // Initialize bit graph with Identity
     bit_graph_.setIdentity();
-
-    // Reserve mem for hash tables for avoiding re-hashing
-    states_events_ = StatesEventsTable(states_number_);
-    inv_states_events_ = StatesEventsTable(states_number_);
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
@@ -85,13 +78,6 @@ DESystem<NEvents>::DESystem(DESystem<NEvents> const &aSys) {
 */
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::GraphHostData
-cldes::DESystem<NEvents, StorageIndex>::GetGraph() const
-{
-    return graph_;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
 void
 cldes::DESystem<NEvents, StorageIndex>::CacheGraph_()
 {
@@ -99,20 +85,16 @@ cldes::DESystem<NEvents, StorageIndex>::CacheGraph_()
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::EventsSet<NEvents> const
-cldes::DESystem<NEvents, StorageIndex>::operator()(
-  StorageIndex const& aLin,
-  StorageIndex const& aCol) const
+void
+cldes::DESystem<NEvents, StorageIndex>::NewTransition_(
+  StorageIndex const& aQfrom,
+  StorageIndex const& aQto)
 {
-    return graph_.coeff(aLin, aCol);
-}
+    // Add transition to bit graph, which is transposed
+    bit_graph_.coeffRef(aQto, aQfrom) = true;
+    bit_graph_.makeCompressed();
 
-template<uint8_t NEvents, typename StorageIndex>
-cldes::TransitionProxy<NEvents, StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aLin,
-                                                   StorageIndex const& aCol)
-{
-    return TransitionProxy<NEvents, StorageIndex>(this, aLin, aCol);
+    is_cache_outdated_ = true;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -137,7 +119,7 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
      *     Y = G^T * X
      */
     // There is no need of search if a marked state is coaccessible
-    StatesVector host_x{ static_cast<StorageIndexSigned>(states_number_),
+    StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
                          static_cast<StorageIndexSigned>(
                            aInitialNodes.size()) };
 
@@ -167,7 +149,8 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-    StatesVector host_x{ static_cast<StorageIndexSigned>(states_number_), 1 };
+    StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
+                         1 };
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
@@ -180,7 +163,7 @@ template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>::StatesSet*
 cldes::DESystem<NEvents, StorageIndex>::Bfs_()
 {
-    return Bfs_(init_state_, nullptr);
+    return Bfs_(this->init_state_, nullptr);
 };
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -198,10 +181,10 @@ cldes::DESystem<NEvents, StorageIndex>::BfsCalc_(
     auto n_initial_nodes = aHostX.cols();
 
     // Executes BFS
-    StatesVector y{ static_cast<StorageIndexSigned>(states_number_),
+    StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
                     static_cast<StorageIndexSigned>(n_initial_nodes) };
     auto n_accessed_states = 0l;
-    for (StorageIndex i = 0ul; i < states_number_; ++i) {
+    for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
         y = bit_graph_ * aHostX;
@@ -257,22 +240,23 @@ cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()
 
     auto const invgraph = bit_graph_.transpose();
 
-    StorageIndex const n_marked =
-      static_cast<StorageIndex>(marked_states_.size());
-    StatesVector x{ static_cast<StorageIndexSigned>(states_number_), n_marked };
-    x.reserve(marked_states_.size());
+    StorageIndexSigned const n_marked = this->marked_states_.size();
+    StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
+                    n_marked };
+    x.reserve(this->marked_states_.size());
 
     {
         auto pos = 0ul;
-        for (auto state : marked_states_) {
+        for (auto state : this->marked_states_) {
             x.coeffRef(state, pos) = true;
             ++pos;
         }
     }
 
-    StatesVector y{ static_cast<StorageIndexSigned>(states_number_), n_marked };
+    StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
+                    n_marked };
     auto n_accessed_states = 0l;
-    for (StorageIndex i = 0ul; i < states_number_; ++i) {
+    for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
         y = invgraph * x;
 
         if (n_accessed_states == y.nonZeros()) {
@@ -287,7 +271,7 @@ cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()
     y.pruned();
 
     StatesSet coaccessible_states;
-    for (StorageIndex s = 0; s < y.outerSize(); ++s) {
+    for (StorageIndexSigned s = 0; s < y.outerSize(); ++s) {
         for (RowIteratorConst e(y, s); e; ++e) {
             coaccessible_states.emplace(e.row());
         }
@@ -312,16 +296,16 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
 
     auto const invgraph = bit_graph_.transpose();
 
-    auto const n_marked = marked_states_.size();
+    auto const n_marked = this->marked_states_.size();
 
-    StatesVector x{ static_cast<StorageIndexSigned>(states_number_),
+    StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
                     static_cast<StorageIndexSigned>(n_marked) };
-    x.reserve(marked_states_.size());
+    x.reserve(this->marked_states_.size());
     std::vector<BitTriplet> xtriplet;
 
     {
         auto pos = 0l;
-        for (StorageIndex state : marked_states_) {
+        for (StorageIndex state : this->marked_states_) {
             xtriplet.push_back(BitTriplet(state, pos, true));
             ++pos;
         }
@@ -330,10 +314,10 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
                       xtriplet.end(),
                       [](bool const&, bool const&) { return true; });
 
-    StatesVector y{ static_cast<StorageIndexSigned>(states_number_),
+    StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
                     static_cast<StorageIndexSigned>(n_marked) };
     auto n_accessed_states = 0l;
-    for (auto i = 0ul; i < states_number_; ++i) {
+    for (auto i = 0ul; i < this->states_number_; ++i) {
         y = invgraph * x;
 
         if (n_accessed_states == y.nonZeros()) {
@@ -370,30 +354,32 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
 
     auto trimstates = this->TrimStates();
 
-    if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
+    if (trimstates.size() == static_cast<size_t>(this->graph_.rows())) {
         return;
     }
 
     // States map: old state pos -> new state pos
-    std::vector<StorageIndexSigned> statesmap(states_number_, -1);
+    std::vector<StorageIndexSigned> statesmap(this->states_number_, -1);
 
     // Copy graph and resize it
-    auto const old_graph = graph_;
-    states_number_ = trimstates.size();
-    graph_.resize(static_cast<StorageIndexSigned>(states_number_),
-                  static_cast<StorageIndexSigned>(states_number_));
-    bit_graph_.resize(static_cast<StorageIndexSigned>(states_number_),
-                      static_cast<StorageIndexSigned>(states_number_));
+    auto const old_graph = this->graph_;
+    this->states_number_ = trimstates.size();
+    this->graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
+                        static_cast<StorageIndexSigned>(this->states_number_));
+    bit_graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
+                      static_cast<StorageIndexSigned>(this->states_number_));
 
-    states_events_.erase(states_events_.begin() + states_number_,
-                         states_events_.end());
-    inv_states_events_.erase(inv_states_events_.begin() + states_number_,
-                             inv_states_events_.end());
+    this->states_events_.erase(this->states_events_.begin() +
+                                 this->states_number_,
+                               this->states_events_.end());
+    this->inv_states_events_.erase(this->inv_states_events_.begin() +
+                                     this->states_number_,
+                                   this->inv_states_events_.end());
 
-    events_.reset();
+    this->events_.reset();
 
     // Calculate the sparsity pattern
-    auto sparcitypattern = events_.count() * states_number_;
+    auto sparcitypattern = this->events_.count() * this->states_number_;
 
     // Fill statesmap
     {
@@ -414,9 +400,9 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     {
         auto row_id = 0ul;
         for (StorageIndex s : trimstates) {
-            if (states_events_.size() > 0) {
-                states_events_[row_id].reset();
-                inv_states_events_[row_id].reset();
+            if (this->states_events_.size() > 0) {
+                this->states_events_[row_id].reset();
+                this->inv_states_events_[row_id].reset();
             }
             for (RowIteratorGraph e(old_graph, s); e; ++e) {
                 if (statesmap[e.col()] != -1) {
@@ -424,10 +410,10 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
 
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
                     bittriplet.push_back(BitTriplet(col_id, row_id, true));
-                    events_ |= e.value();
-                    if (states_events_.size() > 0) {
-                        states_events_[row_id] |= e.value();
-                        inv_states_events_[col_id] |= e.value();
+                    this->events_ |= e.value();
+                    if (this->states_events_.size() > 0) {
+                        this->states_events_[row_id] |= e.value();
+                        this->inv_states_events_[col_id] |= e.value();
                     }
                 }
             }
@@ -436,20 +422,20 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     }
 
     // Remove aditional space
-    graph_.setFromTriplets(triplet.begin(), triplet.end());
+    this->graph_.setFromTriplets(triplet.begin(), triplet.end());
     bit_graph_.setFromTriplets(bittriplet.begin(),
                                bittriplet.end(),
                                [](bool const&, bool const&) { return true; });
 
-    graph_.makeCompressed();
+    this->graph_.makeCompressed();
     bit_graph_.makeCompressed();
 
     // Calculate new marked states
-    auto const old_marked = marked_states_;
-    marked_states_.clear();
+    auto const old_marked = this->marked_states_;
+    this->marked_states_.clear();
     for (StorageIndex s : old_marked) {
         if (statesmap[s] != -1) {
-            marked_states_.emplace(statesmap[s]);
+            this->marked_states_.emplace(statesmap[s]);
         }
     }
 
@@ -461,5 +447,5 @@ void
 cldes::DESystem<NEvents, StorageIndex>::InsertEvents(
   cldes::EventsSet<NEvents> const& aEvents)
 {
-    events_ = EventsSet<NEvents>(aEvents);
+    this->events_ = EventsSet<NEvents>(aEvents);
 }

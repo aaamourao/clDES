@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: cldes/DESystem.hpp
- Description: DESystem class definition. DESystem is a graph, which is
+ Description: DESystem class declaration. DESystem is a graph, which is
  modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
@@ -32,14 +32,10 @@
 #ifndef DESYSTEM_HPP
 #define DESYSTEM_HPP
 
-#include "cldes/Constants.hpp"
-#include "cldes/EventsSet.hpp"
-#include <Eigen/Sparse>
-#include <set>
+#include "cldes/DESystemBase.hpp"
 #include <sparsepp/spp.h>
 #include <stack>
 #include <tuple>
-#include <vector>
 
 /*
  * Forward declarations and some useful alias definitions
@@ -67,13 +63,6 @@ using TransMap = spp::sparse_hash_map<StorageIndex, InvArgTrans<StorageIndex>*>;
  */
 template<uint8_t NEvents = 32u, typename StorageIndex = unsigned>
 class DESystem;
-
-/*
- * Forward declarion of DESystem's friends class TransitionProxy. A transition
- * is an element of the adjascency matrix which implements the des graph.
- */
-template<uint8_t NEvents, typename StorageIndex>
-class TransitionProxy;
 
 // Forward declartions of friends functions which implement des operations
 namespace op {
@@ -163,7 +152,7 @@ SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
  * @param StorageIndex Unsigned type use for indexing the ajacency matrix
  */
 template<uint8_t NEvents, typename StorageIndex>
-class DESystem
+class DESystem : public DESystemBase<NEvents, StorageIndex>
 {
 public:
     /*! \brief Adjacency matrix of bitarrays implementing a graph
@@ -176,7 +165,16 @@ public:
      * col index: to state
      */
     using GraphHostData =
-      Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
+      typename DESystemBase<NEvents, StorageIndex>::GraphHostData;
+
+    /*! \brief Set of states type
+     */
+    using StatesSet = typename DESystemBase<NEvents, StorageIndex>::StatesSet;
+
+    /*! \brief Table of transitions on a STL container
+     */
+    using StatesEventsTable =
+      typename DESystemBase<NEvents, StorageIndex>::StatesSet;
 
     /*! \brief Adjacency matrix of bit implementing a graph
      *
@@ -194,14 +192,6 @@ public:
      * Structure used for traversing the graph using a linear algebra approach
      */
     using StatesVector = Eigen::SparseMatrix<bool, Eigen::ColMajor>;
-
-    /*! \brief Set of states type
-     */
-    using StatesSet = std::set<StorageIndex>;
-
-    /*! \brief Table of transitions on a STL container
-     */
-    using StatesEventsTable = std::vector<EventsSet<NEvents>>;
 
     /*! \brief Set of Events implemented as a Hash Table for searching
      * efficiently.
@@ -262,34 +252,27 @@ public:
      */
     virtual ~DESystem() = default;
 
-    /*! \brief Graph getter
-     *
-     * Returns a copy of DESystem's private data member graph. Considering that
-     * graph is a pointer, it returns the contents of graph.
-     */
-    GraphHostData GetGraph() const;
-
     /*! \brief Returns state set containing the accessible part of automa
      *
      * Executes a Breadth First Search in the graph, which represents the DES,
      * starting from its initial state. It returns a set containing all nodes
      * which are accessible from the initial state.
      */
-    StatesSet AccessiblePart();
+    StatesSet AccessiblePart() override;
 
     /*! \brief Returns state set containing the coaccessible part of automata
      *
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart();
+    StatesSet CoaccessiblePart() override;
 
     /*! \brief Returns States Set which is the Trim part of the system
      *
      * Gets the intersection between the accessible part and the coaccessible
      * part.
      */
-    StatesSet TrimStates();
+    StatesSet TrimStates() override;
 
     /*! \brief Returns DES which is the Trim part of this
      *
@@ -299,35 +282,7 @@ public:
      *
      * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    void Trim();
-
-    /*! \brief Returns value of the specified transition
-     *
-     * Override operator () for reading transinstions values:
-     * e.g. discrete_system_foo(2,1);
-     *
-     * @param aLin Element's line
-     * @param aCol Element's column
-     */
-    EventsSet<NEvents> const operator()(StorageIndex const& aLin,
-                                        StorageIndex const& aCol) const;
-
-    /*! \brief Returns value of the specified transition
-     *
-     * Override operator () for changing transinstions with a single assignment:
-     * e.g. discrete_system_foo(2,1) = 3.0f;
-     *
-     * @param aLin Element's line
-     * @param aCol Element's column
-     */
-    TransitionProxy<NEvents, StorageIndex> operator()(StorageIndex const& aLin,
-                                                      StorageIndex const& aCol);
-
-    /*! \brief Returns number of states of the system
-     *
-     * Returns states_value_ by value.
-     */
-    StorageIndex Size() const { return states_number_; }
+    void Trim() override;
 
     /*! \brief Insert events
      *
@@ -337,7 +292,7 @@ public:
      *
      * @params aEvents Set containing all the new events of the current system
      */
-    void InsertEvents(EventsSet<NEvents> const& aEvents);
+    void InsertEvents(EventsSet<NEvents> const& aEvents) override;
 
     /*
      * TODO:
@@ -354,6 +309,14 @@ protected:
      */
     explicit DESystem(){};
 
+    /*! \brief Let the derived class know that a new element was inserted
+     *
+     * @param aQfrom State from
+     * @param aQto State to
+     */
+    void NewTransition_(StorageIndex const& aQfrom,
+                        StorageIndex const& aQto) override;
+
 private:
     /* DESystem operations
      *
@@ -366,9 +329,6 @@ private:
      * * More efficiency when accessing vars than using getters and setters.
      * * Define a different namespace for DES operations.
      */
-    // Proxy to a matrix element
-    friend class TransitionProxy<NEvents, StorageIndex>;
-
     // Parallel composition
     friend DESystem cldes::op::Synchronize<>(
       DESystem<NEvents, StorageIndex> const& aSys0,
@@ -393,7 +353,7 @@ private:
       cldes::ScalarType const& aEvent);
 
     // Remove a bad state recursively from a virtualsys
-    friend void cldes::op::RemoveBadStates<>(
+    friend void cldes::op::RemoveBadStates<NEvents, StorageIndex>(
       DESystem<NEvents, StorageIndex>& aVirtualSys,
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
@@ -409,19 +369,6 @@ private:
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
       op::EventsTableHost const& aNonContr);
-
-    /*! \brief Graph represented by an adjascency matrix
-     *
-     * A sparse matrix which represents the automata as a graph in an
-     * adjascency matrix. It is implemented as a CSR scheme.
-     *
-     * Non zero element: transition from <row index> to <col index> when events
-     * represented by the set bit indexes occurs.
-     *
-     * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the condition
-     * event 0 OR event 2.
-     */
-    GraphHostData graph_;
 
     /*! \brief Graph represented by an adjascency matrix
      *
@@ -452,37 +399,6 @@ private:
      * Tracks if cache, dev_graph_, needs to be updated or not.
      */
     bool is_cache_outdated_;
-
-    /*! \brief Current system's states number
-     *
-     * Hold the number of states that the automata contains. As the automata
-     * can be cut, the states number is not a constant at all.
-     */
-    StorageIndex states_number_;
-
-    /*! \brief Current system's initial state
-     *
-     * Hold the initial state position.
-     */
-    StorageIndex init_state_;
-
-    /*! \brief Current system's marked states
-     *
-     * Hold all marked states. Cannot be const, since the automata can be
-     * cut, and some marked states may be deleted.
-     */
-    StatesSet marked_states_;
-
-    /*! \brief System's events hash table
-     *
-     * A hash table containing all the events that matter for the current
-     * system.
-     */
-    EventsSet<NEvents> events_;
-
-    /*! \brief Vector containing a events hash table per state
-     */
-    StatesEventsTable states_events_;
 
     /*! \brief Virtual states contained in the current system
      *
@@ -517,13 +433,6 @@ private:
      * and deallocate when it become a concrete system.
      */
     TrVector transtriplet_;
-
-    /*! \brief Vector containing a events hash table per state
-     *
-     * It represents the transitions of the inverted graph for the supervisor
-     * synthesis.
-     */
-    StatesEventsTable inv_states_events_;
 
     /*! \brief Method for caching the graph
      *
@@ -581,13 +490,6 @@ private:
      */
     StatesSet* Bfs_();
 };
-
-/*! \brief Alias for graph 3-tuple
- *
- * (s_from, s_to, transition_events)
- */
-template<uint8_t NEvents>
-using Triplet = Eigen::Triplet<EventsSet<NEvents>>;
 
 /*! \brief Alias for bit graph 3-tuple
  *

@@ -30,7 +30,7 @@
 
 template<uint8_t NEvents, typename StorageIndex>
 cldes::TransitionProxy<NEvents, StorageIndex>::TransitionProxy(
-  cldes::DESystem<NEvents, StorageIndex>* const aSysPtr,
+  cldes::DESystemBase<NEvents, StorageIndex>* const aSysPtr,
   StorageIndex const& aLin,
   StorageIndex const& aCol)
   : sys_ptr_{ aSysPtr }
@@ -59,14 +59,9 @@ cldes::TransitionProxy<NEvents, StorageIndex>::operator=(
     // Add transition to graph
     EventsSet<NEvents> const last_value = sys_ptr_->graph_.coeff(lin_, col_);
     sys_ptr_->graph_.coeffRef(lin_, col_) = last_value | event_ull;
-
-    // Add transition to bit graph, which is transposed
-    sys_ptr_->bit_graph_.coeffRef(col_, lin_) = true;
-
-    sys_ptr_->bit_graph_.makeCompressed();
     sys_ptr_->graph_.makeCompressed();
 
-    sys_ptr_->is_cache_outdated_ = true;
+    sys_ptr_->NewTransition_(lin_, col_);
 
     return *this;
 }
