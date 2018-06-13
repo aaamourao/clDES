@@ -33,8 +33,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include <iostream>
-
 template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
