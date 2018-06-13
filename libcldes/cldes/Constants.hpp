@@ -51,7 +51,7 @@ ScalarType const kMaxEvents = std::numeric_limits<ScalarType>::max();
 
 // Max number of events on GPU objects
 // TODO: Change this limit to an OpenCL definition for different platforms
-ScalarType const kMaxEventsGPU = std::numeric_limits<uint64_t>::max();
+uint64_t const kMaxEventsGPU = std::numeric_limits<uint64_t>::max();
 
 } // namespace cldes
 

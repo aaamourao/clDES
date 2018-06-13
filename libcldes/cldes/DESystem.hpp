@@ -238,13 +238,13 @@ public:
      *
      * Enable move semantics
      */
-    DESystem(DESystem &&) = default;
+    DESystem(DESystem&&) = default;
 
     /*! \brief Copy constructor
      *
      * Needs to define this, since move semantics is enabled
      */
-    DESystem(DESystem const &) = default;
+    DESystem(DESystem const&) = default;
 
     /*! \brief Operator =
      *
@@ -355,7 +355,7 @@ protected:
     explicit DESystem(){};
 
 private:
-    /*! \brief DESystem operations
+    /* DESystem operations
      *
      * Functions which implement DES operations between two systems and need
      * to access private members of DESystem. The design constrains that lead to
@@ -366,23 +366,34 @@ private:
      * * More efficiency when accessing vars than using getters and setters.
      * * Define a different namespace for DES operations.
      */
+    // Proxy to a matrix element
     friend class TransitionProxy<NEvents, StorageIndex>;
-    friend DESystem cldes::op::Synchronize<NEvents, StorageIndex>(
+
+    // Parallel composition
+    friend DESystem cldes::op::Synchronize<>(
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1);
-    friend DESystem cldes::op::SynchronizeStage1<NEvents, StorageIndex>(
+
+    // First step of the lazy parallel composition
+    friend DESystem cldes::op::SynchronizeStage1<>(
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1);
-    friend void cldes::op::SynchronizeStage2<NEvents, StorageIndex>(
+
+    // Second step of the lazy parallel composition
+    friend void cldes::op::SynchronizeStage2<>(
       DESystem<NEvents, StorageIndex>& aVirtualSys,
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1);
-    friend StorageIndex cldes::op::TransitionVirtual<NEvents, StorageIndex>(
+
+    // Calculate f(q, event) of a virtual system
+    friend StorageIndex cldes::op::TransitionVirtual<>(
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1,
       StorageIndex const& aQ,
       cldes::ScalarType const& aEvent);
-    friend void cldes::op::RemoveBadStates<NEvents, StorageIndex>(
+
+    // Remove a bad state recursively from a virtualsys
+    friend void cldes::op::RemoveBadStates<>(
       DESystem<NEvents, StorageIndex>& aVirtualSys,
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
@@ -392,7 +403,9 @@ private:
       StorageIndex const& aQ,
       EventsSet<NEvents> const& aNonContr,
       op::StatesTableHost<StorageIndex>& aRmTable);
-    friend DESystem cldes::op::SupervisorSynth<NEvents, StorageIndex>(
+
+    // Computes the monolithic supervisor
+    friend DESystem cldes::op::SupervisorSynth<>(
       DESystem<NEvents, StorageIndex> const& aP,
       DESystem<NEvents, StorageIndex> const& aE,
       op::EventsTableHost const& aNonContr);
