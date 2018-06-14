@@ -194,13 +194,20 @@ template<uint8_t NEvents, typename StorageIndex>
 cldes::op::SyncSysProxy<NEvents, StorageIndex>::
 operator DESystem<NEvents, StorageIndex>()
 {
-    std::sort(virtual_states_.begin(), virtual_states_.end());
-    SynchronizeStage2(*this);
+    if (virtual_states_.empty()) {
+        SynchronizeEmptyStage2(*this);
+    } else {
+        std::sort(virtual_states_.begin(), virtual_states_.end());
+        SynchronizeStage2(*this);
+    }
 
     DESystem<NEvents, StorageIndex> sys{};
-    sys.states_number_ = this->states_number_;
-    sys.init_state_ = this->init_state_;
-    sys.marked_states_ = this->marked_states_;
+    sys.SetStatesNumber(this->states_number_);
+    sys.SetInitialState(this->init_state_);
+    sys.SetMarkedStates(this->marked_states_);
+    sys.SetStatesEvents(this->states_events_);
+    sys.SetInvStatesEvents(this->inv_states_events_);
+    sys.SetEvents(this->events_);
 
     // Resize adj matrices
     sys.graph_.resize(this->states_number_, this->states_number_);

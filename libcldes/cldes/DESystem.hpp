@@ -84,23 +84,7 @@ namespace op {
  */
 template<uint8_t NEvents, typename StorageIndex>
 class SyncSysProxy;
-
-/*
- * Forward declarion of DESystem's friend function Synchronize which
- * implements the parallel composition between two DES.
- */
-template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>
-Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
-            DESystem<NEvents, StorageIndex> const& aSys1);
-
-// Implements the first stage of the parallel composition: gen tuples
-template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>
-SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
-} // namespace op
-
+}
 /*! \brief Discrete-Events System on host memory
  *
  * Implement a DES on the host memory and their respective operations for CPUs.
@@ -136,7 +120,8 @@ public:
 
     /*! \brief Table of transitions on a STL container
      */
-    using StatesEventsTable = std::vector<EventsSet<NEvents>>;
+    using StatesEventsTable =
+      typename DESystemBase<NEvents, StorageIndex>::StatesEventsTable;
 
     /*! \brief Adjacency matrix of bit implementing a graph
      *
@@ -197,7 +182,7 @@ public:
         inv_graph_ = nullptr;
         graph_ = GraphHostData{};
         bit_graph_ = BitGraphHostData{};
-        states_events_ = StatesEventsTable(0);
+        this->states_events_ = StatesEventsTable(0);
         this->marked_states_ = StatesSet();
     };
 
@@ -342,7 +327,7 @@ public:
     inline EventsSet<NEvents> GetStateEvents(
       StorageIndex const& aQ) const override
     {
-        return states_events_[aQ];
+        return this->states_events_[aQ];
     }
 
     /*! \brief Returns EventsSet relative to state inv q
@@ -352,7 +337,7 @@ public:
     inline EventsSet<NEvents> GetInvStateEvents(
       StorageIndex const& aQ) const override
     {
-        return inv_states_events_[aQ];
+        return this->inv_states_events_[aQ];
     }
 
     /*! \brief Invert graph
@@ -381,32 +366,29 @@ public:
 
 protected:
 private:
-    // Proxy to a matrix element
+    /* \brief Proxy to a transition (matrix element)
+     *
+     * It is used to track when the graph was changed, which is useful when
+     * there is a copy of this object on the device memory (GPU). It works like
+     *
+     * (state_0, state_1) returns events (e.g {a} ; {a | b}....
+     */
     friend class TransitionProxy<NEvents, StorageIndex>;
 
-    // Sync operation proxy
-    friend class op::SyncSysProxy<NEvents, StorageIndex>;
-
-    /* DESystem operations
+    /*! \brief DESystem operations virtual proxies
      *
      * Functions which implement DES operations between two systems and need
      * to access private members of DESystem. The design constrains that lead to
-     * declare all these friends functions are:
+     * declare the following friend(s):
      *
+     * * Lazy evaluation
      * * Functions which have more than one system as input and returns a
      * different system should not be a member of DESystem class.
      * * More efficiency when accessing vars than using getters and setters.
      * * Define a different namespace for DES operations.
      */
-    // Parallel composition
-    friend DESystem cldes::op::Synchronize<>(
-      DESystem<NEvents, StorageIndex> const& aSys0,
-      DESystem<NEvents, StorageIndex> const& aSys1);
-
-    // First step of the lazy parallel composition
-    friend DESystem cldes::op::SynchronizeStage1<>(
-      DESystem<NEvents, StorageIndex> const& aSys0,
-      DESystem<NEvents, StorageIndex> const& aSys1);
+    // Sync operation proxy
+    friend class op::SyncSysProxy<NEvents, StorageIndex>;
 
     /*! \brief Graph represented by an adjascency matrix
      *
@@ -456,17 +438,6 @@ private:
      * Tracks if cache, dev_graph_, needs to be updated or not.
      */
     bool is_cache_outdated_;
-
-    /*! \brief Vector containing a events hash table per state
-     */
-    StatesEventsTable states_events_;
-
-    /*! \brief Vector containing a events hash table per state
-     *
-     * It represents the transitions of the inverted graph for the supervisor
-     * synthesis.
-     */
-    StatesEventsTable inv_states_events_;
 
     /*! \brief Method for caching the graph
      *

@@ -39,186 +39,64 @@ typename cldes::DESystem<NEvents, StorageIndex>
 cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                        cldes::DESystem<NEvents, StorageIndex> const& aSys1)
 {
-    using Triplet = cldes::Triplet<NEvents>;
-    using RowIterator = Eigen::InnerIterator<
-      typename DESystem<NEvents, StorageIndex>::GraphHostData const>;
-
-    auto const in_both = aSys0.events_ & aSys1.events_;
-    auto const only_in_0 = aSys0.events_ ^ in_both;
-    auto const only_in_1 = aSys1.events_ ^ in_both;
-
-    // Calculate new marked states
-    typename DESystem<NEvents, StorageIndex>::StatesSet marked_states;
-    for (auto s0 : aSys0.marked_states_) {
-        for (auto s1 : aSys1.marked_states_) {
-            marked_states.insert(s1 * aSys0.states_number_ + s0);
-        }
-    }
-
-    // Create new system without transitions
-    DESystem<NEvents, StorageIndex> sys{
-        aSys0.states_number_ * aSys1.states_number_,
-        aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_,
-        marked_states
-    };
-
-    // Set private params
-    sys.events_ = aSys0.events_ | aSys1.events_;
-
-    // Alias to states_number_
-    StorageIndex const nstates = sys.states_number_;
-
-    // Calculate sparcity pattern
-    StorageIndex const sparcitypattern = sys.events_.count() * nstates;
-
-    // Reserve space for transitions
-    std::vector<Triplet> triplet;
-    std::vector<BitTriplet> bittriplet;
-
-    triplet.reserve(sparcitypattern);
-    bittriplet.reserve(sparcitypattern);
-
-    // Calculate transitions
-    for (StorageIndex q = 0; q < nstates; ++q) {
-        auto const qx = q % aSys0.states_number_;
-        auto const qy = q / aSys0.states_number_;
-
-        // Calculate sys inverse states events
-        sys.inv_states_events_[q] =
-          (aSys0.inv_states_events_[qx] & aSys1.inv_states_events_[qy]) |
-          (aSys0.inv_states_events_[qx] & only_in_0) |
-          (aSys1.inv_states_events_[qy] & only_in_1);
-
-        // Calculate sys states events
-        auto q_events = (aSys0.states_events_[qx] & aSys1.states_events_[qy]) |
-                        (aSys0.states_events_[qx] & only_in_0) |
-                        (aSys1.states_events_[qy] & only_in_1);
-        sys.states_events_[q] = q_events;
-
-        // Add loop to bit_graph_ : bit graph = graph.in_bits + identity
-        bittriplet.push_back(BitTriplet(q, q, true));
-
-        cldes::ScalarType event = 0;
-        while (q_events.any()) {
-            if (q_events.test(0)) {
-                StorageIndex qto;
-
-                StorageIndex xto = 0;
-                StorageIndex yto = 0;
-
-                auto const is_in_p = aSys0.events_.test(event);
-                auto const is_in_e = aSys1.events_.test(event);
-
-                if (is_in_p && is_in_e) {
-                    for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
-                        if (pe.value().test(event)) {
-                            xto = pe.col();
-                            break;
-                        }
-                    }
-                    for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
-                        if (ee.value().test(event)) {
-                            yto = ee.col();
-                            break;
-                        }
-                    }
-                } else if (is_in_e) {
-                    for (RowIterator ee(aSys1.graph_, qy); ee; ++ee) {
-                        if (ee.value().test(event)) {
-                            xto = qx;
-                            yto = ee.col();
-                            break;
-                        }
-                    }
-                } else {
-                    for (RowIterator pe(aSys0.graph_, qx); pe; ++pe) {
-                        if (pe.value().test(event)) {
-                            xto = pe.col();
-                            yto = qy;
-                            break;
-                        }
-                    }
-                }
-
-                qto = yto * aSys0.states_number_ + xto;
-
-                triplet.push_back(
-                  Triplet(q, qto, EventsSet<NEvents>{ 1ul << event }));
-                if (q != qto) {
-                    bittriplet.push_back(BitTriplet(qto, q, true));
-                }
-            }
-            ++event;
-            q_events >>= 1;
-        }
-    }
-
-    // Remove aditional space
-    sys.graph_.setFromTriplets(triplet.begin(), triplet.end());
-    sys.bit_graph_.setFromTriplets(
-      bittriplet.begin(), bittriplet.end(), [](bool const&, bool const&) {
-          return true;
-      });
-
-    sys.graph_.makeCompressed();
-    sys.bit_graph_.makeCompressed();
+    DESystem<NEvents, StorageIndex> sys = DESystem<NEvents, StorageIndex>(
+      SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 });
 
     return sys;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>
+typename cldes::op::SyncSysProxy<NEvents, StorageIndex>
 cldes::op::SynchronizeStage1(
   cldes::DESystem<NEvents, StorageIndex> const& aSys0,
   cldes::DESystem<NEvents, StorageIndex> const& aSys1)
 {
-    auto const in_both = aSys0.events_ & aSys1.events_;
-    auto const only_in_0 = aSys0.events_ ^ in_both;
-    auto const only_in_1 = aSys1.events_ ^ in_both;
+    return SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 };
+}
 
-    // Calculate new marked states
-    typename DESystem<NEvents, StorageIndex>::StatesSet marked_states;
-    for (StorageIndex s0 : aSys0.marked_states_) {
-        for (StorageIndex s1 : aSys1.marked_states_) {
-            marked_states.insert(s1 * aSys0.states_number_ + s0);
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::op::SynchronizeEmptyStage2(
+  cldes::op::SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
+{
+    // Estimated sparcity pattern: Calculate on the same loop than statesmap
+    StorageIndex const sparcitypattern =
+      aVirtualSys.events_.count() * aVirtualSys.states_number_;
+
+    // Reserve space for transitions
+    aVirtualSys.ResizeStatesEvents(aVirtualSys.states_number_);
+    aVirtualSys.triplet_.reserve(sparcitypattern);
+    aVirtualSys.bittriplet_.reserve(sparcitypattern +
+                                    aVirtualSys.states_number_);
+
+    // Calculate transitions
+    for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_; ++qfrom) {
+        aVirtualSys.bittriplet_.push_back(BitTriplet(qfrom, qfrom, true));
+
+        aVirtualSys.SetStateEvents(qfrom, aVirtualSys.GetStateEvents(qfrom));
+        aVirtualSys.SetInvStateEvents(qfrom,
+                                      aVirtualSys.GetInvStateEvents(qfrom));
+
+        auto event = 0u;
+        auto event_it = aVirtualSys.GetStateEvents(qfrom);
+        while (event_it != 0) {
+            if (event_it.test(0)) {
+                auto const qto = aVirtualSys.Trans(qfrom, event);
+
+                aVirtualSys.triplet_.push_back(Triplet<NEvents>(
+                  qfrom, qto, EventsSet<NEvents>{ 1ul << event }));
+
+                if (qfrom != static_cast<StorageIndex>(qto)) {
+                    aVirtualSys.bittriplet_.push_back(
+                      BitTriplet(qto, qfrom, true));
+                }
+            }
+            ++event;
+            event_it >>= 1;
         }
     }
 
-    // Create new system without transitions
-    DESystem<NEvents, StorageIndex> virtualsys{
-        aSys0.states_number_ * aSys1.states_number_,
-        aSys1.init_state_ * aSys0.states_number_ + aSys0.init_state_,
-        marked_states
-    };
-
-    // New system params
-    virtualsys.states_events_.reserve(aSys0.states_number_ *
-                                      aSys1.states_number_);
-    virtualsys.inv_states_events_.reserve(aSys0.states_number_ *
-                                          aSys1.states_number_);
-
-    // Calculate params
-    for (StorageIndex ix0 = 0; ix0 < aSys0.states_number_; ++ix0) {
-        for (StorageIndex ix1 = 0; ix1 < aSys1.states_number_; ++ix1) {
-            auto const key = ix1 * aSys0.states_number_ + ix0;
-
-            virtualsys.virtual_states_.push_back(key);
-
-            virtualsys.states_events_[key] =
-              (aSys0.states_events_[ix0] & aSys1.states_events_[ix1]) |
-              (aSys0.states_events_[ix0] & only_in_0) |
-              (aSys1.states_events_[ix1] & only_in_1);
-            virtualsys.inv_states_events_[key] =
-              (aSys0.inv_states_events_[ix0] & aSys1.inv_states_events_[ix1]) |
-              (aSys0.inv_states_events_[ix0] & only_in_0) |
-              (aSys1.inv_states_events_[ix1] & only_in_1);
-        }
-    }
-
-    // Set private params
-    virtualsys.events_ = aSys0.events_ | aSys1.events_;
-
-    return virtualsys;
+    return;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -230,19 +108,18 @@ cldes::op::SynchronizeStage2(
 
     aVirtualSys.SetStatesNumber(aVirtualSys.virtual_states_.size());
 
-    // Estimate sparcity pattern
-    StorageIndex const sparcitypattern =
-      aVirtualSys.events_.count() * aVirtualSys.states_number_;
-
     // Reserve space for transitions
-    aVirtualSys.bittriplet_.reserve(sparcitypattern +
-                                    aVirtualSys.states_number_);
+    aVirtualSys.bittriplet_.reserve(aVirtualSys.states_number_);
+
+    // Estimated sparcity pattern: Calculate on the same loop than statesmap
+    StorageIndex sparcitypattern = 0;
 
     // Map states to its new index
     // TODO: It SHOULD be returned in the future in a pair
     StorageIndex cst = 0;
     for (StorageIndex s : aVirtualSys.virtual_states_) {
         statesmap[s] = cst;
+        sparcitypattern += aVirtualSys.GetStateEvents(s).count();
         aVirtualSys.bittriplet_.push_back(BitTriplet(cst, cst, true));
         ++cst;
     }
@@ -262,6 +139,8 @@ cldes::op::SynchronizeStage2(
 
     // Reserve space for transitions
     aVirtualSys.triplet_.reserve(sparcitypattern);
+    aVirtualSys.bittriplet_.reserve(sparcitypattern +
+                                    aVirtualSys.states_number_);
 
     // Calculate transitions
     while (!aVirtualSys.transtriplet_.empty()) {

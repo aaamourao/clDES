@@ -98,14 +98,33 @@ Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
  * @param aSys1 The right operand of the parallel composition.
  */
 template<uint8_t NEvents, typename StorageIndex>
-DESystem<NEvents, StorageIndex>
+SyncSysProxy<NEvents, StorageIndex>
 SynchronizeStage1(DESystem<NEvents, StorageIndex> const& aSys0,
                   DESystem<NEvents, StorageIndex> const& aSys1);
 
-/*! \brief Transform a virtual system in a real system
+/*! \brief Transform a empty virtual system in a real system
  *
  * Calculate transitions and other parameters of a virtual system which
  * represents a virtual parallel composition.
+ *
+ * TODO: Cache lazy calculated transitions when the user visit transitions and
+ * use it on synchronize stage 2
+ *
+ * @param aVirtualSys Reference to the system which will be transformed.
+ * @param aSys0 The left operand of the parallel composition.
+ * @param aSys1 The right operand of the parallel composition.
+ */
+template<uint8_t NEvents, typename StorageIndex>
+void
+SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+
+/*! \brief Transform a virtual system in a real system: optmized to supervisor
+ * synthesis
+ *
+ * Calculate transitions and other parameters of a virtual system which
+ * represents a virtual parallel composition. It does not calculate the
+ * states_events_ table, since supervisors are final system and may have a big
+ * size
  *
  * @param aVirtualSys Reference to the system which will be transformed.
  * @param aSys0 The left operand of the parallel composition.

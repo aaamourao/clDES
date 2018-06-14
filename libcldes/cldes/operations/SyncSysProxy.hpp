@@ -43,6 +43,11 @@ template<uint8_t NEvents, typename StorageIndex>
 void
 SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
 
+// Forward declaration of friend function
+template<uint8_t NEvents, typename StorageIndex>
+void
+SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+
 // Alias to events hash map
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
@@ -95,25 +100,25 @@ public:
      *
      * Enable move semantics
      */
-    //SyncSysProxy(SyncSysProxy&&) = default;
+    // SyncSysProxy(SyncSysProxy&&) = default;
 
     ///*! \brief Copy constructor
     // *
     // * Needs to define this, since move semantics is enabled
     // */
-    //SyncSysProxy(SyncSysProxy const&) = default;
+    // SyncSysProxy(SyncSysProxy const&) = default;
 
     ///*! \brief Operator =
     // *
     // * Uses move semantics
     // */
-    //SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
+    // SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
 
     ///*! \brief Operator = to const type
     // *
     // * Needs to define this, since move semantics is enabled
     // */
-    //SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
+    // SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
     //  default;
 
     /*! \brief Overload conversion to DESystem
@@ -193,6 +198,13 @@ protected:
      * Second step of the lazy parallel composition
      */
     friend void cldes::op::SynchronizeStage2<>(
+      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+
+    /*
+     * Friend function
+     * Second step of the lazy parallel composition
+     */
+    friend void cldes::op::SynchronizeEmptyStage2<>(
       SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
 
     /*

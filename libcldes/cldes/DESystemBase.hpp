@@ -66,6 +66,10 @@ public:
      */
     using StatesTable = std::vector<StorageIndex>;
 
+    /*! \brief Table of transitions on a STL container
+     */
+    using StatesEventsTable = std::vector<EventsSet<NEvents>>;
+
     /*! \brief DESystem constructor with empty matrix
      *
      * @param aStatesNumber Number of states of the system
@@ -133,25 +137,86 @@ public:
      */
     inline StatesSet GetMarkedStates() const { return marked_states_; }
 
-    /*! \brief Returns number of states contained in the system
+    /*! \brief Set system's number of states
      *
      */
-    inline void SetStatesNumber(StorageIndex const& aStNum) {
+    inline void SetStatesNumber(StorageIndex const& aStNum)
+    {
         states_number_ = aStNum;
     }
 
-    /*! \brief Returns number of states contained in the system
+    /*! \brief Set system's system events table
      *
      */
-    inline void SetInitialState(StorageIndex const& aInitState) {
+    inline void ResizeStatesEvents(StorageIndex const& aSize)
+    {
+        states_events_.resize(aSize);
+        inv_states_events_.resize(aSize);
+    }
+
+    /*! \brief Set system's system events table
+     *
+     */
+    inline void SetStateEvents(StorageIndex const& aQ,
+                               EventsSet<NEvents> const& aEvents)
+    {
+        states_events_[aQ] = aEvents;
+    }
+
+    /*! \brief Set inverted states events
+     *
+     */
+    inline void SetInvStateEvents(StorageIndex const& aQ,
+                                  EventsSet<NEvents> const& aEvents)
+    {
+        inv_states_events_[aQ] = aEvents;
+    }
+    /*! \brief Set system's system events table
+     *
+     */
+    inline void SetStatesEvents(StatesEventsTable const& aEvents)
+    {
+        states_events_ = aEvents;
+    }
+
+    /*! \brief Set inverted states events
+     *
+     */
+    inline void SetInvStatesEvents(StatesEventsTable const& aEvents)
+    {
+        inv_states_events_ = aEvents;
+    }
+
+    /*! \brief Set inverted states events
+     *
+     */
+    inline void SetEvents(EventsSet<NEvents> const& aEvents)
+    {
+        events_ = aEvents;
+    }
+
+    /*! \brief Set system's initial state
+     *
+     */
+    inline void SetInitialState(StorageIndex const& aInitState)
+    {
         init_state_ = aInitState;
     }
 
     /*! \brief Returns marked states
      *
      */
-    inline void InsertMarkedState(StorageIndex const& aSt) {
+    inline void InsertMarkedState(StorageIndex const& aSt)
+    {
         marked_states_.emplace(aSt);
+    }
+
+    /*! \brief Returns marked states
+     *
+     */
+    inline void SetMarkedStates(StatesSet const& aStSet)
+    {
+        marked_states_ = aStSet;
     }
 
     /*! \brief Returns true if DES transition exists
@@ -243,6 +308,17 @@ protected:
      * cut, and some marked states may be deleted.
      */
     StatesSet marked_states_;
+
+    /*! \brief Vector containing a events hash table per state
+     */
+    StatesEventsTable states_events_;
+
+    /*! \brief Vector containing a events hash table per state
+     *
+     * It represents the transitions of the inverted graph for the supervisor
+     * synthesis.
+     */
+    StatesEventsTable inv_states_events_;
 };
 }
 #endif // DESYSTEMBASE_HPP

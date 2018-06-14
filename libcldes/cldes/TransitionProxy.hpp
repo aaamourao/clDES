@@ -64,7 +64,7 @@ public:
      *
      * @param aTransitionValue graph_(lin_, col_) new value
      */
-    TransitionProxy& operator=(cldes::ScalarType aTransitionValue);
+    TransitionProxy& operator=(ScalarType aTransitionValue);
 
     /*! \brief Override cast to ScalarType
      *
