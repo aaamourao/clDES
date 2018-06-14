@@ -425,7 +425,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     c.clear();
 
     // Finish synching without removed states
-    SynchronizeStage2(virtualsys);
+    // SynchronizeStage2(virtualsys);
 
     // Transform virtual sys in a real sys by forcing conversion
     auto sys = DESystem<NEvents, StorageIndex>(virtualsys);

@@ -199,6 +199,8 @@ operator DESystem<NEvents, StorageIndex>()
 
     DESystem<NEvents, StorageIndex> sys{};
     sys.states_number_ = this->states_number_;
+    sys.init_state_ = this->init_state_;
+    sys.marked_states_ = this->marked_states_;
 
     // Resize adj matrices
     sys.graph_.resize(this->states_number_, this->states_number_);

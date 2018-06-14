@@ -187,29 +187,43 @@ public:
                       StatesSet& aMarkedStates,
                       bool const& aDevCacheEnabled = true);
 
-    // /*! \brief Move constructor
-    //  *
-    //  * Enable move semantics
-    //  */
-    // DESystem(DESystem&& aSys) = default;
+    /*! \brief Default constructor
+     *
+     * Creates an empty system
+     */
+    explicit DESystem()
+      : DESystemBase<NEvents, StorageIndex>{ 0, 0 }
+    {
+        inv_graph_ = nullptr;
+        graph_ = GraphHostData{};
+        bit_graph_ = BitGraphHostData{};
+        states_events_ = StatesEventsTable(0);
+        this->marked_states_ = StatesSet();
+    };
 
-    // /*! \brief Copy constructor
-    //  *
-    //  * Needs to define this, since move semantics is enabled
-    //  */
-    // DESystem(DESystem const& aSys) = default;
+    /*! \brief Move constructor
+     *
+     * Enable move semantics
+     */
+    DESystem(DESystem&& aSys) = default;
 
-    // /*! \brief Operator =
-    //  *
-    //  * Uses move semantics
-    //  */
-    // DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
+    /*! \brief Copy constructor
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    DESystem(DESystem const& aSys) = default;
 
-    // /*! \brief Operator = to const type
-    //  *
-    //  * Needs to define this, since move semantics is enabled
-    //  */
-    // DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
+    /*! \brief Operator =
+     *
+     * Uses move semantics
+     */
+    DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
+
+    /*! \brief Operator = to const type
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
 
     /*! \brief DESystem destructor
      */
@@ -361,17 +375,11 @@ public:
     {
         if (inv_graph_) {
             delete inv_graph_;
+            inv_graph_ = nullptr;
         }
     }
 
 protected:
-    /*! \brief Default constructor disabled
-     *
-     * Declare default constructor as protected to avoid the class user of
-     * calling it.
-     */
-    explicit DESystem() { inv_graph_ = nullptr; };
-
 private:
     // Proxy to a matrix element
     friend class TransitionProxy<NEvents, StorageIndex>;

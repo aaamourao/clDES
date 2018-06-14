@@ -60,8 +60,8 @@ cldes::DESystem<NEvents, StorageIndex>::DESystem(
     bit_graph_.setIdentity();
 
     // Reserve memory to make insertions efficient
-    this->states_events_ = StatesEventsTable(this->states_number_);
-    this->inv_states_events_ = StatesEventsTable(this->states_number_);
+    states_events_ = StatesEventsTable(this->states_number_);
+    inv_states_events_ = StatesEventsTable(this->states_number_);
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
@@ -363,12 +363,13 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     bit_graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
                       static_cast<StorageIndexSigned>(this->states_number_));
 
-    this->states_events_.erase(this->states_events_.begin() +
-                                 this->states_number_,
-                               this->states_events_.end());
-    this->inv_states_events_.erase(this->inv_states_events_.begin() +
-                                     this->states_number_,
-                                   this->inv_states_events_.end());
+    if (states_events_.size() > 0) {
+        states_events_.erase(states_events_.begin() + this->states_number_,
+                             states_events_.end());
+        inv_states_events_.erase(inv_states_events_.begin() +
+                                   this->states_number_,
+                                 inv_states_events_.end());
+    }
 
     this->events_.reset();
 
@@ -394,9 +395,9 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     {
         auto row_id = 0ul;
         for (StorageIndex s : trimstates) {
-            if (this->states_events_.size() > 0) {
-                this->states_events_[row_id].reset();
-                this->inv_states_events_[row_id].reset();
+            if (states_events_.size() > 0) {
+                states_events_[row_id].reset();
+                inv_states_events_[row_id].reset();
             }
             for (RowIteratorGraph e(old_graph, s); e; ++e) {
                 if (statesmap[e.col()] != -1) {
@@ -405,9 +406,9 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
                     bittriplet.push_back(BitTriplet(col_id, row_id, true));
                     this->events_ |= e.value();
-                    if (this->states_events_.size() > 0) {
-                        this->states_events_[row_id] |= e.value();
-                        this->inv_states_events_[col_id] |= e.value();
+                    if (states_events_.size() > 0) {
+                        states_events_[row_id] |= e.value();
+                        inv_states_events_[col_id] |= e.value();
                     }
                 }
             }
@@ -450,7 +451,7 @@ cldes::DESystem<NEvents, StorageIndex>::ContainsTrans(
   StorageIndex const& aQ,
   cldes::ScalarType const& aEvent) const
 {
-    return this->states_events_[aQ].test(aEvent);
+    return states_events_[aQ].test(aEvent);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -462,7 +463,7 @@ cldes::DESystem<NEvents, StorageIndex>::Trans(
     using RowIterator = Eigen::InnerIterator<
       DESystem<NEvents, StorageIndex>::GraphHostData const>;
 
-    if (!this->states_events_[aQ].test(aEvent)) {
+    if (!states_events_[aQ].test(aEvent)) {
         return -1;
     }
 
@@ -482,7 +483,7 @@ cldes::DESystem<NEvents, StorageIndex>::ContainsInvTrans(
   StorageIndex const& aQ,
   cldes::ScalarType const& aEvent) const
 {
-    return this->inv_states_events_[aQ].test(aEvent);
+    return inv_states_events_[aQ].test(aEvent);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -495,7 +496,7 @@ cldes::DESystem<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
 
     StatesArray<StorageIndex> inv_trans;
 
-    if (!this->inv_states_events_[aQ].test(aEvent)) {
+    if (!inv_states_events_[aQ].test(aEvent)) {
         return inv_trans;
     }
 
