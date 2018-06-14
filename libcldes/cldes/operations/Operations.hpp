@@ -47,11 +47,6 @@ namespace op {
 template<uint8_t NEvents>
 using GraphType = Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
 
-/*! \brief Vector of states type
- */
-template<typename StorageIndex>
-using StatesArray = std::vector<StorageIndex>;
-
 /*! \brief tuple representing a state of a virtual synch (stage 1)
  *
  * (state_id_g0, state_id_g1)

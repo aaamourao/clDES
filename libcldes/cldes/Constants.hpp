@@ -53,6 +53,9 @@ ScalarType const kMaxEvents = std::numeric_limits<ScalarType>::max();
 // TODO: Change this limit to an OpenCL definition for different platforms
 uint64_t const kMaxEventsGPU = std::numeric_limits<uint64_t>::max();
 
+// Default DESystem events
+uint8_t const kDefaultEventsN = 25u;
+
 } // namespace cldes
 
 #endif // CLDES_CONSTANTS_HPP

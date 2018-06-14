@@ -25,7 +25,7 @@
 
  File: cldes/TransitionProxy.hpp
  Description: Proxy to an element of the graph_ data member from
- DESystemBase.
+ DESystem.
  =========================================================================
 */
 
@@ -53,7 +53,7 @@ public:
      * @param aLin Line of the element
      * @param aCol Column of the element
      */
-    TransitionProxy(DESystemBase<NEvents, StorageIndex>* const aSysPtr,
+    TransitionProxy(DESystem<NEvents, StorageIndex>* const aSysPtr,
                     StorageIndex const& aLin,
                     StorageIndex const& aCol);
 
@@ -71,7 +71,7 @@ public:
      * Operator used when element from graph_ is accessed, but its value is not
      * changed.
      */
-    operator ScalarType();
+    operator EventsSet<NEvents>() const;
 
 protected:
     /*! \brief Disabled default constructor
@@ -85,7 +85,7 @@ private:
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystemBase<NEvents, StorageIndex>* sys_ptr_;
+    DESystem<NEvents, StorageIndex>* sys_ptr_;
 
     /*! \brief Element line.
      *

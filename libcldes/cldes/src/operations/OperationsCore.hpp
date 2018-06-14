@@ -372,7 +372,7 @@ cldes::op::TransitionVirtual(
 
 // This function assumes that there is an inverse transition.
 template<class EventsType, uint8_t NEvents, typename StorageIndex>
-static typename cldes::op::StatesArray<StorageIndex>
+static typename cldes::StatesArray<StorageIndex>
 __TransitionVirtualInv(EventsType const& aEventsP,
                        EventsType const& aEventsE,
                        cldes::op::GraphType<NEvents> const& aInvGraphP,
@@ -389,12 +389,12 @@ __TransitionVirtualInv(EventsType const& aEventsP,
     bool const is_in_p = aEventsP.test(aEvent);
     bool const is_in_e = aEventsE.test(aEvent);
 
-    cldes::op::StatesArray<StorageIndex> ret;
+    cldes::StatesArray<StorageIndex> ret;
 
     auto const p_size = aInvGraphP.rows();
 
     if (is_in_p && is_in_e) {
-        cldes::op::StatesArray<StorageIndex> pstates;
+        cldes::StatesArray<StorageIndex> pstates;
         for (RowIterator pe(aInvGraphP, qx); pe; ++pe) {
             if (pe.value().test(aEvent)) {
                 pstates.push_back(pe.col());
@@ -587,8 +587,7 @@ cldes::op::SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
     virtualsys.transtriplet_.reserve(c.size());
     for (auto tr : c) {
         virtualsys.virtual_states_.push_back(tr.first);
-        virtualsys.transtriplet_.push_back(
-          std::make_pair(tr.first, tr.second));
+        virtualsys.transtriplet_.push_back(std::make_pair(tr.first, tr.second));
     }
     std::sort(virtualsys.virtual_states_.begin(),
               virtualsys.virtual_states_.end());

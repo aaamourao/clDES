@@ -39,13 +39,10 @@
 
 namespace cldes {
 
-/*
- * Forward declarion of DESystemBase's friends class TransitionProxy. A
- * transition is an element of the adjascency matrix which implements
- * the des graph.
+/*! \brief Vector of states type
  */
-template<uint8_t NEvents, typename StorageIndex>
-class TransitionProxy;
+template<typename StorageIndex>
+using StatesArray = std::vector<StorageIndex>;
 
 /*! \brief Discrete-Events System Base
  *
@@ -56,25 +53,18 @@ template<uint8_t NEvents, typename StorageIndex>
 class DESystemBase
 {
 public:
-    /*! \brief Adjacency matrix of bitarrays implementing a graph
-     *
-     * The graph represents the DES automata:
-     * Non zero element: contains at least one transition
-     * Each non 0 bit of each element: event that lead to the next stage
-     *
-     * row index: from state
-     * col index: to state
+    using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
+
+    /*! \brief Set of states type
      */
-    using GraphHostData =
-      Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
 
     /*! \brief Set of states type
      */
     using StatesSet = std::set<StorageIndex>;
 
-    /*! \brief Table of transitions on a STL container
+    /*! \brief Vector of states type
      */
-    using StatesEventsTable = std::vector<EventsSet<NEvents>>;
+    using StatesTable = std::vector<StorageIndex>;
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -83,23 +73,15 @@ public:
      * @param aMarkedStates System's marked states
      */
     explicit inline DESystemBase(StorageIndex const& aStatesNumber,
-                                 StorageIndex const& aInitState,
-                                 StatesSet& aMarkedStates)
+                                 StorageIndex const& aInitState)
     {
         states_number_ = aStatesNumber;
         init_state_ = aInitState;
-        marked_states_ = aMarkedStates;
-
-        // Resize graphs and do not preserve elements
-        graph_.resize(states_number_, states_number_);
-
-        // Change graphs storage type to CSR
-        graph_.makeCompressed();
-
-        // Reserve mem for hash tables for avoiding re-hashing
-        states_events_ = StatesEventsTable(states_number_);
-        inv_states_events_ = StatesEventsTable(states_number_);
     };
+
+    /*! \brief DESystem destructor
+     */
+    virtual ~DESystemBase() = default;
 
     /*! \brief Move constructor
      *
@@ -125,102 +107,51 @@ public:
      */
     DESystemBase& operator=(DESystemBase const&) = default;
 
-    /*! \brief DESystem destructor
-     */
-    virtual ~DESystemBase() = default;
-
-    /*! \brief Graph getter
-     */
-    inline GraphHostData GetGraph() const { return graph_; };
-
-    /*! \brief Returns state set containing the accessible part of automa
-     */
-    virtual StatesSet AccessiblePart() = 0;
-
-    /*! \brief Returns state set containing the coaccessible part of automata
-     */
-    virtual StatesSet CoaccessiblePart() = 0;
-
-    /*! \brief Returns States Set which is the Trim part of the system
-     */
-    virtual StatesSet TrimStates() = 0;
-
-    /*! \brief Returns DES which is the Trim part of this
-     */
-    virtual void Trim() = 0;
-
-    /*! \brief Returns value of the specified transition
-     *
-     * @param aLin Element's line
-     * @param aCol Element's column
-     */
-    inline EventsSet<NEvents> const operator()(StorageIndex const& aLin,
-                                               StorageIndex const& aCol) const
-    {
-        return graph_.coeff(aLin, aCol);
-    }
-
-    /*! \brief Returns value of the specified transition
-     *
-     * @param aLin Element's line
-     * @param aCol Element's column
-     */
-    inline TransitionProxy<NEvents, StorageIndex> operator()(
-      StorageIndex const& aLin,
-      StorageIndex const& aCol)
-    {
-        return TransitionProxy<NEvents, StorageIndex>(this, aLin, aCol);
-    }
-
     /*! \brief Returns number of states of the system
      *
      * Returns states_value_ by value.
      */
     StorageIndex Size() const { return states_number_; }
 
-    /*! \brief Insert events
+    /*! \brief Returns true if DES transition exists
      *
-     * @params aEvents Set containing all the new events of the current system
+     * @param aQ State
+     * @param aEvent Event
      */
-    virtual void InsertEvents(EventsSet<NEvents> const& aEvents) = 0;
+    virtual bool ContainsTrans(StorageIndex const& aQ,
+                               ScalarType const& aEvent) const = 0;
 
-    /*
-     * TODO:
-     * getters
-     * setters: e.g. remove transition, remove state
-     * ...
+    /*! \brief Returns DES transition: q_to = f(q, e)
+     *
+     * @param aQ State
+     * @param aEvent Event
      */
+    virtual StorageIndexSigned Trans(StorageIndex const& aQ,
+                                     ScalarType const& aEvent) = 0;
+
+    /*! \brief Returns true if DES inverse transition exists
+     *
+     * @param aQfrom State
+     * @param aEvent Event
+     */
+    virtual bool ContainsInvTrans(StorageIndex const& aQ,
+                                  ScalarType const& aEvent) const = 0;
+
+    /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
+     *
+     * @param aQfrom State
+     * @param aEvent Event
+     */
+    virtual StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
+                                               ScalarType const& aEvent) = 0;
+
 protected:
-    // Proxy to a matrix element
-    friend class TransitionProxy<NEvents, StorageIndex>;
-
     /*! \brief Default constructor disabled
      *
      * Declare default constructor as protected to avoid the class user of
      * calling it.
      */
     DESystemBase() = default;
-
-    /*! \brief Let the derived class know that a new element was inserted
-     *
-     * @param aQfrom State from
-     * @param aQto State to
-     */
-    virtual void NewTransition_(StorageIndex const& aQfrom,
-                                StorageIndex const& aQto) = 0;
-
-    /*! \brief Graph represented by an adjascency matrix
-     *
-     * A sparse matrix which represents the automata as a graph in an
-     * adjascency matrix. It is implemented as a CSR scheme.
-     *
-     * Non zero element: transition from <row index> to <col index> when events
-     * represented by the set bit indexes occurs.
-     *
-     * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the condition
-     * event 0 OR event 2.
-     */
-    GraphHostData graph_;
 
     /*! \brief Current system's states number
      *
@@ -235,41 +166,12 @@ protected:
      */
     StorageIndex init_state_;
 
-    /*! \brief Current system's marked states
-     *
-     * Hold all marked states. Cannot be const, since the automata can be
-     * cut, and some marked states may be deleted.
-     */
-    StatesSet marked_states_;
-
     /*! \brief System's events hash table
      *
      * A hash table containing all the events that matter for the current
      * system.
      */
     EventsSet<NEvents> events_;
-
-    /*! \brief Vector containing a events hash table per state
-     */
-    StatesEventsTable states_events_;
-
-    /*! \brief Vector containing a events hash table per state
-     *
-     * It represents the transitions of the inverted graph for the supervisor
-     * synthesis.
-     */
-    StatesEventsTable inv_states_events_;
 };
-
-/*! \brief Alias for graph 3-tuple
- *
- * (s_from, s_to, transition_events)
- */
-template<uint8_t NEvents>
-using Triplet = Eigen::Triplet<EventsSet<NEvents>>;
 }
-
-// include transition proxy class
-#include "cldes/TransitionProxy.hpp"
-
 #endif // DESYSTEMBASE_HPP

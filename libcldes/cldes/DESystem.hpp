@@ -58,16 +58,35 @@ template<typename StorageIndex>
 using TransMap = spp::sparse_hash_map<StorageIndex, InvArgTrans<StorageIndex>*>;
 
 /*
+ * Forward declarion of DESystemBase's friends class TransitionProxy. A
+ * transition is an element of the adjascency matrix which implements
+ * the des graph.
+ */
+template<uint8_t NEvents, typename StorageIndex>
+class TransitionProxy;
+
+/*
  * Forward declarion of DESystem class necessary for the forward declaration of
  * the DESystem's friend function op::Synchronize
  */
-template<uint8_t NEvents = 32u, typename StorageIndex = unsigned>
+template<uint8_t NEvents = kDefaultEventsN, typename StorageIndex = uint32_t>
 class DESystem;
+
+/*! \brief Vector of DES systems on host mem
+ */
+template<uint8_t NEvents, typename StorageIndex>
+using DESVector = std::vector<DESystem<NEvents, StorageIndex>>;
 
 // Forward declartions of friends functions which implement des operations
 namespace op {
 template<uint8_t NEvents>
 using GraphType = Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
+
+/*
+ * Forward declaration of the Synchronize virtual proxy
+ */
+template<uint8_t NEvents, typename StorageIndex>
+class SyncSysProxy;
 
 /*
  * Forward declarion of DESystem's friend function Synchronize which
@@ -155,6 +174,12 @@ template<uint8_t NEvents, typename StorageIndex>
 class DESystem : public DESystemBase<NEvents, StorageIndex>
 {
 public:
+    /*! \brief StorageIndex signed type
+     *
+     * Eigen uses signed indexes ( ?????? )
+     */
+    using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
+
     /*! \brief Adjacency matrix of bitarrays implementing a graph
      *
      * The graph represents the DES automata:
@@ -165,7 +190,7 @@ public:
      * col index: to state
      */
     using GraphHostData =
-      typename DESystemBase<NEvents, StorageIndex>::GraphHostData;
+      Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
 
     /*! \brief Set of states type
      */
@@ -173,8 +198,7 @@ public:
 
     /*! \brief Table of transitions on a STL container
      */
-    using StatesEventsTable =
-      typename DESystemBase<NEvents, StorageIndex>::StatesSet;
+    using StatesEventsTable = std::vector<EventsSet<NEvents>>;
 
     /*! \brief Adjacency matrix of bit implementing a graph
      *
@@ -200,7 +224,8 @@ public:
 
     /*! \brief Vector of states type
      */
-    using StatesTable = std::vector<StorageIndex>;
+    using StatesTable =
+      typename DESystemBase<NEvents, StorageIndex>::StatesTable;
 
     /*! \brief Vector of inverted transitions
      *
@@ -228,13 +253,13 @@ public:
      *
      * Enable move semantics
      */
-    DESystem(DESystem&&) = default;
+    DESystem(DESystem&& aSys) = default;
 
     /*! \brief Copy constructor
      *
      * Needs to define this, since move semantics is enabled
      */
-    DESystem(DESystem const&) = default;
+    DESystem(DESystem const& aSys) = default;
 
     /*! \brief Operator =
      *
@@ -250,7 +275,39 @@ public:
 
     /*! \brief DESystem destructor
      */
-    virtual ~DESystem() = default;
+    virtual inline ~DESystem()
+    {
+        if (inv_graph_) {
+            delete inv_graph_;
+        }
+    }
+
+    /*! \brief Graph getter
+     */
+    inline GraphHostData GetGraph() const { return graph_; };
+
+    /*! \brief Returns value of the specified transition
+     *
+     * @param aLin Element's line
+     * @param aCol Element's column
+     */
+    inline EventsSet<NEvents> const operator()(StorageIndex const& aLin,
+                                               StorageIndex const& aCol) const
+    {
+        return graph_.coeff(aLin, aCol);
+    }
+
+    /*! \brief Returns value of the specified transition
+     *
+     * @param aLin Element's line
+     * @param aCol Element's column
+     */
+    inline TransitionProxy<NEvents, StorageIndex> operator()(
+      StorageIndex const& aQfrom,
+      StorageIndex const& aQto)
+    {
+        return TransitionProxy<NEvents, StorageIndex>(this, aQfrom, aQto);
+    }
 
     /*! \brief Returns state set containing the accessible part of automa
      *
@@ -258,21 +315,21 @@ public:
      * starting from its initial state. It returns a set containing all nodes
      * which are accessible from the initial state.
      */
-    StatesSet AccessiblePart() override;
+    StatesSet AccessiblePart();
 
     /*! \brief Returns state set containing the coaccessible part of automata
      *
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart() override;
+    StatesSet CoaccessiblePart();
 
     /*! \brief Returns States Set which is the Trim part of the system
      *
      * Gets the intersection between the accessible part and the coaccessible
      * part.
      */
-    StatesSet TrimStates() override;
+    StatesSet TrimStates();
 
     /*! \brief Returns DES which is the Trim part of this
      *
@@ -282,7 +339,7 @@ public:
      *
      * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    void Trim() override;
+    void Trim();
 
     /*! \brief Insert events
      *
@@ -292,7 +349,59 @@ public:
      *
      * @params aEvents Set containing all the new events of the current system
      */
-    void InsertEvents(EventsSet<NEvents> const& aEvents) override;
+    void InsertEvents(EventsSet<NEvents> const& aEvents);
+
+    /*! \brief Returns true if DES transition exists
+     *
+     * @param aQ State
+     * @param aEvent Event
+     */
+    bool ContainsTrans(StorageIndex const& aQ,
+                       ScalarType const& aEvent) const override;
+
+    /*! \brief Returns DES transition: q_to = f(q, e)
+     *
+     * @param aQ State
+     * @param aEvent Event
+     */
+    StorageIndexSigned Trans(StorageIndex const& aQ,
+                             ScalarType const& aEvent) override;
+
+    /*! \brief Returns true if DES inverse transition exists
+     *
+     * @param aQfrom State
+     * @param aEvent Event
+     */
+    bool ContainsInvTrans(StorageIndex const& aQ,
+                          ScalarType const& aEvent) const override;
+
+    /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
+     *
+     * @param aQfrom State
+     * @param aEvent Event
+     */
+    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
+                                       ScalarType const& aEvent) override;
+
+    /*! \brief Invert graph
+     *
+     * This is used on some operations... it can be very inneficient for very
+     * large graphs
+     */
+    inline void AllocateInvertedGraph()
+    {
+        inv_graph_ = new GraphHostData();
+        *inv_graph_ = graph_.transpose();
+    }
+
+    /*! \brief Free inverted graph
+     */
+    inline void ClearInvertedGraph()
+    {
+        if (inv_graph_) {
+            delete inv_graph_;
+        }
+    }
 
     /*
      * TODO:
@@ -307,17 +416,15 @@ protected:
      * Declare default constructor as protected to avoid the class user of
      * calling it.
      */
-    explicit DESystem(){};
-
-    /*! \brief Let the derived class know that a new element was inserted
-     *
-     * @param aQfrom State from
-     * @param aQto State to
-     */
-    void NewTransition_(StorageIndex const& aQfrom,
-                        StorageIndex const& aQto) override;
+    explicit DESystem() { inv_graph_ = nullptr; };
 
 private:
+    // Proxy to a matrix element
+    friend class TransitionProxy<NEvents, StorageIndex>;
+
+    // Sync operation proxy
+    friend class op::SyncSysProxy<NEvents, StorageIndex>;
+
     /* DESystem operations
      *
      * Functions which implement DES operations between two systems and need
@@ -372,6 +479,19 @@ private:
 
     /*! \brief Graph represented by an adjascency matrix
      *
+     * A sparse matrix which represents the automata as a graph in an
+     * adjascency matrix. It is implemented as a CSR scheme.
+     *
+     * Non zero element: transition from <row index> to <col index> when events
+     * represented by the set bit indexes occurs.
+     *
+     * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the condition
+     * event 0 OR event 2.
+     */
+    GraphHostData graph_;
+
+    /*! \brief Graph represented by an adjascency matrix
+     *
      * A sparse bit matrix which each non zero elem represents that a state
      * has at least one transition to other state.
      * It is used to calculate the accessible part, coaccessible part and trim
@@ -385,6 +505,19 @@ private:
      * sparse matrices each bfs iteration, which is inneficient.
      */
     BitGraphHostData bit_graph_;
+
+    /*! \brief Inverted graph
+     *
+     * Used for searching inverted transitions when necessary
+     */
+    GraphHostData mutable* inv_graph_;
+
+    /*! \brief Current system's marked states
+     *
+     * Hold all marked states. Cannot be const, since the automata can be
+     * cut, and some marked states may be deleted.
+     */
+    StatesSet marked_states_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      *
@@ -400,39 +533,16 @@ private:
      */
     bool is_cache_outdated_;
 
-    /*! \brief Virtual states contained in the current system
-     *
-     * Valid onnly when this system is virtual.
-     * TODO: Change it to a pointer and allocate only when the system is virtual
-     * and deallocate when it become a concrete system.
+    /*! \brief Vector containing a events hash table per state
      */
-    StatesTable virtual_states_;
+    StatesEventsTable states_events_;
 
-    /*! \brief Events contained only in the left operator of a synchronizing op.
+    /*! \brief Vector containing a events hash table per state
      *
-     * Valid onnly when this system is virtual.
-     * TODO: Change it to a pointer and allocate only when the system is virtual
-     * and deallocate when it become a concrete system.
+     * It represents the transitions of the inverted graph for the supervisor
+     * synthesis.
      */
-    EventsSet<NEvents> only_in_0_;
-
-    /*! \brief Events contained only in the right operator of a synchronizing
-     * op.
-     *
-     * Valid onnly when this system is virtual.
-     * TODO: Change it to a pointer and allocate only when the system is virtual
-     * and deallocate when it become a concrete system.
-     */
-    EventsSet<NEvents> only_in_1_;
-
-    /*! \brief Events contained only in the right operator of a synchronizing
-     * op.
-     *
-     * Valid onnly when this system is virtual.
-     * TODO: Change it to a pointer and allocate only when the system is virtual
-     * and deallocate when it become a concrete system.
-     */
-    TrVector transtriplet_;
+    StatesEventsTable inv_states_events_;
 
     /*! \brief Method for caching the graph
      *
@@ -489,7 +599,43 @@ private:
      * init_state_.
      */
     StatesSet* Bfs_();
+
+    // TODO remove after proxy is ready
+    /*! \brief Cache number of states of Sys0
+     *
+     */
+    StorageIndex n_states_sys0_;
+
+    /*! \brief Virtual states contained in the current system
+     *
+     */
+    StatesTable virtual_states_;
+
+    /*! \brief Events contained only in the left operator of a synchronizing op.
+     *
+     */
+    EventsSet<NEvents> only_in_0_;
+
+    /*! \brief Events contained only in the right operator of a synchronizing
+     * op.
+     *
+     */
+    EventsSet<NEvents> only_in_1_;
+
+    /*! \brief Events contained only in the right operator of a synchronizing
+     * op.
+     *
+     */
+    TrVector transtriplet_;
+    // TODO; end of remove
 };
+
+/*! \brief Alias for graph 3-tuple
+ *
+ * (s_from, s_to, transition_events)
+ */
+template<uint8_t NEvents>
+using Triplet = Eigen::Triplet<EventsSet<NEvents>>;
 
 /*! \brief Alias for bit graph 3-tuple
  *
@@ -498,7 +644,13 @@ private:
 using BitTriplet = Eigen::Triplet<bool>;
 } // namespace cldes
 
+// include transition proxy class
+#include "cldes/TransitionProxy.hpp"
+
 // Include DESystem implementation
 #include "cldes/src/des/DESystemCore.hpp"
+
+// Matrix proxy for sync operation
+#include "cldes/operations/SyncSysProxy.hpp"
 
 #endif // DESYSTEM_HPP

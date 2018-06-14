@@ -40,21 +40,27 @@ cldes::DESystem<NEvents, StorageIndex>::DESystem(
   StorageIndex const& aInitState,
   StatesSet& aMarkedStates,
   bool const& aDevCacheEnabled)
-  : DESystemBase<NEvents, StorageIndex>{ aStatesNumber,
-                                         aInitState,
-                                         aMarkedStates }
+  : DESystemBase<NEvents, StorageIndex>{ aStatesNumber, aInitState }
 {
+    marked_states_ = aMarkedStates;
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
+    inv_graph_ = nullptr;
 
     // Resize graphs and do not preserve elements
+    graph_.resize(this->states_number_, this->states_number_);
     bit_graph_.resize(this->states_number_, this->states_number_);
 
     // Change graphs storage type to CSR
+    graph_.makeCompressed();
     bit_graph_.makeCompressed();
 
     // Initialize bit graph with Identity
     bit_graph_.setIdentity();
+
+    // Reserve memory to make insertions efficient
+    this->states_events_ = StatesEventsTable(this->states_number_);
+    this->inv_states_events_ = StatesEventsTable(this->states_number_);
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
@@ -82,19 +88,6 @@ void
 cldes::DESystem<NEvents, StorageIndex>::CacheGraph_()
 {
     is_cache_outdated_ = false;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-void
-cldes::DESystem<NEvents, StorageIndex>::NewTransition_(
-  StorageIndex const& aQfrom,
-  StorageIndex const& aQto)
-{
-    // Add transition to bit graph, which is transposed
-    bit_graph_.coeffRef(aQto, aQfrom) = true;
-    bit_graph_.makeCompressed();
-
-    is_cache_outdated_ = true;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -240,14 +233,14 @@ cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()
 
     auto const invgraph = bit_graph_.transpose();
 
-    StorageIndexSigned const n_marked = this->marked_states_.size();
+    StorageIndexSigned const n_marked = marked_states_.size();
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
                     n_marked };
-    x.reserve(this->marked_states_.size());
+    x.reserve(marked_states_.size());
 
     {
         auto pos = 0ul;
-        for (auto state : this->marked_states_) {
+        for (auto state : marked_states_) {
             x.coeffRef(state, pos) = true;
             ++pos;
         }
@@ -296,16 +289,16 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates()
 
     auto const invgraph = bit_graph_.transpose();
 
-    auto const n_marked = this->marked_states_.size();
+    auto const n_marked = marked_states_.size();
 
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
                     static_cast<StorageIndexSigned>(n_marked) };
-    x.reserve(this->marked_states_.size());
+    x.reserve(marked_states_.size());
     std::vector<BitTriplet> xtriplet;
 
     {
         auto pos = 0l;
-        for (StorageIndex state : this->marked_states_) {
+        for (StorageIndex state : marked_states_) {
             xtriplet.push_back(BitTriplet(state, pos, true));
             ++pos;
         }
@@ -354,7 +347,7 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
 
     auto trimstates = this->TrimStates();
 
-    if (trimstates.size() == static_cast<size_t>(this->graph_.rows())) {
+    if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
         return;
     }
 
@@ -362,10 +355,10 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     std::vector<StorageIndexSigned> statesmap(this->states_number_, -1);
 
     // Copy graph and resize it
-    auto const old_graph = this->graph_;
+    auto const old_graph = graph_;
     this->states_number_ = trimstates.size();
-    this->graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
-                        static_cast<StorageIndexSigned>(this->states_number_));
+    graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
+                  static_cast<StorageIndexSigned>(this->states_number_));
     bit_graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
                       static_cast<StorageIndexSigned>(this->states_number_));
 
@@ -422,20 +415,20 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
     }
 
     // Remove aditional space
-    this->graph_.setFromTriplets(triplet.begin(), triplet.end());
+    graph_.setFromTriplets(triplet.begin(), triplet.end());
     bit_graph_.setFromTriplets(bittriplet.begin(),
                                bittriplet.end(),
                                [](bool const&, bool const&) { return true; });
 
-    this->graph_.makeCompressed();
+    graph_.makeCompressed();
     bit_graph_.makeCompressed();
 
     // Calculate new marked states
-    auto const old_marked = this->marked_states_;
-    this->marked_states_.clear();
+    auto const old_marked = marked_states_;
+    marked_states_.clear();
     for (StorageIndex s : old_marked) {
         if (statesmap[s] != -1) {
-            this->marked_states_.emplace(statesmap[s]);
+            marked_states_.emplace(statesmap[s]);
         }
     }
 
@@ -448,4 +441,68 @@ cldes::DESystem<NEvents, StorageIndex>::InsertEvents(
   cldes::EventsSet<NEvents> const& aEvents)
 {
     this->events_ = EventsSet<NEvents>(aEvents);
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+bool
+cldes::DESystem<NEvents, StorageIndex>::ContainsTrans(
+  StorageIndex const& aQ,
+  cldes::ScalarType const& aEvent) const
+{
+    return this->states_events_[aQ].test(aEvent);
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+typename cldes::DESystem<NEvents, StorageIndex>::StorageIndexSigned
+cldes::DESystem<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
+                                              cldes::ScalarType const& aEvent)
+{
+    using RowIterator = Eigen::InnerIterator<
+      DESystem<NEvents, StorageIndex>::GraphHostData const>;
+
+    if (!this->states_events_[aQ].test(aEvent)) {
+        return -1;
+    }
+
+    for (RowIterator qiter(graph_, aQ); qiter; ++qiter) {
+        if (qiter.value().test(aEvent)) {
+            return qiter.col();
+        }
+    }
+
+    // It will never reach here, but the warning is bothering me
+    return -1;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+bool
+cldes::DESystem<NEvents, StorageIndex>::ContainsInvTrans(
+  StorageIndex const& aQ,
+  cldes::ScalarType const& aEvent) const
+{
+    return this->inv_states_events_[aQ].test(aEvent);
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+cldes::StatesArray<StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
+                                                 ScalarType const& aEvent)
+{
+    using RowIterator = Eigen::InnerIterator<
+      DESystem<NEvents, StorageIndex>::GraphHostData const>;
+
+    StatesArray<StorageIndex> inv_trans;
+
+    if (!this->inv_states_events_[aQ].test(aEvent)) {
+        return inv_trans;
+    }
+
+    for (RowIterator qiter(*inv_graph_, aQ); qiter; ++qiter) {
+        if (qiter.value().test(aEvent)) {
+            inv_trans.push_back(qiter.col());
+        }
+    }
+
+    // It will never reach here, but the warning is bothering me
+    return inv_trans;
 }
