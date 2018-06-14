@@ -111,7 +111,48 @@ public:
      *
      * Returns states_value_ by value.
      */
-    StorageIndex Size() const { return states_number_; }
+    inline StorageIndex Size() const { return states_number_; }
+
+    /*! \brief Returns events contained in the system
+     *
+     */
+    inline EventsSet<NEvents> GetEvents() const { return events_; }
+
+    /*! \brief Returns number of states contained in the system
+     *
+     */
+    inline StorageIndex GetStatesNumber() const { return states_number_; }
+
+    /*! \brief Returns number of states contained in the system
+     *
+     */
+    inline StorageIndex GetInitialState() const { return init_state_; }
+
+    /*! \brief Returns marked states
+     *
+     */
+    inline StatesSet GetMarkedStates() const { return marked_states_; }
+
+    /*! \brief Returns number of states contained in the system
+     *
+     */
+    inline void SetStatesNumber(StorageIndex const& aStNum) {
+        states_number_ = aStNum;
+    }
+
+    /*! \brief Returns number of states contained in the system
+     *
+     */
+    inline void SetInitialState(StorageIndex const& aInitState) {
+        init_state_ = aInitState;
+    }
+
+    /*! \brief Returns marked states
+     *
+     */
+    inline void InsertMarkedState(StorageIndex const& aSt) {
+        marked_states_.emplace(aSt);
+    }
 
     /*! \brief Returns true if DES transition exists
      *
@@ -127,7 +168,7 @@ public:
      * @param aEvent Event
      */
     virtual StorageIndexSigned Trans(StorageIndex const& aQ,
-                                     ScalarType const& aEvent) = 0;
+                                     ScalarType const& aEvent) const = 0;
 
     /*! \brief Returns true if DES inverse transition exists
      *
@@ -142,8 +183,31 @@ public:
      * @param aQfrom State
      * @param aEvent Event
      */
-    virtual StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
-                                               ScalarType const& aEvent) = 0;
+    virtual StatesArray<StorageIndex> InvTrans(
+      StorageIndex const& aQfrom,
+      ScalarType const& aEvent) const = 0;
+    /*! \brief Returns EventsSet relative to state q
+     *
+     * @param aQ A state on the sys
+     */
+    virtual EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const = 0;
+
+    /*! \brief Returns EventsSet relative to state inv q
+     *
+     * @param aQ A state on the sys
+     */
+    virtual EventsSet<NEvents> GetInvStateEvents(
+      StorageIndex const& aQ) const = 0;
+
+    /*! \brief Invert graph
+     *
+     */
+    virtual void AllocateInvertedGraph() const = 0;
+
+    /*! \brief Free inverted graph
+     *
+     */
+    virtual void ClearInvertedGraph() const = 0;
 
 protected:
     /*! \brief Default constructor disabled
@@ -172,6 +236,13 @@ protected:
      * system.
      */
     EventsSet<NEvents> events_;
+
+    /*! \brief Current system's marked states
+     *
+     * Hold all marked states. Cannot be const, since the automata can be
+     * cut, and some marked states may be deleted.
+     */
+    StatesSet marked_states_;
 };
 }
 #endif // DESYSTEMBASE_HPP

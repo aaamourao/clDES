@@ -33,6 +33,7 @@
 #define OPERATIONS_HPP
 
 #include "cldes/Constants.hpp"
+#include "cldes/operations/SyncSysProxy.hpp"
 #include <Eigen/Sparse>
 #include <stack>
 #include <tuple>
@@ -40,13 +41,6 @@
 namespace cldes {
 
 namespace op {
-/*! \brief Graph represented by adjacency matrix type
- *
- * Graph of events represented by a bit array.
- */
-template<uint8_t NEvents>
-using GraphType = Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
-
 /*! \brief tuple representing a state of a virtual synch (stage 1)
  *
  * (state_id_g0, state_id_g1)
@@ -88,9 +82,9 @@ using EventsTableHost = spp::sparse_hash_set<uint8_t>;
  * @param aSys1 The right operand of the parallel composition.
  */
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>
-Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-            cldes::DESystem<NEvents, StorageIndex> const& aSys1);
+DESystem<NEvents, StorageIndex>
+Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
+            DESystem<NEvents, StorageIndex> const& aSys1);
 
 /*! \brief Returns a virtual system which represents a parallel composition
  * between two systems.
@@ -104,9 +98,9 @@ Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
  * @param aSys1 The right operand of the parallel composition.
  */
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>
-SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
+DESystem<NEvents, StorageIndex>
+SynchronizeStage1(DESystem<NEvents, StorageIndex> const& aSys0,
+                  DESystem<NEvents, StorageIndex> const& aSys1);
 
 /*! \brief Transform a virtual system in a real system
  *
@@ -119,30 +113,7 @@ SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
-
-/*! \brief Returns the output of the transitions function of a virtual system
- *
- * It assumes that the transition exists. It has a non defined behaviour when
- * the transition does not exist. It should be checked by the user before
- * calling TransitionVirtual.
- *
- * Implements:
- * f(q, e) = q_out;
- *
- * @param aP Plant system const reference
- * @param aE Spec system const reference
- * @param aQ The "from state"
- * @param aEvent Event of transition
- */
-template<uint8_t NEvents, typename StorageIndex>
-StorageIndex
-TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys1,
-                  StorageIndex const& aQ,
-                  cldes::ScalarType const& aEvent);
+SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
 
 /*! \brief Remove bad states recursively
  *
@@ -165,11 +136,7 @@ TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
-RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
-                cldes::DESystem<NEvents, StorageIndex> const& aP,
-                cldes::DESystem<NEvents, StorageIndex> const& aE,
-                GraphType<NEvents> const& aInvGraphP,
-                GraphType<NEvents> const& aInvGraphE,
+RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 TransMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
@@ -182,9 +149,9 @@ RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
  * @param aNonContr Hash table containing all non-controllable events indexes.
  */
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>
-SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
-                cldes::DESystem<NEvents, StorageIndex> const& aE,
+DESystem<NEvents, StorageIndex>
+SupervisorSynth(DESystem<NEvents, StorageIndex> const& aP,
+                DESystem<NEvents, StorageIndex> const& aE,
                 EventsTableHost const& aNonContr);
 
 } // namespace op

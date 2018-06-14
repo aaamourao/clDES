@@ -38,6 +38,22 @@
 namespace cldes {
 namespace op {
 
+// Forward declaration of friend function
+template<uint8_t NEvents, typename StorageIndex>
+void
+SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+
+// Alias to events hash map
+using EventsTableHost = spp::sparse_hash_set<uint8_t>;
+
+// Forward declaration of friend function
+template<uint8_t NEvents, typename StorageIndex>
+DESystem<NEvents, StorageIndex>
+SupervisorSynth(DESystem<NEvents, StorageIndex> const& aP,
+                DESystem<NEvents, StorageIndex> const& aE,
+                EventsTableHost const& aNonContr);
+
+// Remove bad states recursively
 /*! \brief Proxy to a virtual sync sys
  *
  * @param NEvents Number of events
@@ -79,33 +95,31 @@ public:
      *
      * Enable move semantics
      */
-    SyncSysProxy(SyncSysProxy&&) = default;
+    //SyncSysProxy(SyncSysProxy&&) = default;
 
-    /*! \brief Copy constructor
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    SyncSysProxy(SyncSysProxy const&) = default;
+    ///*! \brief Copy constructor
+    // *
+    // * Needs to define this, since move semantics is enabled
+    // */
+    //SyncSysProxy(SyncSysProxy const&) = default;
 
-    /*! \brief Operator =
-     *
-     * Uses move semantics
-     */
-    SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
+    ///*! \brief Operator =
+    // *
+    // * Uses move semantics
+    // */
+    //SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
 
-    /*! \brief Operator = to const type
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
-      default;
+    ///*! \brief Operator = to const type
+    // *
+    // * Needs to define this, since move semantics is enabled
+    // */
+    //SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
+    //  default;
 
     /*! \brief Overload conversion to DESystem
      *
-     * @param aQ State
-     * @param aEvent Event
      */
-    operator DESystem<NEvents, StorageIndex>();
+    explicit operator DESystem<NEvents, StorageIndex>();
 
     /*! \brief Returns true if DES transition exists
      *
@@ -121,7 +135,7 @@ public:
      * @param aEvent Event
      */
     StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) override;
+                             ScalarType const& aEvent) const override;
 
     /*! \brief Returns true if DES inverse transition exists
      *
@@ -137,9 +151,60 @@ public:
      * @param aEvent Event
      */
     StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
-                                       ScalarType const& aEvent) override;
+                                       ScalarType const& aEvent) const override;
+
+    /*! \brief Returns EventsSet relative to state q
+     *
+     * @param aQ A state on the sys
+     */
+    EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const override;
+
+    /*! \brief Returns EventsSet relative to state inv q
+     *
+     * @param aQ A state on the sys
+     */
+    EventsSet<NEvents> GetInvStateEvents(StorageIndex const& aQ) const override;
+
+    /*! \brief Invert graph
+     *
+     * This is used on some operations... it can be very inneficient for very
+     * large graphs
+     * It is const, since it changes only a mutable member
+     */
+    inline void AllocateInvertedGraph() const override
+    {
+        sys0_.AllocateInvertedGraph();
+        sys1_.AllocateInvertedGraph();
+    }
+
+    /*! \brief Free inverted graph
+     *
+     * It is const, since it changes only a mutable member
+     */
+    inline void ClearInvertedGraph() const override
+    {
+        sys0_.ClearInvertedGraph();
+        sys1_.ClearInvertedGraph();
+    }
 
 protected:
+    /*
+     * Friend function
+     * Second step of the lazy parallel composition
+     */
+    friend void cldes::op::SynchronizeStage2<>(
+      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+
+    /*
+     * Friend function
+     * Monolithic supervisor synthesis
+     */
+    friend DESystem<NEvents, StorageIndex> SupervisorSynth<>(
+      DESystem<NEvents, StorageIndex> const& aP,
+      DESystem<NEvents, StorageIndex> const& aE,
+      EventsTableHost const& aNonContr);
+
+    // Calculate f(q, event) of a virtual system
     /*! \brief Disabled default constructor
      *
      * There is no use for the default constructor.
@@ -151,13 +216,13 @@ private:
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystemBase<NEvents, StorageIndex>& sys0_;
+    DESystemBase<NEvents, StorageIndex> const& sys0_;
 
     /*! \brief Raw pointer to DESystemBase object
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystemBase<NEvents, StorageIndex>& sys1_;
+    DESystemBase<NEvents, StorageIndex> const& sys1_;
 
     /*! \brief Cache number of states of Sys0
      *
@@ -185,6 +250,14 @@ private:
      *
      */
     TrVector transtriplet_;
+
+    /*! \brief 3-tuples for filling graph_
+     */
+    std::vector<Triplet<NEvents>> triplet_;
+
+    /*! \brief 3-tuples for filling bit_graph_
+     */
+    std::vector<BitTriplet> bittriplet_;
 };
 
 } // namespace op

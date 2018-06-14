@@ -79,9 +79,6 @@ using DESVector = std::vector<DESystem<NEvents, StorageIndex>>;
 
 // Forward declartions of friends functions which implement des operations
 namespace op {
-template<uint8_t NEvents>
-using GraphType = Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
-
 /*
  * Forward declaration of the Synchronize virtual proxy
  */
@@ -97,70 +94,11 @@ cldes::DESystem<NEvents, StorageIndex>
 Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
             DESystem<NEvents, StorageIndex> const& aSys1);
 
-// Table containing states of a system on the device mem
-struct StatesTable;
-
-/*
- * Tuple which implements the virtual states of sync a system on the device
- * memory
- */
-struct StatesTuple;
-
-// Tuple representing a virtual state
-template<typename StorageIndex>
-using StatesTupleHost = std::pair<StorageIndex, StorageIndex>;
-
-// Table containing virtual states of a virtual system as integers/longs
-template<typename StorageIndex>
-using StatesTableHost = spp::sparse_hash_set<StorageIndex>;
-
-// Stack of states for implementing a DFS
-template<typename StorageIndex>
-using StatesStack = std::stack<StorageIndex>;
-
-// Table of events
-using EventsTableHost = spp::sparse_hash_set<uint8_t>;
-
 // Implements the first stage of the parallel composition: gen tuples
 template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>
 SynchronizeStage1(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
                   cldes::DESystem<NEvents, StorageIndex> const& aSys1);
-
-// Implements the second stage of the parallel composition: calc transitions
-template<uint8_t NEvents, typename StorageIndex>
-void
-SynchronizeStage2(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys1);
-
-// Calculate f(q, event) of a virtual system
-template<uint8_t NEvents, typename StorageIndex>
-StorageIndex
-TransitionVirtual(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-                  cldes::DESystem<NEvents, StorageIndex> const& aSys1,
-                  StorageIndex const& aQ,
-                  cldes::ScalarType const& aEvent);
-
-// Remove bad states recursively
-template<uint8_t NEvents, typename StorageIndex>
-void
-RemoveBadStates(cldes::DESystem<NEvents, StorageIndex>& aVirtualSys,
-                cldes::DESystem<NEvents, StorageIndex> const& aP,
-                cldes::DESystem<NEvents, StorageIndex> const& aE,
-                GraphType<NEvents> const& aInvGraphP,
-                GraphType<NEvents> const& aInvGraphE,
-                TransMap<StorageIndex>& aC,
-                StorageIndex const& aQ,
-                EventsSet<NEvents> const& aNonContrBit,
-                StatesTableHost<StorageIndex>& aRmTable);
-
-// Calculate the monolithic supervisor of a fiven plant and spec
-template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>
-SupervisorSynth(cldes::DESystem<NEvents, StorageIndex> const& aP,
-                cldes::DESystem<NEvents, StorageIndex> const& aS,
-                EventsTableHost const& aNonContr);
 } // namespace op
 
 /*! \brief Discrete-Events System on host memory
@@ -249,29 +187,29 @@ public:
                       StatesSet& aMarkedStates,
                       bool const& aDevCacheEnabled = true);
 
-    /*! \brief Move constructor
-     *
-     * Enable move semantics
-     */
-    DESystem(DESystem&& aSys) = default;
+    // /*! \brief Move constructor
+    //  *
+    //  * Enable move semantics
+    //  */
+    // DESystem(DESystem&& aSys) = default;
 
-    /*! \brief Copy constructor
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    DESystem(DESystem const& aSys) = default;
+    // /*! \brief Copy constructor
+    //  *
+    //  * Needs to define this, since move semantics is enabled
+    //  */
+    // DESystem(DESystem const& aSys) = default;
 
-    /*! \brief Operator =
-     *
-     * Uses move semantics
-     */
-    DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
+    // /*! \brief Operator =
+    //  *
+    //  * Uses move semantics
+    //  */
+    // DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
 
-    /*! \brief Operator = to const type
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
+    // /*! \brief Operator = to const type
+    //  *
+    //  * Needs to define this, since move semantics is enabled
+    //  */
+    // DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
 
     /*! \brief DESystem destructor
      */
@@ -365,7 +303,7 @@ public:
      * @param aEvent Event
      */
     StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) override;
+                             ScalarType const& aEvent) const override;
 
     /*! \brief Returns true if DES inverse transition exists
      *
@@ -381,35 +319,51 @@ public:
      * @param aEvent Event
      */
     StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
-                                       ScalarType const& aEvent) override;
+                                       ScalarType const& aEvent) const override;
+
+    /*! \brief Returns EventsSet relative to state q
+     *
+     * @param aQ A state on the sys
+     */
+    inline EventsSet<NEvents> GetStateEvents(
+      StorageIndex const& aQ) const override
+    {
+        return states_events_[aQ];
+    }
+
+    /*! \brief Returns EventsSet relative to state inv q
+     *
+     * @param aQ A state on the sys
+     */
+    inline EventsSet<NEvents> GetInvStateEvents(
+      StorageIndex const& aQ) const override
+    {
+        return inv_states_events_[aQ];
+    }
 
     /*! \brief Invert graph
      *
      * This is used on some operations... it can be very inneficient for very
      * large graphs
+     * It is const, since it changes only a mutable member
      */
-    inline void AllocateInvertedGraph()
+    inline void AllocateInvertedGraph() const override
     {
         inv_graph_ = new GraphHostData();
         *inv_graph_ = graph_.transpose();
     }
 
     /*! \brief Free inverted graph
+     *
+     * It is const, since it changes only a mutable member
      */
-    inline void ClearInvertedGraph()
+    inline void ClearInvertedGraph() const override
     {
         if (inv_graph_) {
             delete inv_graph_;
         }
     }
 
-    /*
-     * TODO:
-     * getters
-     * setters: e.g. remove transition, remove state
-     * enable dev cache
-     * ...
-     */
 protected:
     /*! \brief Default constructor disabled
      *
@@ -446,37 +400,6 @@ private:
       DESystem<NEvents, StorageIndex> const& aSys0,
       DESystem<NEvents, StorageIndex> const& aSys1);
 
-    // Second step of the lazy parallel composition
-    friend void cldes::op::SynchronizeStage2<>(
-      DESystem<NEvents, StorageIndex>& aVirtualSys,
-      DESystem<NEvents, StorageIndex> const& aSys0,
-      DESystem<NEvents, StorageIndex> const& aSys1);
-
-    // Calculate f(q, event) of a virtual system
-    friend StorageIndex cldes::op::TransitionVirtual<>(
-      DESystem<NEvents, StorageIndex> const& aSys0,
-      DESystem<NEvents, StorageIndex> const& aSys1,
-      StorageIndex const& aQ,
-      cldes::ScalarType const& aEvent);
-
-    // Remove a bad state recursively from a virtualsys
-    friend void cldes::op::RemoveBadStates<NEvents, StorageIndex>(
-      DESystem<NEvents, StorageIndex>& aVirtualSys,
-      DESystem<NEvents, StorageIndex> const& aP,
-      DESystem<NEvents, StorageIndex> const& aE,
-      op::GraphType<NEvents> const& aInvGraphP,
-      op::GraphType<NEvents> const& aInvGraphE,
-      TransMap<StorageIndex>& aC,
-      StorageIndex const& aQ,
-      EventsSet<NEvents> const& aNonContr,
-      op::StatesTableHost<StorageIndex>& aRmTable);
-
-    // Computes the monolithic supervisor
-    friend DESystem cldes::op::SupervisorSynth<>(
-      DESystem<NEvents, StorageIndex> const& aP,
-      DESystem<NEvents, StorageIndex> const& aE,
-      op::EventsTableHost const& aNonContr);
-
     /*! \brief Graph represented by an adjascency matrix
      *
      * A sparse matrix which represents the automata as a graph in an
@@ -511,13 +434,6 @@ private:
      * Used for searching inverted transitions when necessary
      */
     GraphHostData mutable* inv_graph_;
-
-    /*! \brief Current system's marked states
-     *
-     * Hold all marked states. Cannot be const, since the automata can be
-     * cut, and some marked states may be deleted.
-     */
-    StatesSet marked_states_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      *
@@ -599,35 +515,6 @@ private:
      * init_state_.
      */
     StatesSet* Bfs_();
-
-    // TODO remove after proxy is ready
-    /*! \brief Cache number of states of Sys0
-     *
-     */
-    StorageIndex n_states_sys0_;
-
-    /*! \brief Virtual states contained in the current system
-     *
-     */
-    StatesTable virtual_states_;
-
-    /*! \brief Events contained only in the left operator of a synchronizing op.
-     *
-     */
-    EventsSet<NEvents> only_in_0_;
-
-    /*! \brief Events contained only in the right operator of a synchronizing
-     * op.
-     *
-     */
-    EventsSet<NEvents> only_in_1_;
-
-    /*! \brief Events contained only in the right operator of a synchronizing
-     * op.
-     *
-     */
-    TrVector transtriplet_;
-    // TODO; end of remove
 };
 
 /*! \brief Alias for graph 3-tuple
