@@ -36,8 +36,8 @@
 
 template<uint8_t NEvents, typename StorageIndex>
 typename cldes::DESystem<NEvents, StorageIndex>
-cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-                       cldes::DESystem<NEvents, StorageIndex> const& aSys1)
+cldes::op::Synchronize(cldes::DESystemBase<NEvents, StorageIndex> const& aSys0,
+                       cldes::DESystemBase<NEvents, StorageIndex> const& aSys1)
 {
     DESystem<NEvents, StorageIndex> sys = DESystem<NEvents, StorageIndex>(
       SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 });
@@ -48,8 +48,8 @@ cldes::op::Synchronize(cldes::DESystem<NEvents, StorageIndex> const& aSys0,
 template<uint8_t NEvents, typename StorageIndex>
 typename cldes::op::SyncSysProxy<NEvents, StorageIndex>
 cldes::op::SynchronizeStage1(
-  cldes::DESystem<NEvents, StorageIndex> const& aSys0,
-  cldes::DESystem<NEvents, StorageIndex> const& aSys1)
+  cldes::DESystemBase<NEvents, StorageIndex> const& aSys0,
+  cldes::DESystemBase<NEvents, StorageIndex> const& aSys1)
 {
     return SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 };
 }

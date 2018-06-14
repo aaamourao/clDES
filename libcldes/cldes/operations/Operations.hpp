@@ -83,8 +83,8 @@ using EventsTableHost = spp::sparse_hash_set<uint8_t>;
  */
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
-            DESystem<NEvents, StorageIndex> const& aSys1);
+Synchronize(DESystemBase<NEvents, StorageIndex> const& aSys0,
+            DESystemBase<NEvents, StorageIndex> const& aSys1);
 
 /*! \brief Returns a virtual system which represents a parallel composition
  * between two systems.
@@ -99,8 +99,8 @@ Synchronize(DESystem<NEvents, StorageIndex> const& aSys0,
  */
 template<uint8_t NEvents, typename StorageIndex>
 SyncSysProxy<NEvents, StorageIndex>
-SynchronizeStage1(DESystem<NEvents, StorageIndex> const& aSys0,
-                  DESystem<NEvents, StorageIndex> const& aSys1);
+SynchronizeStage1(DESystemBase<NEvents, StorageIndex> const& aSys0,
+                  DESystemBase<NEvents, StorageIndex> const& aSys1);
 
 /*! \brief Transform a empty virtual system in a real system
  *
