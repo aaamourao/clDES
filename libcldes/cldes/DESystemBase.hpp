@@ -33,9 +33,7 @@
 
 #include "cldes/Constants.hpp"
 #include "cldes/EventsSet.hpp"
-#include <Eigen/Sparse>
-#include <set>
-#include <vector>
+#include "cldes/src/des/DESystemBaseCore.hpp"
 
 namespace cldes {
 
@@ -76,11 +74,22 @@ public:
      * @param aInitState System's initial state
      * @param aMarkedStates System's marked states
      */
-    explicit inline DESystemBase(StorageIndex const& aStatesNumber,
-                                 StorageIndex const& aInitState)
+    inline DESystemBase(StorageIndex const& aStatesNumber,
+                        StorageIndex const& aInitState)
     {
         states_number_ = aStatesNumber;
         init_state_ = aInitState;
+    }
+
+    /*! \brief Default constructor
+     *
+     */
+    inline DESystemBase()
+    {
+        states_number_ = 0;
+        init_state_ = 0;
+        events_ = EventsSet<NEvents>{};
+        marked_states_ = StatesSet{};
     };
 
     /*! \brief DESystem destructor
@@ -91,25 +100,25 @@ public:
      *
      * Enable move semantics
      */
-    DESystemBase(DESystemBase&&) = default;
+    // DESystemBase(DESystemBase&&) = default;
 
-    /*! \brief Copy constructor
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    DESystemBase(DESystemBase const&) = default;
+    // /*! \brief Copy constructor
+    //  *
+    //  * Needs to define this, since move semantics is enabled
+    //  */
+    // DESystemBase(DESystemBase const&) = default;
 
-    /*! \brief Operator =
-     *
-     * Uses move semantics
-     */
-    DESystemBase& operator=(DESystemBase&&) = default;
+    // /*! \brief Operator =
+    //  *
+    //  * Uses move semantics
+    //  */
+    // DESystemBase& operator=(DESystemBase&&) = default;
 
-    /*! \brief Operator = to const type
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    DESystemBase& operator=(DESystemBase const&) = default;
+    // /*! \brief Operator = to const type
+    //  *
+    //  * Needs to define this, since move semantics is enabled
+    //  */
+    // DESystemBase& operator=(DESystemBase const&) = default;
 
     /*! \brief Returns number of states of the system
      *
@@ -137,62 +146,20 @@ public:
      */
     inline StatesSet GetMarkedStates() const { return marked_states_; }
 
-    /*! \brief Set system's number of states
-     *
-     */
-    inline void SetStatesNumber(StorageIndex const& aStNum)
-    {
-        states_number_ = aStNum;
-    }
-
-    /*! \brief Set system's system events table
-     *
-     */
-    inline void ResizeStatesEvents(StorageIndex const& aSize)
-    {
-        states_events_.resize(aSize);
-        inv_states_events_.resize(aSize);
-    }
-
-    /*! \brief Set system's system events table
-     *
-     */
-    inline void SetStateEvents(StorageIndex const& aQ,
-                               EventsSet<NEvents> const& aEvents)
-    {
-        states_events_[aQ] = aEvents;
-    }
-
-    /*! \brief Set inverted states events
-     *
-     */
-    inline void SetInvStateEvents(StorageIndex const& aQ,
-                                  EventsSet<NEvents> const& aEvents)
-    {
-        inv_states_events_[aQ] = aEvents;
-    }
-    /*! \brief Set system's system events table
-     *
-     */
-    inline void SetStatesEvents(StatesEventsTable const& aEvents)
-    {
-        states_events_ = aEvents;
-    }
-
-    /*! \brief Set inverted states events
-     *
-     */
-    inline void SetInvStatesEvents(StatesEventsTable const& aEvents)
-    {
-        inv_states_events_ = aEvents;
-    }
-
     /*! \brief Set inverted states events
      *
      */
     inline void SetEvents(EventsSet<NEvents> const& aEvents)
     {
         events_ = aEvents;
+    }
+
+    /*! \brief Set system's number of states
+     *
+     */
+    inline void SetStatesNumber(StorageIndex const& aStNum)
+    {
+        states_number_ = aStNum;
     }
 
     /*! \brief Set system's initial state
@@ -206,18 +173,50 @@ public:
     /*! \brief Returns marked states
      *
      */
-    inline void InsertMarkedState(StorageIndex const& aSt)
+    void InsertMarkedState(StorageIndex const& aSt)
     {
         marked_states_.emplace(aSt);
     }
 
-    /*! \brief Returns marked states
+    /*! \brief Set system's marked states
      *
      */
     inline void SetMarkedStates(StatesSet const& aStSet)
     {
         marked_states_ = aStSet;
     }
+
+    inline void ResizeStatesEvents(StorageIndex const& aSize)
+    {
+        states_events_.resize(aSize);
+        inv_states_events_.resize(aSize);
+    }
+
+    inline void SetStatesEvents(StatesEventsTable const& aEvents)
+    {
+        states_events_ = aEvents;
+    }
+
+    inline void SetInvStatesEvents(StatesEventsTable const& aEvents)
+    {
+        inv_states_events_ = aEvents;
+    }
+
+    inline void SetStateEvents(StorageIndex const& aQ,
+                               EventsSet<NEvents> const& aEvent)
+    {
+        states_events_[aQ] = aEvent;
+    }
+
+    inline void SetInvStateEvents(StorageIndex const& aQ,
+                                  EventsSet<NEvents> const& aEvent)
+    {
+        inv_states_events_[aQ] = aEvent;
+    }
+    /*! \brief Clone method to enable poliphormism
+     *
+     */
+    virtual std::shared_ptr<DESystemBase> Clone() const = 0;
 
     /*! \brief Returns true if DES transition exists
      *
@@ -275,13 +274,6 @@ public:
     virtual void ClearInvertedGraph() const = 0;
 
 protected:
-    /*! \brief Default constructor disabled
-     *
-     * Declare default constructor as protected to avoid the class user of
-     * calling it.
-     */
-    DESystemBase() = default;
-
     /*! \brief Current system's states number
      *
      * Hold the number of states that the automata contains. As the automata
@@ -321,4 +313,5 @@ protected:
     StatesEventsTable inv_states_events_;
 };
 }
+
 #endif // DESYSTEMBASE_HPP

@@ -34,6 +34,7 @@
 #include "cldes/Constants.hpp"
 #include "cldes/DESystemBase.hpp"
 #include "cldes/EventsSet.hpp"
+#include "cldes/src/operations/SyncSysProxyCore.hpp"
 
 namespace cldes {
 namespace op {
@@ -54,8 +55,8 @@ using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-SupervisorSynth(DESystem<NEvents, StorageIndex> const& aP,
-                DESystem<NEvents, StorageIndex> const& aE,
+SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
+                DESystemBase<NEvents, StorageIndex> const& aE,
                 EventsTableHost const& aNonContr);
 
 // Remove bad states recursively
@@ -70,10 +71,14 @@ class SyncSysProxy : public DESystemBase<NEvents, StorageIndex>
 public:
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
 
+    /*! \brief Base alias
+     *
+     */
+    using DESystemBase = DESystemBase<NEvents, StorageIndex>;
+
     /*! \brief Vector of states type
      */
-    using StatesTable =
-      typename DESystemBase<NEvents, StorageIndex>::StatesTable;
+    using StatesTable = typename DESystemBase::StatesTable;
 
     /*! \brief Vector of inverted transitions
      *
@@ -89,12 +94,34 @@ public:
      * @param aSys0Ptr Left operand DESystem reference
      * @param aSys1Ptr Right operand DESystem reference
      */
-    explicit SyncSysProxy(DESystemBase<NEvents, StorageIndex> const& aSys0,
-                          DESystemBase<NEvents, StorageIndex> const& aSys1);
+    inline SyncSysProxy(DESystemBase const& aSys0, DESystemBase const& aSys1)
+      : DESystemBase{ aSys0.GetStatesNumber() * aSys1.GetStatesNumber(),
+                      aSys1.GetInitialState() * aSys0.GetStatesNumber() +
+                        aSys0.GetInitialState() }
+      , sys0_{ aSys0 }
+      , sys1_{ aSys1 }
+    {
+        n_states_sys0_ = aSys0.GetStatesNumber();
+
+        auto const in_both = aSys0.GetEvents() & aSys1.GetEvents();
+
+        only_in_0_ = aSys0.GetEvents() ^ in_both;
+        only_in_1_ = aSys1.GetEvents() ^ in_both;
+
+        // Initialize events_ from base class
+        this->events_ = aSys0.GetEvents() | aSys1.GetEvents();
+
+        for (auto q0 : aSys0.GetMarkedStates()) {
+            for (auto q1 : aSys1.GetMarkedStates()) {
+                this->marked_states_.emplace(q1 * n_states_sys0_ + q0);
+            }
+        }
+    }
 
     /*! \brief DESystem destructor
+     *
      */
-    virtual ~SyncSysProxy() = default;
+    ~SyncSysProxy() = default;
 
     /*! \brief Move constructor
      *
@@ -102,73 +129,256 @@ public:
      */
     // SyncSysProxy(SyncSysProxy&&) = default;
 
-    ///*! \brief Copy constructor
-    // *
-    // * Needs to define this, since move semantics is enabled
-    // */
-    // SyncSysProxy(SyncSysProxy const&) = default;
+    /*! \brief Copy constructor
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    SyncSysProxy(SyncSysProxy const&) = default;
 
-    ///*! \brief Operator =
-    // *
-    // * Uses move semantics
-    // */
-    // SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
+    /*! \brief Operator =
+     *
+     * Uses move semantics
+     */
+    SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
 
-    ///*! \brief Operator = to const type
-    // *
-    // * Needs to define this, since move semantics is enabled
-    // */
-    // SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
-    //  default;
+    /*! \brief Operator = to const type
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
+      default;
 
     /*! \brief Overload conversion to DESystem
      *
      */
-    explicit operator DESystem<NEvents, StorageIndex>();
+    operator DESystem<NEvents, StorageIndex>()
+    {
+        if (virtual_states_.empty()) {
+            SynchronizeEmptyStage2(*this);
+        } else {
+            std::sort(virtual_states_.begin(), virtual_states_.end());
+            SynchronizeStage2(*this);
+        }
+
+        DESystem<NEvents, StorageIndex> sys{};
+        sys.states_number_ = this->states_number_;
+        sys.init_state_ = this->init_state_;
+        sys.marked_states_ = this->marked_states_;
+        sys.states_events_ = this->states_events_;
+        sys.inv_states_events_ = this->inv_states_events_;
+        sys.events_ = this->events_;
+
+        // Resize adj matrices
+        sys.graph_.resize(this->states_number_, this->states_number_);
+        sys.bit_graph_.resize(this->states_number_, this->states_number_);
+
+        // Move triplets to graph storage
+        sys.graph_.setFromTriplets(triplet_.begin(), triplet_.end());
+        sys.bit_graph_.setFromTriplets(
+          bittriplet_.begin(), bittriplet_.end(), [](bool const&, bool const&) {
+              return true;
+          });
+
+        triplet_.clear();
+        bittriplet_.clear();
+
+        sys.graph_.makeCompressed();
+        sys.bit_graph_.makeCompressed();
+
+        return sys;
+    }
+
+    /*! \brief Clone method for polymorphic copy
+     *
+     */
+    inline std::shared_ptr<DESystemBase> Clone() const override
+    {
+        std::shared_ptr<DESystemBase> this_ptr =
+          std::make_shared<SyncSysProxy>(*this);
+        return this_ptr;
+    }
 
     /*! \brief Returns true if DES transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsTrans(StorageIndex const& aQ,
-                       ScalarType const& aEvent) const override;
+    inline bool ContainsTrans(StorageIndex const& aQ,
+                              ScalarType const& aEvent) const override
+    {
+        // q = (qx, qy)
+        auto const qx = aQ % n_states_sys0_;
+        auto const qy = aQ / n_states_sys0_;
+
+        auto const in_x = sys0_.ContainsTrans(qx, aEvent);
+        auto const in_y = sys1_.ContainsTrans(qy, aEvent);
+
+        auto contains = false;
+
+        if ((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
+            (in_y && only_in_1_.test(aEvent))) {
+            contains = true;
+        }
+
+        return contains;
+    }
 
     /*! \brief Returns DES transition: q_to = f(q, e)
      *
      * @param aQ State
      * @param aEvent Event
      */
-    StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) const override;
+    inline StorageIndexSigned Trans(StorageIndex const& aQ,
+                                    ScalarType const& aEvent) const override
+    {
+        // q = (qx, qy)
+        auto const qx = aQ % n_states_sys0_;
+        auto const qy = aQ / n_states_sys0_;
+
+        auto const in_x = sys0_.ContainsTrans(qx, aEvent);
+        auto const in_y = sys1_.ContainsTrans(qy, aEvent);
+
+        if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
+              (in_y && only_in_1_.test(aEvent)))) {
+            return -1;
+        }
+
+        if (in_x && in_y) {
+            auto const q0 = sys0_.Trans(qx, aEvent);
+            auto const q1 = sys1_.Trans(qy, aEvent);
+
+            return q1 * n_states_sys0_ + q0;
+        } else if (in_x) {
+            auto const q0 = sys0_.Trans(qx, aEvent);
+            return qy * n_states_sys0_ + q0;
+        } else { // in_y
+            auto const q1 = sys1_.Trans(qy, aEvent);
+            return q1 * n_states_sys0_ + qx;
+        }
+    }
 
     /*! \brief Returns true if DES inverse transition exists
      *
      * @param aQfrom State
      * @param aEvent Event
      */
-    bool ContainsInvTrans(StorageIndex const& aQ,
-                          ScalarType const& aEvent) const override;
+    inline bool ContainsInvTrans(StorageIndex const& aQ,
+                                 ScalarType const& aEvent) const override
+    {
+        // q = (qx, qy)
+        auto const qx = aQ % n_states_sys0_;
+        auto const qy = aQ / n_states_sys0_;
+
+        auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
+        auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
+
+        auto contains = false;
+
+        if ((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
+            (in_y && only_in_1_.test(aEvent))) {
+            contains = true;
+        }
+
+        return contains;
+    }
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
      *
      * @param aQfrom State
      * @param aEvent Event
      */
-    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
-                                       ScalarType const& aEvent) const override;
+    inline StatesArray<StorageIndex> InvTrans(
+      StorageIndex const& aQ,
+      ScalarType const& aEvent) const override
+    {
+        // q = (qx, qy)
+        auto const qx = aQ % n_states_sys0_;
+        auto const qy = aQ / n_states_sys0_;
+
+        auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
+        auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
+
+        StatesArray<StorageIndex> inv_transitions;
+
+        if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
+              (in_y && only_in_1_.test(aEvent)))) {
+            return inv_transitions;
+        }
+
+        if (in_x && in_y) {
+            auto const inv_trans_0 = sys0_.InvTrans(qx, aEvent);
+            auto const inv_trans_1 = sys1_.InvTrans(qy, aEvent);
+
+            inv_transitions.reserve(inv_trans_0.size() + inv_trans_1.size());
+
+            for (auto q0 : inv_trans_0) {
+                for (auto q1 : inv_trans_1) {
+                    auto const q_from = q1 * n_states_sys0_ + q0;
+                    inv_transitions.push_back(q_from);
+                }
+            }
+        } else if (in_x) {
+            auto const inv_trans_0 = sys0_.InvTrans(qx, aEvent);
+
+            inv_transitions.reserve(inv_trans_0.size());
+
+            for (auto q : inv_trans_0) {
+                auto const q_from = qy * n_states_sys0_ + q;
+                inv_transitions.push_back(q_from);
+            }
+        } else { // in_y
+            auto const inv_trans_1 = sys1_.InvTrans(qy, aEvent);
+
+            inv_transitions.reserve(inv_trans_1.size());
+
+            for (auto q : inv_trans_1) {
+                auto const q_from = q * n_states_sys0_ + qx;
+                inv_transitions.push_back(q_from);
+            }
+        }
+
+        return inv_transitions;
+    }
 
     /*! \brief Returns EventsSet relative to state q
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const override;
+    inline EventsSet<NEvents> GetStateEvents(
+      StorageIndex const& aQ) const override
+    {
+        // q = (qx, qy)
+        auto const qx = aQ % n_states_sys0_;
+        auto const qy = aQ / n_states_sys0_;
+
+        auto const state_event_0 = sys0_.GetStateEvents(qx);
+        auto const state_event_1 = sys1_.GetStateEvents(qy);
+        auto const state_event = (state_event_0 & state_event_1) |
+                                 (state_event_0 & only_in_0_) |
+                                 (state_event_1 & only_in_1_);
+
+        return state_event;
+    }
 
     /*! \brief Returns EventsSet relative to state inv q
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> GetInvStateEvents(StorageIndex const& aQ) const override;
+    inline EventsSet<NEvents> GetInvStateEvents(
+      StorageIndex const& aQ) const override
+    {
+        // q = (qx, qy)
+        auto const qx = aQ % n_states_sys0_;
+        auto const qy = aQ / n_states_sys0_;
+
+        auto const state_event_0 = sys0_.GetInvStateEvents(qx);
+        auto const state_event_1 = sys1_.GetInvStateEvents(qy);
+        auto const state_event = (state_event_0 & state_event_1) |
+                                 (state_event_0 & only_in_0_) |
+                                 (state_event_1 & only_in_1_);
+
+        return state_event;
+    }
 
     /*! \brief Invert graph
      *
@@ -212,29 +422,28 @@ protected:
      * Monolithic supervisor synthesis
      */
     friend DESystem<NEvents, StorageIndex> SupervisorSynth<>(
-      DESystem<NEvents, StorageIndex> const& aP,
-      DESystem<NEvents, StorageIndex> const& aE,
+      DESystemBase const& aP,
+      DESystemBase const& aE,
       EventsTableHost const& aNonContr);
 
-    // Calculate f(q, event) of a virtual system
     /*! \brief Disabled default constructor
      *
      * There is no use for the default constructor.
      */
-    explicit SyncSysProxy();
+    inline SyncSysProxy() = default;
 
 private:
     /*! \brief Raw pointer to DESystemBase object
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystemBase<NEvents, StorageIndex> const& sys0_;
+    DESystemBase const& sys0_;
 
     /*! \brief Raw pointer to DESystemBase object
      *
      * Raw pointer to the owner of the proxied element.
      */
-    DESystemBase<NEvents, StorageIndex> const& sys1_;
+    DESystemBase const& sys1_;
 
     /*! \brief Cache number of states of Sys0
      *
@@ -274,8 +483,5 @@ private:
 
 } // namespace op
 } // namespace cldes
-
-// including implementation
-#include "cldes/src/operations/SyncSysProxyCore.hpp"
 
 #endif // TRANSITION_PROXY_HPP

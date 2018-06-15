@@ -36,8 +36,8 @@
 template<uint8_t NEvents, typename StorageIndex = unsigned>
 void
 ClusterTool(unsigned long const& aNClusters,
-            std::vector<cldes::DESystem<NEvents, StorageIndex>>& aPlants,
-            std::vector<cldes::DESystem<NEvents, StorageIndex>>& aSpecs,
+            cldes::DESVector<NEvents, StorageIndex>& aPlants,
+            cldes::DESVector<NEvents, StorageIndex>& aSpecs,
             spp::sparse_hash_set<uint8_t>& non_contr)
 {
     if (aPlants.size() != 0 || aSpecs.size() != 0 || non_contr.size() ||

@@ -23,9 +23,13 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: cldes/src/operations/SyncSysProxyCore.hpp
- Description: includes and alias.
+ File: cldes/src/des/DESystemBase.hpp
+ Description: DESystemBase alias and includes;
  =========================================================================
 */
 
+#include <Eigen/Sparse>
 #include <algorithm>
+#include <memory>
+#include <set>
+#include <vector>

@@ -9,6 +9,9 @@ add_executable(benchmark_clustertool5 ./benchmark_clustertool5.cpp)
 add_executable(benchmark_clustertool6 ./benchmark_clustertool6.cpp)
 add_executable(benchmark_clustertool7 ./benchmark_clustertool7.cpp)
 add_executable(benchmark_fsm ./benchmark_fsm.cpp)
+add_executable(benchmark_lazyfsm ./benchmark_lazyfsm.cpp)
+add_executable(benchmark_lazyclustertool6 ./benchmark_lazyclustertool6.cpp)
+add_executable(benchmark_lazyclustertool7 ./benchmark_lazyclustertool7.cpp)
 
 # Link libraries
 # target_link_libraries(benchmark_clustertool2 Qt5::Core)# OpenCL::OpenCL)

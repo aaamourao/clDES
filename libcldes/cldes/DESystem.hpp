@@ -24,8 +24,8 @@
  Universidade Federal de Minas Gerais
 
  File: cldes/DESystem.hpp
- Description: DESystem class declaration. DESystem is a graph, which is
- modeled as a Sparce Adjacency Matrix.
+ Description: DESystem template class declaration and definition . DESystem is a
+ graph, which is modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
 
@@ -33,58 +33,13 @@
 #define DESYSTEM_HPP
 
 #include "cldes/DESystemBase.hpp"
-#include <sparsepp/spp.h>
-#include <stack>
-#include <tuple>
+#include "cldes/src/des/DESystemCore.hpp"
 
 /*
  * Forward declarations and some useful alias definitions
  */
 namespace cldes {
-/*! \brief Vector that contains arguments of inverse transition function
- *
- * V f(s_from, e) = s_to |-> f^-1(s_to, e) = s_from
- * f^-1 args are (s_to, e)
- */
-template<typename StorageIndex>
-using InvArgTrans = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
 
-/*! \brief Hash map containing transitions
- *
- * V f(s_from, e) = s_to |-> f^-1(s_to, e) = s_from
- * {key = s_from, value= vec(s_from, e))
- */
-template<typename StorageIndex>
-using TransMap = spp::sparse_hash_map<StorageIndex, InvArgTrans<StorageIndex>*>;
-
-/*
- * Forward declarion of DESystemBase's friends class TransitionProxy. A
- * transition is an element of the adjascency matrix which implements
- * the des graph.
- */
-template<uint8_t NEvents, typename StorageIndex>
-class TransitionProxy;
-
-/*
- * Forward declarion of DESystem class necessary for the forward declaration of
- * the DESystem's friend function op::Synchronize
- */
-template<uint8_t NEvents = kDefaultEventsN, typename StorageIndex = uint32_t>
-class DESystem;
-
-/*! \brief Vector of DES systems on host mem
- */
-template<uint8_t NEvents, typename StorageIndex>
-using DESVector = std::vector<DESystem<NEvents, StorageIndex>>;
-
-// Forward declartions of friends functions which implement des operations
-namespace op {
-/*
- * Forward declaration of the Synchronize virtual proxy
- */
-template<uint8_t NEvents, typename StorageIndex>
-class SyncSysProxy;
-}
 /*! \brief Discrete-Events System on host memory
  *
  * Implement a DES on the host memory and their respective operations for CPUs.
@@ -96,11 +51,20 @@ template<uint8_t NEvents, typename StorageIndex>
 class DESystem : public DESystemBase<NEvents, StorageIndex>
 {
 public:
+    /*! \brief Base alias
+     *
+     */
+    using DESystemBase = DESystemBase<NEvents, StorageIndex>;
+
     /*! \brief StorageIndex signed type
      *
      * Eigen uses signed indexes ( ?????? )
      */
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
+
+    /*! \brief EventsSet
+     */
+    using EventsSet = EventsSet<NEvents>;
 
     /*! \brief Adjacency matrix of bitarrays implementing a graph
      *
@@ -111,17 +75,15 @@ public:
      * row index: from state
      * col index: to state
      */
-    using GraphHostData =
-      Eigen::SparseMatrix<EventsSet<NEvents>, Eigen::RowMajor>;
+    using GraphHostData = Eigen::SparseMatrix<EventsSet, Eigen::RowMajor>;
 
     /*! \brief Set of states type
      */
-    using StatesSet = typename DESystemBase<NEvents, StorageIndex>::StatesSet;
+    using StatesSet = typename DESystemBase::StatesSet;
 
     /*! \brief Table of transitions on a STL container
      */
-    using StatesEventsTable =
-      typename DESystemBase<NEvents, StorageIndex>::StatesEventsTable;
+    using StatesEventsTable = typename DESystemBase::StatesEventsTable;
 
     /*! \brief Adjacency matrix of bit implementing a graph
      *
@@ -147,8 +109,7 @@ public:
 
     /*! \brief Vector of states type
      */
-    using StatesTable =
-      typename DESystemBase<NEvents, StorageIndex>::StatesTable;
+    using StatesTable = typename DESystemBase::StatesTable;
 
     /*! \brief Vector of inverted transitions
      *
@@ -156,6 +117,38 @@ public:
      */
     using TrVector =
       std::vector<std::pair<StorageIndex, InvArgTrans<StorageIndex>*>>;
+
+    /*! \brief Graph const iterator
+     */
+    using ColIteratorConst = Eigen::InnerIterator<StatesVector const>;
+
+    /*! \brief Graph const iterator
+     */
+    using RowIterator = Eigen::InnerIterator<GraphHostData const>;
+
+    /*! \brief Graph iterator
+     */
+    using RowIteratorGraph = Eigen::InnerIterator<GraphHostData>;
+
+    /*! \brief Triplet type
+     */
+    using Triplet = Triplet<NEvents>;
+
+    /*! \brief Default constructor
+     *
+     * Creates an empty system
+     */
+    inline DESystem()
+    {
+        inv_graph_ = nullptr;
+        is_cache_outdated_ = false;
+        this->marked_states_ = StatesSet{};
+        graph_ = GraphHostData{};
+        bit_graph_ = BitGraphHostData{};
+
+        // Initialize bit_graph_ with identity for searching
+        bit_graph_.setIdentity();
+    }
 
     /*! \brief DESystem constructor with empty matrix
      *
@@ -167,69 +160,69 @@ public:
      * @param aMarkedStates System's marked states
      * @aDevCacheEnabled Enable or disable device cache for graph data
      */
-    explicit DESystem(StorageIndex const& aStatesNumber,
-                      StorageIndex const& aInitState,
-                      StatesSet& aMarkedStates,
-                      bool const& aDevCacheEnabled = true);
-
-    /*! \brief Default constructor
-     *
-     * Creates an empty system
-     */
-    explicit DESystem()
-      : DESystemBase<NEvents, StorageIndex>{ 0, 0 }
+    inline DESystem(StorageIndex const& aStatesNumber,
+                    StorageIndex const& aInitState,
+                    StatesSet& aMarkedStates,
+                    bool const& aDevCacheEnabled = true)
+      : DESystemBase{ aStatesNumber, aInitState }
     {
+        dev_cache_enabled_ = aDevCacheEnabled;
+        is_cache_outdated_ = true;
         inv_graph_ = nullptr;
-        graph_ = GraphHostData{};
-        bit_graph_ = BitGraphHostData{};
-        this->states_events_ = StatesEventsTable(0);
-        this->marked_states_ = StatesSet();
-    };
 
-    /*! \brief Move constructor
-     *
-     * Enable move semantics
-     */
-    DESystem(DESystem&& aSys) = default;
+        this->marked_states_ = aMarkedStates;
 
-    /*! \brief Copy constructor
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    DESystem(DESystem const& aSys) = default;
+        // Resize graphs and do not preserve elements
+        graph_ =
+          GraphHostData{ static_cast<StorageIndexSigned>(aStatesNumber),
+                         static_cast<StorageIndexSigned>(aStatesNumber) };
+        bit_graph_ =
+          BitGraphHostData{ static_cast<StorageIndexSigned>(aStatesNumber),
+                            static_cast<StorageIndexSigned>(aStatesNumber) };
 
-    /*! \brief Operator =
-     *
-     * Uses move semantics
-     */
-    DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
+        // Initialize bit graph with Identity
+        bit_graph_.setIdentity();
 
-    /*! \brief Operator = to const type
-     *
-     * Needs to define this, since move semantics is enabled
-     */
-    DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
+        // Change graphs storage type to CSR
+        graph_.makeCompressed();
+        bit_graph_.makeCompressed();
 
-    /*! \brief DESystem destructor
-     */
-    virtual inline ~DESystem()
-    {
-        if (inv_graph_) {
-            delete inv_graph_;
+        // Reserve memory to make insertions efficient
+        this->states_events_ = StatesEventsTable(aStatesNumber);
+        this->inv_states_events_ = StatesEventsTable(aStatesNumber);
+
+        // If device cache is enabled, cache it
+        if (dev_cache_enabled_) {
+            this->CacheGraph_();
         }
     }
 
-    /*! \brief Graph getter
+    /*! \brief DESystem destructor
      */
-    inline GraphHostData GetGraph() const { return graph_; };
+    inline ~DESystem() { inv_graph_ = nullptr; }
+
+    /*! \brief Clone method for polymorphic copy
+     *
+     */
+    inline std::shared_ptr<DESystemBase> Clone() const override
+    {
+        std::shared_ptr<DESystemBase> this_ptr =
+          std::make_shared<DESystem>(*this);
+        return this_ptr;
+    }
+
+    /*! \brief Graph getter
+     *
+     */
+    GraphHostData GetGraph() const { return graph_; };
 
     /*! \brief Returns value of the specified transition
      *
      * @param aLin Element's line
      * @param aCol Element's column
      */
-    inline EventsSet<NEvents> const operator()(StorageIndex const& aLin,
-                                               StorageIndex const& aCol) const
+    inline EventsSet const operator()(StorageIndex const& aLin,
+                                      StorageIndex const& aCol) const
     {
         return graph_.coeff(aLin, aCol);
     }
@@ -251,22 +244,129 @@ public:
      * Executes a Breadth First Search in the graph, which represents the DES,
      * starting from its initial state. It returns a set containing all nodes
      * which are accessible from the initial state.
+     * TODO: Make it const
      */
-    StatesSet AccessiblePart();
+    StatesSet AccessiblePart()
+    {
+        // Executes a BFS on graph_
+        auto paccessible_states = Bfs_();
+
+        auto accessible_states = *paccessible_states;
+        delete[] paccessible_states;
+
+        return accessible_states;
+    }
 
     /*! \brief Returns state set containing the coaccessible part of automata
      *
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart();
+    StatesSet CoaccessiblePart()
+    {
+        auto const invgraph = bit_graph_.transpose();
+
+        StorageIndexSigned const n_marked = this->marked_states_.size();
+        StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
+                        n_marked };
+        x.reserve(this->marked_states_.size());
+
+        {
+            auto pos = 0ul;
+            for (auto state : this->marked_states_) {
+                x.coeffRef(state, pos) = true;
+                ++pos;
+            }
+        }
+
+        StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
+                        n_marked };
+        auto n_accessed_states = 0l;
+        for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
+            y = invgraph * x;
+
+            if (n_accessed_states == y.nonZeros()) {
+                break;
+            } else {
+                n_accessed_states = y.nonZeros();
+            }
+
+            x = y;
+        }
+
+        y.pruned();
+
+        StatesSet coaccessible_states;
+        for (StorageIndexSigned s = 0; s < y.outerSize(); ++s) {
+            for (ColIteratorConst e(y, s); e; ++e) {
+                coaccessible_states.emplace(e.row());
+            }
+        }
+
+        return coaccessible_states;
+    }
 
     /*! \brief Returns States Set which is the Trim part of the system
      *
      * Gets the intersection between the accessible part and the coaccessible
      * part.
      */
-    StatesSet TrimStates();
+    StatesSet TrimStates()
+    {
+        auto accpartstl = AccessiblePart();
+        spp::sparse_hash_set<StorageIndex> accpart;
+        for (StorageIndex s : accpartstl) {
+            accpart.insert(s);
+        }
+
+        auto const invgraph = bit_graph_.transpose();
+
+        auto const n_marked = this->marked_states_.size();
+
+        StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
+                        static_cast<StorageIndexSigned>(n_marked) };
+        x.reserve(this->marked_states_.size());
+        std::vector<BitTriplet> xtriplet;
+
+        {
+            auto pos = 0l;
+            for (StorageIndex state : this->marked_states_) {
+                xtriplet.push_back(BitTriplet(state, pos, true));
+                ++pos;
+            }
+        }
+        x.setFromTriplets(xtriplet.begin(),
+                          xtriplet.end(),
+                          [](bool const&, bool const&) { return true; });
+
+        StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
+                        static_cast<StorageIndexSigned>(n_marked) };
+        auto n_accessed_states = 0l;
+        for (auto i = 0ul; i < this->states_number_; ++i) {
+            y = invgraph * x;
+
+            if (n_accessed_states == y.nonZeros()) {
+                break;
+            } else {
+                n_accessed_states = y.nonZeros();
+            }
+
+            x = y;
+        }
+
+        y.pruned();
+
+        StatesSet trimstates;
+        for (auto s = 0l; s < y.outerSize(); ++s) {
+            for (ColIteratorConst e(y, s); e; ++e) {
+                if (accpart.find(e.row()) != accpart.end()) {
+                    trimstates.emplace(e.row());
+                }
+            }
+        }
+
+        return trimstates;
+    }
 
     /*! \brief Returns DES which is the Trim part of this
      *
@@ -276,7 +376,101 @@ public:
      *
      * @param aDevCacheEnabled Enables cache device graph on returned DES
      */
-    void Trim();
+    void Trim()
+    {
+        auto trimstates = this->TrimStates();
+
+        if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
+            return;
+        }
+
+        // States map: old state pos -> new state pos
+        std::vector<StorageIndexSigned> statesmap(this->states_number_, -1);
+
+        // Copy graph and resize it
+        auto const old_graph = graph_;
+        this->states_number_ = trimstates.size();
+        graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
+                      static_cast<StorageIndexSigned>(this->states_number_));
+        bit_graph_.resize(
+          static_cast<StorageIndexSigned>(this->states_number_),
+          static_cast<StorageIndexSigned>(this->states_number_));
+
+        if (this->states_events_.size() > 0) {
+            this->states_events_.erase(this->states_events_.begin() +
+                                         this->states_number_,
+                                       this->states_events_.end());
+            this->inv_states_events_.erase(this->inv_states_events_.begin() +
+                                             this->states_number_,
+                                           this->inv_states_events_.end());
+        }
+
+        this->events_.reset();
+
+        // Calculate the sparsity pattern
+        auto sparcitypattern = this->events_.count() * this->states_number_;
+
+        // Fill statesmap
+        {
+            auto d = 0ul;
+            for (StorageIndex s : trimstates) {
+                statesmap[s] = d;
+                ++d;
+            }
+        }
+
+        std::vector<Triplet> triplet;
+        std::vector<BitTriplet> bittriplet;
+
+        triplet.reserve(sparcitypattern);
+        bittriplet.reserve(sparcitypattern);
+
+        // Build new graph_ slice by slice
+        {
+            auto row_id = 0ul;
+            for (StorageIndex s : trimstates) {
+                if (this->states_events_.size() > 0) {
+                    this->states_events_[row_id].reset();
+                    this->inv_states_events_[row_id].reset();
+                }
+                for (RowIteratorGraph e(old_graph, s); e; ++e) {
+                    if (statesmap[e.col()] != -1) {
+                        auto const col_id = statesmap[e.col()];
+
+                        triplet.push_back(Triplet(row_id, col_id, e.value()));
+                        bittriplet.push_back(BitTriplet(col_id, row_id, true));
+                        this->events_ |= e.value();
+                        if (this->states_events_.size() > 0) {
+                            this->states_events_[row_id] |= e.value();
+                            this->inv_states_events_[col_id] |= e.value();
+                        }
+                    }
+                }
+                ++row_id;
+            }
+        }
+
+        // Remove aditional space
+        graph_.setFromTriplets(triplet.begin(), triplet.end());
+        bit_graph_.setFromTriplets(
+          bittriplet.begin(), bittriplet.end(), [](bool const&, bool const&) {
+              return true;
+          });
+
+        graph_.makeCompressed();
+        bit_graph_.makeCompressed();
+
+        // Calculate new marked states
+        auto const old_marked = this->marked_states_;
+        this->marked_states_.clear();
+        for (StorageIndex s : old_marked) {
+            if (statesmap[s] != -1) {
+                this->marked_states_.emplace(statesmap[s]);
+            }
+        }
+
+        return;
+    }
 
     /*! \brief Insert events
      *
@@ -286,46 +480,88 @@ public:
      *
      * @params aEvents Set containing all the new events of the current system
      */
-    void InsertEvents(EventsSet<NEvents> const& aEvents);
+    void InsertEvents(EventsSet const& aEvents)
+    {
+        this->events_ = EventsSet(aEvents);
+    }
 
     /*! \brief Returns true if DES transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsTrans(StorageIndex const& aQ,
-                       ScalarType const& aEvent) const override;
+    inline bool ContainsTrans(StorageIndex const& aQ,
+                              ScalarType const& aEvent) const override
+    {
+        return this->states_events_[aQ].test(aEvent);
+    }
 
     /*! \brief Returns DES transition: q_to = f(q, e)
      *
      * @param aQ State
      * @param aEvent Event
      */
-    StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) const override;
+    inline StorageIndexSigned Trans(StorageIndex const& aQ,
+                                    ScalarType const& aEvent) const override
+    {
+        using RowIterator = Eigen::InnerIterator<
+          DESystem<NEvents, StorageIndex>::GraphHostData const>;
+
+        if (!this->states_events_[aQ].test(aEvent)) {
+            return -1;
+        }
+
+        for (RowIterator qiter(graph_, aQ); qiter; ++qiter) {
+            if (qiter.value().test(aEvent)) {
+                return qiter.col();
+            }
+        }
+
+        // It will never reach here, but the warning is bothering me
+        return -1;
+    }
 
     /*! \brief Returns true if DES inverse transition exists
      *
      * @param aQfrom State
      * @param aEvent Event
      */
-    bool ContainsInvTrans(StorageIndex const& aQ,
-                          ScalarType const& aEvent) const override;
+    inline bool ContainsInvTrans(StorageIndex const& aQ,
+                                 ScalarType const& aEvent) const override
+    {
+        return this->inv_states_events_[aQ].test(aEvent);
+    }
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
      *
      * @param aQfrom State
      * @param aEvent Event
      */
-    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
-                                       ScalarType const& aEvent) const override;
+    inline StatesArray<StorageIndex> InvTrans(
+      StorageIndex const& aQ,
+      ScalarType const& aEvent) const override
+    {
+        StatesArray<StorageIndex> inv_trans;
+
+        if (!this->inv_states_events_[aQ].test(aEvent)) {
+            return inv_trans;
+        }
+
+        for (RowIterator qiter(*inv_graph_, aQ); qiter; ++qiter) {
+            if (qiter.value().test(aEvent)) {
+                inv_trans.push_back(qiter.col());
+            }
+        }
+
+        // It will never reach here, but the warning is bothering me
+        return inv_trans;
+    }
 
     /*! \brief Returns EventsSet relative to state q
      *
      * @param aQ A state on the sys
      */
-    inline EventsSet<NEvents> GetStateEvents(
-      StorageIndex const& aQ) const override
+    inline EventsSet GetStateEvents(StorageIndex const& aQ) const override
     {
         return this->states_events_[aQ];
     }
@@ -334,8 +570,7 @@ public:
      *
      * @param aQ A state on the sys
      */
-    inline EventsSet<NEvents> GetInvStateEvents(
-      StorageIndex const& aQ) const override
+    inline EventsSet GetInvStateEvents(StorageIndex const& aQ) const override
     {
         return this->inv_states_events_[aQ];
     }
@@ -348,23 +583,149 @@ public:
      */
     inline void AllocateInvertedGraph() const override
     {
-        inv_graph_ = new GraphHostData();
-        *inv_graph_ = graph_.transpose();
+        inv_graph_ = std::make_shared<GraphHostData>(graph_.transpose());
     }
 
     /*! \brief Free inverted graph
      *
      * It is const, since it changes only a mutable member
      */
-    inline void ClearInvertedGraph() const override
-    {
-        if (inv_graph_) {
-            delete inv_graph_;
-            inv_graph_ = nullptr;
-        }
-    }
+    inline void ClearInvertedGraph() const override { inv_graph_ = nullptr; }
 
 protected:
+    /*! \brief Method for caching the graph
+     *
+     * Put graph transposed data on the device memory.
+     */
+    void CacheGraph_() { is_cache_outdated_ = false; }
+
+    /*! \brief Method for updating the graph
+     *
+     * Refresh the graph data on device memory.
+     */
+    void UpdateGraphCache_() { is_cache_outdated_ = false; }
+
+    /*! \brief Setup BFS and return accessed states array
+     *
+     * Executes a breadth first search on the graph starting from N nodes
+     * in aInitialNodes. The algorithm is based on SpGEMM.
+     *
+     * @param aInitialNodes Set of nodes where the searches will start
+     * @param aBfsVisit Function to execute on every accessed state: it can be
+     * null
+     */
+    template<class StatesType>
+    StatesSet* Bfs_(StatesType const& aInitialNodes,
+                    std::function<void(StorageIndex const&,
+                                       StorageIndex const&)> const& aBfsVisit)
+    {
+        /*
+         * BFS on a Linear Algebra approach:
+         *     Y = G^T * X
+         */
+        // There is no need of search if a marked state is coaccessible
+        StatesVector host_x{
+            static_cast<StorageIndexSigned>(this->states_number_),
+            static_cast<StorageIndexSigned>(aInitialNodes.size())
+        };
+
+        // GPUs does not allow dynamic memory allocation. So, we have
+        // to set X on host first.
+        std::vector<StorageIndex> states_map;
+        for (auto state : aInitialNodes) {
+            host_x.coeffRef(state, states_map.size()) = true;
+            // Maping each search from each initial node to their correspondent
+            // vector on the matrix
+            states_map.push_back(state);
+        }
+
+        return BfsCalc_(host_x, aBfsVisit, &states_map);
+    }
+
+    /*! \brief Overload Bfs_ for the special case of a single initial node
+     */
+    StatesSet* Bfs_(StorageIndex const& aInitialNode,
+                    std::function<void(StorageIndex const&,
+                                       StorageIndex const&)> const& aBfsVisit)
+    {
+        /*
+         * BFS on a Linear Algebra approach:
+         *     Y = G^T * X
+         */
+        StatesVector host_x{
+            static_cast<StorageIndexSigned>(this->states_number_), 1
+        };
+
+        // GPUs does not allow dynamic memory allocation. So, we have
+        // to set X on host first.
+        host_x.coeffRef(aInitialNode, 0) = true;
+
+        return BfsCalc_(host_x, aBfsVisit, nullptr);
+    }
+
+    /*! \brief Return a pointer to accessed states from the initial state
+     *
+     * Executes a breadth first search on the graph starting from
+     * init_state_.
+     */
+    StatesSet* Bfs_() { return Bfs_(this->init_state_, nullptr); }
+
+    /*! \brief Calculates Bfs and returns accessed states array
+     *
+     * Executes a breadth first search on the graph starting from one single
+     * node. The algorithm is based on SpGEMM.
+     *
+     * @param aInitialNode Where the search will start
+     * @param aBfsVisit Function to execute on every accessed state: it can be
+     * null
+     * @param aStatesMap Map each vector used to implement in a bfs when
+     * multiple ones are execute togheter: it can be null
+     */
+    StatesSet* BfsCalc_(
+      StatesVector& aHostX,
+      std::function<void(StorageIndex const&, StorageIndex const&)> const&
+        aBfsVisit,
+      std::vector<StorageIndex> const* const aStatesMap)
+    {
+        auto n_initial_nodes = aHostX.cols();
+
+        // Executes BFS
+        StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
+                        static_cast<StorageIndexSigned>(n_initial_nodes) };
+        auto n_accessed_states = 0l;
+        for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
+            // Using auto bellow results in compile error
+            // on the following for statement
+            y = bit_graph_ * aHostX;
+
+            if (n_accessed_states == y.nonZeros()) {
+                break;
+            } else {
+                n_accessed_states = y.nonZeros();
+            }
+
+            aHostX = y;
+        }
+
+        // Add results to a std::set vector
+        if (aBfsVisit) {
+            for (auto s = 0l; s < y.rows(); ++s) {
+                for (ColIteratorConst e(y, s); e; ++e) {
+                    aBfsVisit((*aStatesMap)[e.col()], e.row());
+                }
+            }
+            return nullptr;
+        }
+
+        auto accessed_states = new StatesSet[n_initial_nodes];
+        for (auto s = 0l; s < y.cols(); ++s) {
+            for (ColIteratorConst e(y, s); e; ++e) {
+                accessed_states[e.col()].emplace(e.row());
+            }
+        }
+        return accessed_states;
+    }
+
 private:
     /* \brief Proxy to a transition (matrix element)
      *
@@ -422,8 +783,9 @@ private:
     /*! \brief Inverted graph
      *
      * Used for searching inverted transitions when necessary
+     * TODO: Make unique
      */
-    GraphHostData mutable* inv_graph_;
+    std::shared_ptr<GraphHostData> mutable inv_graph_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      *
@@ -438,83 +800,12 @@ private:
      * Tracks if cache, dev_graph_, needs to be updated or not.
      */
     bool is_cache_outdated_;
-
-    /*! \brief Method for caching the graph
-     *
-     * Put graph transposed data on the device memory.
-     */
-    void CacheGraph_();
-
-    /*! \brief Method for updating the graph
-     *
-     * Refresh the graph data on device memory.
-     */
-    void UpdateGraphCache_();
-
-    /*! \brief Setup BFS and return accessed states array
-     *
-     * Executes a breadth first search on the graph starting from N nodes
-     * in aInitialNodes. The algorithm is based on SpGEMM.
-     *
-     * @param aInitialNodes Set of nodes where the searches will start
-     * @param aBfsVisit Function to execute on every accessed state: it can be
-     * null
-     */
-    template<class StatesType>
-    StatesSet* Bfs_(StatesType const& aInitialNodes,
-                    std::function<void(StorageIndex const&,
-                                       StorageIndex const&)> const& aBfsVisit);
-
-    /*! \brief Overload Bfs_ for the special case of a single initial node
-     */
-    StatesSet* Bfs_(StorageIndex const& aInitialNode,
-                    std::function<void(StorageIndex const&,
-                                       StorageIndex const&)> const& aBfsVisit);
-
-    /*! \brief Calculates Bfs and returns accessed states array
-     *
-     * Executes a breadth first search on the graph starting from one single
-     * node. The algorithm is based on SpGEMM.
-     *
-     * @param aInitialNode Where the search will start
-     * @param aBfsVisit Function to execute on every accessed state: it can be
-     * null
-     * @param aStatesMap Map each vector used to implement in a bfs when
-     * multiple ones are execute togheter: it can be null
-     */
-    StatesSet* BfsCalc_(
-      StatesVector& aHostX,
-      std::function<void(StorageIndex const&, StorageIndex const&)> const&
-        aBfsVisit,
-      std::vector<StorageIndex> const* const aStatesMap);
-
-    /*! \brief Return a pointer to accessed states from the initial state
-     *
-     * Executes a breadth first search on the graph starting from
-     * init_state_.
-     */
-    StatesSet* Bfs_();
 };
 
-/*! \brief Alias for graph 3-tuple
- *
- * (s_from, s_to, transition_events)
- */
-template<uint8_t NEvents>
-using Triplet = Eigen::Triplet<EventsSet<NEvents>>;
-
-/*! \brief Alias for bit graph 3-tuple
- *
- * (s_from, s_to, true)
- */
-using BitTriplet = Eigen::Triplet<bool>;
 } // namespace cldes
 
 // include transition proxy class
 #include "cldes/TransitionProxy.hpp"
-
-// Include DESystem implementation
-#include "cldes/src/des/DESystemCore.hpp"
 
 // Matrix proxy for sync operation
 #include "cldes/operations/SyncSysProxy.hpp"

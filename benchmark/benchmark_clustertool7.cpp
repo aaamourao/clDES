@@ -133,4 +133,6 @@ main()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
               << supervisor.GetGraph().nonZeros() << std::endl;
+
+    return 0;
 }
