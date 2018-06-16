@@ -23,14 +23,15 @@ set (clDES_VERSION_MAJOR 0)
 set (clDES_VERSION_MINOR 3)
 set (clDES_VERSION_PATCH 0)
 
-# OpenCL and Boost packages are required
+# { OpenCL, Boost, Eigen3, Doxygen } packages are required
 find_package(OpenCL 1.2 REQUIRED)
-find_package(Boost 1.64 REQUIRED)
-find_package(Qt5Core REQUIRED)
+find_package(Boost 1.58 REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(Doxygen
+             REQUIRED dot
+             OPTIONAL_COMPONENTS mscgen dia)
 
 include_directories(${EIGEN3_INCLUDE_DIR})
-get_target_property(Qt5Core_location Qt5::Core LOCATION)
 
 # Vars for configuring outputs dir
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/libclDES)
@@ -61,11 +62,13 @@ configure_file (
 # Add the binary tree to the search path for include files
 # so that we will find clDESConfig.h
 include_directories("${PROJECT_SOURCE_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/libcldes")
+include_directories("${PROJECT_SOURCE_DIR}/cldes")
+include_directories("${PROJECT_SOURCE_DIR}/include")
 
 # Add subdirectories
 add_subdirectory("${PROJECT_SOURCE_DIR}/tests")
 add_subdirectory("${PROJECT_SOURCE_DIR}/benchmark")
+add_subdirectory("${PROJECT_SOURCE_DIR}/doc")
 
 enable_testing()
 
