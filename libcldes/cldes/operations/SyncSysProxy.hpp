@@ -159,10 +159,6 @@ public:
      */
     operator DESystem()
     {
-        if (sys_ptr_) {
-            return *sys_ptr_;
-        }
-
         if (virtual_states_.empty()) {
             SynchronizeEmptyStage2(*this);
         } else {
@@ -239,10 +235,6 @@ public:
     inline bool ContainsTrans(StorageIndex const& aQ,
                               ScalarType const& aEvent) const override
     {
-        if (sys_ptr_) {
-            return sys_ptr_->ContainsTrans(aQ, aEvent);
-        }
-
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -268,10 +260,6 @@ public:
     inline StorageIndexSigned Trans(StorageIndex const& aQ,
                                     ScalarType const& aEvent) const override
     {
-        if (sys_ptr_) {
-            return sys_ptr_->Trans(aQ, aEvent);
-        }
-
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -306,10 +294,6 @@ public:
     inline bool ContainsInvTrans(StorageIndex const& aQ,
                                  ScalarType const& aEvent) const override
     {
-        if (sys_ptr_) {
-            return sys_ptr_->ContainsInvTrans(aQ, aEvent);
-        }
-
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -336,10 +320,6 @@ public:
       StorageIndex const& aQ,
       ScalarType const& aEvent) const override
     {
-        if (sys_ptr_) {
-            sys_ptr_->InvTrans(aQ, aEvent);
-        }
-
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -389,6 +369,11 @@ public:
         return inv_transitions;
     }
 
+    /*! \brief Overload operator -> to access virtua sys
+     *
+     */
+    std::shared_ptr<DESystem> operator->() { return *sys_ptr_; }
+
     /*! \brief Returns EventsSet relative to state q
      *
      * @param aQ A state on the sys
@@ -396,10 +381,6 @@ public:
     inline EventsSet<NEvents> GetStateEvents(
       StorageIndex const& aQ) const override
     {
-        if (sys_ptr_) {
-            return sys_ptr_->GetStateEvents(aQ);
-        }
-
         auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
         auto const state_event_1 = sys1_.GetStateEvents(aQ / n_states_sys0_);
         auto const state_event = (state_event_0 & state_event_1) |
@@ -416,10 +397,6 @@ public:
     inline EventsSet<NEvents> GetInvStateEvents(
       StorageIndex const& aQ) const override
     {
-        if (sys_ptr_) {
-            return sys_ptr_->GetInvStateEvents(aQ);
-        }
-
         auto const state_event_0 = sys0_.GetInvStateEvents(aQ % n_states_sys0_);
         auto const state_event_1 = sys1_.GetInvStateEvents(aQ / n_states_sys0_);
         auto const state_event = (state_event_0 & state_event_1) |
@@ -437,10 +414,6 @@ public:
      */
     inline void AllocateInvertedGraph() const override
     {
-        if (sys_ptr_) {
-            return sys_ptr_->AllocateInvertedGraph();
-        }
-
         sys0_.AllocateInvertedGraph();
         sys1_.AllocateInvertedGraph();
     }
@@ -451,10 +424,6 @@ public:
      */
     inline void ClearInvertedGraph() const override
     {
-        if (sys_ptr_) {
-            return sys_ptr_->ClearInvertedGraph();
-        }
-
         sys0_.ClearInvertedGraph();
         sys1_.ClearInvertedGraph();
     }
@@ -509,7 +478,7 @@ private:
     /*! \brief Virtual states contained in the current system
      *
      */
-    StatesTable mutable virtual_states_;
+    StatesTable virtual_states_;
 
     /*! \brief Events contained only in the left operator of a synchronizing op.
      *
@@ -527,7 +496,7 @@ private:
      * Since it is a lazy system, it needs to be declared mutable for enabling
      * lazy evaluation.
      */
-    std::shared_ptr<DESystem> mutable sys_ptr_;
+    std::shared_ptr<DESystem> sys_ptr_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
