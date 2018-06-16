@@ -199,7 +199,31 @@ public:
 
     /*! \brief DESystem destructor
      */
-    inline ~DESystem() { inv_graph_ = nullptr; }
+    ~DESystem() = default;
+
+    /*! \brief Move constructor
+     *
+     * Enable move semantics
+     */
+    DESystem(DESystem&&) = default;
+
+    /*! \brief Copy constructor
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    DESystem(DESystem const&) = default;
+
+    /*! \brief Operator =
+     *
+     * Uses move semantics
+     */
+    DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
+
+    /*! \brief Operator = to const type
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
 
     /*! \brief Clone method for polymorphic copy
      *
@@ -210,6 +234,11 @@ public:
           std::make_shared<DESystem>(*this);
         return this_ptr;
     }
+
+    /*! \brief Is it real?
+     *
+     */
+    inline bool IsVirtual() const override { return false; }
 
     /*! \brief Graph getter
      *
@@ -246,7 +275,7 @@ public:
      * which are accessible from the initial state.
      * TODO: Make it const
      */
-    StatesSet AccessiblePart()
+    StatesSet AccessiblePart() const
     {
         // Executes a BFS on graph_
         auto paccessible_states = Bfs_();
@@ -262,7 +291,7 @@ public:
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart()
+    StatesSet CoaccessiblePart() const
     {
         auto const invgraph = bit_graph_.transpose();
 
@@ -311,7 +340,7 @@ public:
      * Gets the intersection between the accessible part and the coaccessible
      * part.
      */
-    StatesSet TrimStates()
+    StatesSet TrimStates() const
     {
         auto accpartstl = AccessiblePart();
         spp::sparse_hash_set<StorageIndex> accpart;
@@ -615,9 +644,10 @@ protected:
      * null
      */
     template<class StatesType>
-    StatesSet* Bfs_(StatesType const& aInitialNodes,
-                    std::function<void(StorageIndex const&,
-                                       StorageIndex const&)> const& aBfsVisit)
+    StatesSet* Bfs_(
+      StatesType const& aInitialNodes,
+      std::function<void(StorageIndex const&, StorageIndex const&)> const&
+        aBfsVisit) const
     {
         /*
          * BFS on a Linear Algebra approach:
@@ -644,9 +674,10 @@ protected:
 
     /*! \brief Overload Bfs_ for the special case of a single initial node
      */
-    StatesSet* Bfs_(StorageIndex const& aInitialNode,
-                    std::function<void(StorageIndex const&,
-                                       StorageIndex const&)> const& aBfsVisit)
+    StatesSet* Bfs_(
+      StorageIndex const& aInitialNode,
+      std::function<void(StorageIndex const&, StorageIndex const&)> const&
+        aBfsVisit) const
     {
         /*
          * BFS on a Linear Algebra approach:
@@ -668,7 +699,7 @@ protected:
      * Executes a breadth first search on the graph starting from
      * init_state_.
      */
-    StatesSet* Bfs_() { return Bfs_(this->init_state_, nullptr); }
+    StatesSet* Bfs_() const { return Bfs_(this->init_state_, nullptr); }
 
     /*! \brief Calculates Bfs and returns accessed states array
      *
@@ -685,7 +716,7 @@ protected:
       StatesVector& aHostX,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit,
-      std::vector<StorageIndex> const* const aStatesMap)
+      std::vector<StorageIndex> const* const aStatesMap) const
     {
         auto n_initial_nodes = aHostX.cols();
 

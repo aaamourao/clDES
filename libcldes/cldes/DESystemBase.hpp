@@ -100,25 +100,25 @@ public:
      *
      * Enable move semantics
      */
-    // DESystemBase(DESystemBase&&) = default;
+    DESystemBase(DESystemBase&&) = default;
 
-    // /*! \brief Copy constructor
-    //  *
-    //  * Needs to define this, since move semantics is enabled
-    //  */
-    // DESystemBase(DESystemBase const&) = default;
+    /*! \brief Copy constructor
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    DESystemBase(DESystemBase const&) = default;
 
-    // /*! \brief Operator =
-    //  *
-    //  * Uses move semantics
-    //  */
-    // DESystemBase& operator=(DESystemBase&&) = default;
+    /*! \brief Operator =
+     *
+     * Uses move semantics
+     */
+    DESystemBase& operator=(DESystemBase&&) = default;
 
-    // /*! \brief Operator = to const type
-    //  *
-    //  * Needs to define this, since move semantics is enabled
-    //  */
-    // DESystemBase& operator=(DESystemBase const&) = default;
+    /*! \brief Operator = to const type
+     *
+     * Needs to define this, since move semantics is enabled
+     */
+    DESystemBase& operator=(DESystemBase const&) = default;
 
     /*! \brief Returns number of states of the system
      *
@@ -213,6 +213,12 @@ public:
     {
         inv_states_events_[aQ] = aEvent;
     }
+
+    /*! \brief Is it real?
+     *
+     */
+    virtual bool IsVirtual() const = 0;
+
     /*! \brief Clone method to enable poliphormism
      *
      */

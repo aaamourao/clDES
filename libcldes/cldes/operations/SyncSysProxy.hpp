@@ -87,6 +87,11 @@ public:
     using TrVector =
       std::vector<std::pair<StorageIndex, InvArgTrans<StorageIndex>*>>;
 
+    /*! \brief Alias to the the related DESystem template
+     *
+     */
+    using DESystem = DESystem<NEvents, StorageIndex>;
+
     /*! \brief SyncSysProxy unique constructor
      *
      * Feed const data-members.
@@ -101,6 +106,7 @@ public:
       , sys0_{ aSys0 }
       , sys1_{ aSys1 }
     {
+        sys_ptr_ = nullptr;
         n_states_sys0_ = aSys0.GetStatesNumber();
 
         auto const in_both = aSys0.GetEvents() & aSys1.GetEvents();
@@ -127,7 +133,7 @@ public:
      *
      * Enable move semantics
      */
-    // SyncSysProxy(SyncSysProxy&&) = default;
+    SyncSysProxy(SyncSysProxy&&) = default;
 
     /*! \brief Copy constructor
      *
@@ -151,8 +157,12 @@ public:
     /*! \brief Overload conversion to DESystem
      *
      */
-    operator DESystem<NEvents, StorageIndex>()
+    operator DESystem()
     {
+        if (sys_ptr_) {
+            return *sys_ptr_;
+        }
+
         if (virtual_states_.empty()) {
             SynchronizeEmptyStage2(*this);
         } else {
@@ -160,21 +170,23 @@ public:
             SynchronizeStage2(*this);
         }
 
-        DESystem<NEvents, StorageIndex> sys{};
-        sys.states_number_ = this->states_number_;
-        sys.init_state_ = this->init_state_;
-        sys.marked_states_ = this->marked_states_;
-        sys.states_events_ = this->states_events_;
-        sys.inv_states_events_ = this->inv_states_events_;
-        sys.events_ = this->events_;
+        // Allocate memory for the real sys
+        sys_ptr_ = std::make_shared<DESystem>(DESystem{});
+
+        sys_ptr_->states_number_ = this->states_number_;
+        sys_ptr_->init_state_ = this->init_state_;
+        sys_ptr_->marked_states_ = this->marked_states_;
+        sys_ptr_->states_events_ = this->states_events_;
+        sys_ptr_->inv_states_events_ = this->inv_states_events_;
+        sys_ptr_->events_ = this->events_;
 
         // Resize adj matrices
-        sys.graph_.resize(this->states_number_, this->states_number_);
-        sys.bit_graph_.resize(this->states_number_, this->states_number_);
+        sys_ptr_->graph_.resize(this->states_number_, this->states_number_);
+        sys_ptr_->bit_graph_.resize(this->states_number_, this->states_number_);
 
         // Move triplets to graph storage
-        sys.graph_.setFromTriplets(triplet_.begin(), triplet_.end());
-        sys.bit_graph_.setFromTriplets(
+        sys_ptr_->graph_.setFromTriplets(triplet_.begin(), triplet_.end());
+        sys_ptr_->bit_graph_.setFromTriplets(
           bittriplet_.begin(), bittriplet_.end(), [](bool const&, bool const&) {
               return true;
           });
@@ -182,10 +194,31 @@ public:
         triplet_.clear();
         bittriplet_.clear();
 
-        sys.graph_.makeCompressed();
-        sys.bit_graph_.makeCompressed();
+        sys_ptr_->graph_.makeCompressed();
+        sys_ptr_->bit_graph_.makeCompressed();
 
-        return sys;
+        return *sys_ptr_;
+    }
+
+    /*! \brief Convert to DESystem from const proxy
+     *
+     * Expensive, implies a copy. Avoid it.
+     */
+    operator DESystem() const
+    {
+        auto cp = *this;
+        return DESystem(cp);
+    }
+
+    /*! \brief Is it real?
+     *
+     */
+    inline bool IsVirtual() const override
+    {
+        if (sys_ptr_) {
+            return false;
+        }
+        return true;
     }
 
     /*! \brief Clone method for polymorphic copy
@@ -206,6 +239,10 @@ public:
     inline bool ContainsTrans(StorageIndex const& aQ,
                               ScalarType const& aEvent) const override
     {
+        if (sys_ptr_) {
+            return sys_ptr_->ContainsTrans(aQ, aEvent);
+        }
+
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -231,6 +268,10 @@ public:
     inline StorageIndexSigned Trans(StorageIndex const& aQ,
                                     ScalarType const& aEvent) const override
     {
+        if (sys_ptr_) {
+            return sys_ptr_->Trans(aQ, aEvent);
+        }
+
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -265,6 +306,10 @@ public:
     inline bool ContainsInvTrans(StorageIndex const& aQ,
                                  ScalarType const& aEvent) const override
     {
+        if (sys_ptr_) {
+            return sys_ptr_->ContainsInvTrans(aQ, aEvent);
+        }
+
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -291,6 +336,10 @@ public:
       StorageIndex const& aQ,
       ScalarType const& aEvent) const override
     {
+        if (sys_ptr_) {
+            sys_ptr_->InvTrans(aQ, aEvent);
+        }
+
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -347,12 +396,12 @@ public:
     inline EventsSet<NEvents> GetStateEvents(
       StorageIndex const& aQ) const override
     {
-        // q = (qx, qy)
-        auto const qx = aQ % n_states_sys0_;
-        auto const qy = aQ / n_states_sys0_;
+        if (sys_ptr_) {
+            return sys_ptr_->GetStateEvents(aQ);
+        }
 
-        auto const state_event_0 = sys0_.GetStateEvents(qx);
-        auto const state_event_1 = sys1_.GetStateEvents(qy);
+        auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
+        auto const state_event_1 = sys1_.GetStateEvents(aQ / n_states_sys0_);
         auto const state_event = (state_event_0 & state_event_1) |
                                  (state_event_0 & only_in_0_) |
                                  (state_event_1 & only_in_1_);
@@ -367,12 +416,12 @@ public:
     inline EventsSet<NEvents> GetInvStateEvents(
       StorageIndex const& aQ) const override
     {
-        // q = (qx, qy)
-        auto const qx = aQ % n_states_sys0_;
-        auto const qy = aQ / n_states_sys0_;
+        if (sys_ptr_) {
+            return sys_ptr_->GetInvStateEvents(aQ);
+        }
 
-        auto const state_event_0 = sys0_.GetInvStateEvents(qx);
-        auto const state_event_1 = sys1_.GetInvStateEvents(qy);
+        auto const state_event_0 = sys0_.GetInvStateEvents(aQ % n_states_sys0_);
+        auto const state_event_1 = sys1_.GetInvStateEvents(aQ / n_states_sys0_);
         auto const state_event = (state_event_0 & state_event_1) |
                                  (state_event_0 & only_in_0_) |
                                  (state_event_1 & only_in_1_);
@@ -388,6 +437,10 @@ public:
      */
     inline void AllocateInvertedGraph() const override
     {
+        if (sys_ptr_) {
+            return sys_ptr_->AllocateInvertedGraph();
+        }
+
         sys0_.AllocateInvertedGraph();
         sys1_.AllocateInvertedGraph();
     }
@@ -398,6 +451,10 @@ public:
      */
     inline void ClearInvertedGraph() const override
     {
+        if (sys_ptr_) {
+            return sys_ptr_->ClearInvertedGraph();
+        }
+
         sys0_.ClearInvertedGraph();
         sys1_.ClearInvertedGraph();
     }
@@ -421,10 +478,9 @@ protected:
      * Friend function
      * Monolithic supervisor synthesis
      */
-    friend DESystem<NEvents, StorageIndex> SupervisorSynth<>(
-      DESystemBase const& aP,
-      DESystemBase const& aE,
-      EventsTableHost const& aNonContr);
+    friend DESystem SupervisorSynth<>(DESystemBase const& aP,
+                                      DESystemBase const& aE,
+                                      EventsTableHost const& aNonContr);
 
     /*! \brief Disabled default constructor
      *
@@ -453,7 +509,7 @@ private:
     /*! \brief Virtual states contained in the current system
      *
      */
-    StatesTable virtual_states_;
+    StatesTable mutable virtual_states_;
 
     /*! \brief Events contained only in the left operator of a synchronizing op.
      *
@@ -465,6 +521,13 @@ private:
      *
      */
     EventsSet<NEvents> only_in_1_;
+
+    /*! \brief Pointer to real systems, if exists
+     *
+     * Since it is a lazy system, it needs to be declared mutable for enabling
+     * lazy evaluation.
+     */
+    std::shared_ptr<DESystem> mutable sys_ptr_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
