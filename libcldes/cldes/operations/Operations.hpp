@@ -96,7 +96,7 @@ Synchronize(DESystemBase<NEvents, StorageIndex> const& aSys0,
     return sys;
 }
 
- /*! \brief Lazy evaluation of the parallel composition between two systems
+/*! \brief Lazy evaluation of the parallel composition between two systems
  * \details The composed states are sorted by the right operand indexes:
  * e.g. indexes(sys0.size{3} || sys.size{2}) =
  * {0 = (0, 0), 1 = (1, 0), 2 = (2, 0), 3 = (0, 1), 4 = (1, 1), 5 = (2, 1)}
@@ -254,11 +254,11 @@ SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
 }
 
 /*! \brief Remove bad states recursively
- * \details Remove a state and all the states that become a bad state when the previous
- * one is removed.
+ * \details Remove a state and all the states that become a bad state when the
+ * previous one is removed.
  *
- * @param[out] aVirtualSys reference to the virtual system which will have a state
- * removed
+ * @param[out] aVirtualSys reference to the virtual system which will have a
+ * state removed
  * @param aC A hash table containing the states currently added to the
  * virtual system.
  * @param aQ The state to be removed.
@@ -419,8 +419,90 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
     return sys;
 }
 
+/*! \brief Polymorphic shared ptr to base
+ */
+template<uint8_t NEvents, typename StorageIndex>
+using Node = std::shared_ptr<DESystemBase<NEvents, StorageIndex>>;
+
+/*! \brief Vector of polymorphic smart pointers
+ */
+template<uint8_t NEvents, typename StorageIndex>
+using RefNodes = std::vector<Node<NEvents, StorageIndex>>;
+
+/*! \brief Binary tree root and reference to nodes
+ */
+template<uint8_t NEvents, typename StorageIndex>
+using BinExprTree =
+  std::pair<Node<NEvents, StorageIndex>, RefNodes<NEvents, StorageIndex>>;
+
+/*! \brief Generate a expression tree of synchronize operations
+ * \details Build a binary expression tree of parallel compositions
+ * It is not necessary to keep a traditional vector representing
+ * a binary tree, since each object keep track of its sons.
+ * But we still need to keep track of them, since the SyncSysProxy uses
+ * references, not copies. The tree is balanced like the following example:
+ * e.g. to a vector of plants of size 5:
+ *         P
+ *        /\
+ *       || p4
+ *      / \
+ *     /   \
+ *    /     \
+ *   ||     ||
+ *  /  \    / \
+ * p0  p1  p2 p3
+ *
+ * \param[in] aSystems Vector of systems to be mutually synchronized.
+ * \return Binary tree pair: root and references
+ */
+template<uint8_t NEvents, typename StorageIndex>
+BinExprTree<NEvents, StorageIndex>
+GenBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems)
+{
+    using SyncSysProxy = SyncSysProxy<NEvents, StorageIndex>;
+    using DESystemBase = DESystemBase<NEvents, StorageIndex>;
+    using DESystem = DESystem<NEvents, StorageIndex>;
+
+    std::vector<std::shared_ptr<DESystemBase>> sys;
+    std::vector<std::shared_ptr<DESystemBase>> nodes_ref;
+
+    for (auto s : aSystems) { // initialize tree
+        auto node = std::make_shared<DESystem>(s);
+        sys.push_back(node);
+        nodes_ref.push_back(node);
+    }
+    while (sys.size() != 1) {
+        auto cp_sys = std::move(sys);
+        if (cp_sys.size() % 2 != 0) {
+            std::shared_ptr<DESystemBase> node =
+              cp_sys.back(); // node is a shared ptr
+            cp_sys.pop_back();
+            sys.push_back(node);
+        }
+        size_t processed_nodes = 0ul;
+        while (!cp_sys.empty()) { // So it has even number of items
+            std::shared_ptr<DESystemBase> lhs = cp_sys.back();
+            cp_sys.pop_back();
+            std::shared_ptr<DESystemBase> rhs = cp_sys.back();
+            cp_sys.pop_back();
+            std::shared_ptr<DESystemBase> node =
+              std::make_shared<SyncSysProxy>(SyncSysProxy{ *lhs, *rhs });
+            nodes_ref.push_back(node);
+            sys.push_back(node);
+            processed_nodes += 2;
+        }
+    }
+    return std::make_pair(sys[0], nodes_ref);
+}
+
 /*! \brief Computes the monolithic supervisor of plants and specs
- * \warning Assumes that vectors has length >= 1
+ * \details Build a binary expression tree of synchronizations and execute
+ * the supervisor synthesis with the second level of the tree.
+ * The root of the tree is the supervisor.
+ * \warning Assumes that vectors has length >= 2
+ * \note It balance the trees with a naive algorithm. The most
+ * effiecient this structure is, the most scattered the events are
+ * on the leafs: Not only the balance matters here.
  *
  * @param aPlants Vector containing plants systems const references
  * @param aSpecs Vector containing specs systems const references
@@ -433,36 +515,13 @@ SupervisorSynth(DESVector<NEvents, StorageIndex> const& aPlants,
                 DESVector<NEvents, StorageIndex> const& aSpecs,
                 EventsTableHost const& aNonContr)
 {
-    using SyncSysProxy = SyncSysProxy<NEvents, StorageIndex>;
-    using DESystemBase = DESystemBase<NEvents, StorageIndex>;
-    using DESystem = DESystem<NEvents, StorageIndex>;
+    using BinExprTree = BinExprTree<NEvents, StorageIndex>;
 
-    std::shared_ptr<DESystemBase const> plant[aPlants.size()];
-    plant[0] = std::make_shared<DESystem const>(aPlants[0]);
-
-    if (aPlants.size() > 1) {
-        for (size_t k = 1; k < aPlants.size(); ++k) {
-            std::shared_ptr<DESystemBase const> sync =
-              std::make_shared<SyncSysProxy>(
-                SyncSysProxy{ *(plant[k - 1]), aPlants[k] });
-            plant[k] = sync;
-        }
-    }
-
-    std::shared_ptr<DESystemBase const> spec[aPlants.size()];
-    spec[0] = std::make_shared<DESystem>(aSpecs[0]);
-
-    if (aSpecs.size() > 1) {
-        for (size_t k = 1; k < aSpecs.size(); ++k) {
-            std::shared_ptr<DESystemBase const> sync =
-              std::make_shared<SyncSysProxy>(
-                SyncSysProxy{ *(spec[k - 1]), aSpecs[k] });
-            spec[k] = sync;
-        }
-    }
+    BinExprTree plant = GenBinExprTree(aPlants);
+    BinExprTree spec = GenBinExprTree(aSpecs);
 
     auto const supervisor = SupervisorSynth<NEvents, StorageIndex>(
-      *(plant[aPlants.size() - 1]), *(spec[aSpecs.size() - 1]), aNonContr);
+      *(plant.first), *(spec.first), aNonContr);
 
     return supervisor;
 }
