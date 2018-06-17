@@ -24,10 +24,19 @@
  Universidade Federal de Minas Gerais
 
  File: cldes/DESystem.hpp
- Description: DESystem template class declaration and definition . DESystem is a
+ description: DESystem template class declaration and definition . DESystem is a
  graph, which is modeled as a Sparce Adjacency Matrix.
  =========================================================================
 */
+/*!
+ * \file cldes/DESystem.hpp
+ *
+ * \author Adriano Mourao \@madc0ww
+ * \date 2018-06-16
+ *
+ * DESystem template class declaration and definition . DESystem is a
+ * graph, which is modeled as a Sparce Adjacency Matrix.
+ */
 
 #ifndef DESYSTEM_HPP
 #define DESYSTEM_HPP
@@ -40,103 +49,128 @@
  */
 namespace cldes {
 
-/*! \brief Discrete-Events System on host memory
+/*! \class DESystem
+ *  \brief A discrete-events system on host memory
+ *  \details DESystem implements a discrete-event system as a graph stored on
+ *  a sparse adjacency matrix.
  *
- * Implement a DES on the host memory and their respective operations for CPUs.
+ *  Single systems operations are available as member functions:
  *
- * @param NEvents Number of events
- * @param StorageIndex Unsigned type use for indexing the ajacency matrix
+ *  |    Operation         |       Method           |
+ *  |:--------------------:|:----------------------:|
+ *  | Accessible part      | AccessiblePart()       |
+ *  | Coaccessible part    | CoaccessiblePart()     |
+ *  | Get trim states      | TrimStates()           |
+ *  | Trim                 | Trim()                 |
+ *  | Transition           | Trans()                |
+ *  | InvTransition        | InvTrans()             |
+ *
+ *  Where S is the number of states, E the number of events and T the number
+ *  of transitions (considering a events OR expression a single transition)
+ *
+ * \tparam NEvents Number of events: max 255
+ * \tparam StorageIndex Unsigned type used for indexing the ajacency matrix
  */
 template<uint8_t NEvents, typename StorageIndex>
 class DESystem : public DESystemBase<NEvents, StorageIndex>
 {
 public:
     /*! \brief Base alias
-     *
+     * \details Alias to base class with implicit template params
      */
     using DESystemBase = DESystemBase<NEvents, StorageIndex>;
 
     /*! \brief StorageIndex signed type
-     *
-     * Eigen uses signed indexes ( ?????? )
+     * \details Eigen uses signed indexes
      */
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
 
     /*! \brief EventsSet
+     *  \details Set containing 8bit intergets which represent events.
      */
     using EventsSet = EventsSet<NEvents>;
 
-    /*! \brief Adjacency matrix of bitarrays implementing a graph
-     *
-     * The graph represents the DES automata:
+    /*! \brief Adjacency matrix of bitarrays implementing a directed graph
+     * \details The graph represents the DES automata:
      * Non zero element: contains at least one transition
-     * Each non 0 bit of each element: event that lead to the next stage
-     *
-     * row index: from state
-     * col index: to state
+     * Each non 0 bit of each element: event that lead to the next
+     * stage
+     * * row index: from state
+     * * col index: to state
      */
     using GraphHostData = Eigen::SparseMatrix<EventsSet, Eigen::RowMajor>;
 
     /*! \brief Set of states type
+     *  \details Set containg unsigned interget types which represent states.
      */
     using StatesSet = typename DESystemBase::StatesSet;
 
     /*! \brief Table of transitions on a STL container
+     *  \details Vector containing bitsets which represent the events that a
+     *  state represented by the vector index contains.
      */
     using StatesEventsTable = typename DESystemBase::StatesEventsTable;
 
-    /*! \brief Adjacency matrix of bit implementing a graph
-     *
-     * Sparse matrix implementing a graph with an adjacency matrix.
+    /*! \brief Bit adjacency matrix implementing a directed graph
+     * \details Sparse matrix implementing a graph with an adjacency matrix.
      * The graph represents a simplified DES automata:
-     * Non zero element: contains at least one transition
-     *
-     * row index: from state
-     * col index: to state
+     * * Non zero element: contains at least one transition
+     * * row index: from state
+     * * col index: to state
      */
     using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::RowMajor>;
 
-    /*! \brief Adjacency  matrix of bit implementing searching nodes
-     *
-     * Structure used for traversing the graph using a linear algebra approach
+    /*! \brief Adjacency matrix of bit implementing searching nodes
+     * \details Structure used for traversing the graph using a linear algebra
+     * approach
      */
     using StatesVector = Eigen::SparseMatrix<bool, Eigen::ColMajor>;
 
     /*! \brief Set of Events implemented as a Hash Table for searching
      * efficiently.
+     *  \details Sparse hash set used to encapsulate events (8bit intergers)
      */
     using EventsTable = spp::sparse_hash_set<uint8_t>;
 
     /*! \brief Vector of states type
+     *  \details Vector of usigned interger type which represent states.
      */
     using StatesTable = typename DESystemBase::StatesTable;
 
     /*! \brief Vector of inverted transitions
-     *
-     * f(s, e) = s_out -> (s_out, (s, e)) is the inverted transition.
+     * \ details f(s, e) = s_out -> this vector stores = (s_out, (s, e))
      */
     using TrVector =
       std::vector<std::pair<StorageIndex, InvArgTrans<StorageIndex>*>>;
 
     /*! \brief Graph const iterator
+     * \details Used to iterate over the bfs result
      */
     using ColIteratorConst = Eigen::InnerIterator<StatesVector const>;
 
     /*! \brief Graph const iterator
+     * \details Used to iterate over the adjacency matrix
      */
     using RowIterator = Eigen::InnerIterator<GraphHostData const>;
 
     /*! \brief Graph iterator
+     * \details Used to iterate over the adjacency matrix
      */
     using RowIteratorGraph = Eigen::InnerIterator<GraphHostData>;
 
     /*! \brief Triplet type
+     * \details 3-tuples (qfrom, qto, event) for filling adjacency matrix
+     * efficiently
      */
     using Triplet = Triplet<NEvents>;
 
-    /*! \brief Default constructor
-     *
-     * Creates an empty system
+    /*! \brief Default default constructor
+     *  \details Creates an empty system:
+     *  * Number of states = 0
+     *  * Initial state = 0
+     *  * Marked states = { }
+     *  * Bit graph = Identity
+     *  * Graph = Empty matrix with 0 rows and 0 columns
      */
     inline DESystem()
     {
@@ -150,15 +184,13 @@ public:
         bit_graph_.setIdentity();
     }
 
-    /*! \brief DESystem constructor with empty matrix
-     *
-     * Overloads DESystem constructor: does not require to create a
-     * eigen sparse matrix by the class user.
+    /*! \brief DESystem constructor
+     * \details Create a system with certain parameters.
      *
      * @param aStatesNumber Number of states of the system
      * @param aInitState System's initial state
      * @param aMarkedStates System's marked states
-     * @aDevCacheEnabled Enable or disable device cache for graph data
+     * @param aDevCacheEnabled Enable or disable device cache for graph data
      */
     inline DESystem(StorageIndex const& aStatesNumber,
                     StorageIndex const& aInitState,
@@ -198,35 +230,32 @@ public:
     }
 
     /*! \brief DESystem destructor
+     *  \details Override base destructor for avoiding memory leaks.
      */
     ~DESystem() = default;
 
     /*! \brief Move constructor
-     *
-     * Enable move semantics
+     *  \details Enable move semantics
      */
     DESystem(DESystem&&) = default;
 
     /*! \brief Copy constructor
-     *
-     * Needs to define this, since move semantics is enabled
+     *  \details Enable copy by reference of a const system.
      */
     DESystem(DESystem const&) = default;
 
     /*! \brief Operator =
-     *
-     * Uses move semantics
+     *  \details Use move semantics with operator = when assigning to rvalues.
      */
     DESystem<NEvents, StorageIndex>& operator=(DESystem&&) = default;
 
     /*! \brief Operator = to const type
-     *
-     * Needs to define this, since move semantics is enabled
+     *  \details Enable copy by reference of const systems with operator =.
      */
     DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
 
     /*! \brief Clone method for polymorphic copy
-     *
+     *  \return Shared pointer to this object
      */
     inline std::shared_ptr<DESystemBase> Clone() const override
     {
@@ -235,31 +264,47 @@ public:
         return this_ptr;
     }
 
-    /*! \brief Is it real?
+    /*! \brief Check if this system is a virtual proxy
      *
+     *  \details Operations between two systems return virtual proxies to
+     *  allow lazy evaluation of large systems while it is not necessary
+     *  to obtain the whole system. While the system is virtual, the
+     *  memory complexity of DESystem is cheaper, and the time complexities
+     *  of its embedded operations are more expensive.
+     *
+     *  \return True: DESystem is always a real object
      */
     inline bool IsVirtual() const override { return false; }
 
     /*! \brief Graph getter
      *
+     *  \return Eigen sparse matrix of bitset representing the sysmte on
+     *  compressed mode.
      */
     GraphHostData GetGraph() const { return graph_; };
 
-    /*! \brief Returns value of the specified transition
+    /*! \brief Returns events that lead a transition between two states
      *
-     * @param aLin Element's line
-     * @param aCol Element's column
+     * @param aQfrom State where the transition departs.
+     * @param aQto State where the transition arrives.
+     * \return A bitset where each set bit index is a event that lead to the
+     * next state.
      */
-    inline EventsSet const operator()(StorageIndex const& aLin,
-                                      StorageIndex const& aCol) const
+    inline EventsSet const operator()(StorageIndex const& aQfrom,
+                                      StorageIndex const& aQto) const
     {
-        return graph_.coeff(aLin, aCol);
+        return graph_.coeff(aQfrom, aQto);
     }
 
-    /*! \brief Returns value of the specified transition
+    /*! \brief Returns reference events that lead a transition between two
+     * states
+     *  \details This operator can be used for getting events from a transition
+     *  between two systems or to assign it. It was implemented to keep track
+     *  when the copy of its system on the device memory is outdated.
      *
-     * @param aLin Element's line
-     * @param aCol Element's column
+     * @param aQfrom State where the transition departs.
+     * @param aQto State where the transition arrives.
+     * \return A reference to the event's transition.
      */
     inline TransitionProxy<NEvents, StorageIndex> operator()(
       StorageIndex const& aQfrom,
@@ -269,11 +314,13 @@ public:
     }
 
     /*! \brief Returns state set containing the accessible part of automa
+     * \details Executes a breadth-first search in bit the graph, which represents the
+     * DES, starting from its initial state. It returns a set containing all nodes
+     * which are accessible from the initial state. This operation is
+     * implemented on a linear algebra approach by a multiplication between
+     * two sparse matrices.
      *
-     * Executes a Breadth First Search in the graph, which represents the DES,
-     * starting from its initial state. It returns a set containing all nodes
-     * which are accessible from the initial state.
-     * TODO: Make it const
+     * \return A set of the accessed states
      */
     StatesSet AccessiblePart() const
     {
@@ -287,9 +334,13 @@ public:
     }
 
     /*! \brief Returns state set containing the coaccessible part of automata
+     * \details Inverts the bit graph by transposing it (does not store it
+     * on the bit_graph_ member). Makes a breadth-first search starting from
+     * the marked states all at once by multiplying it by a sparse matrix with
+     * states_number_ rows and marked_states_.size() columns.
      *
-     * Executes a Breadth First Search in the graph, until it reaches a marked
-     * state.
+     * \return A set containing the accessed states by the bfs (coacessible
+     * states)
      */
     StatesSet CoaccessiblePart() const
     {
@@ -335,10 +386,12 @@ public:
         return coaccessible_states;
     }
 
-    /*! \brief Returns States Set which is the Trim part of the system
+    /*! \brief Get states set which represent the trim states of the current
+     * system
+     * \details Gets the intersection between the accessible part and the
+     * coaccessible part.
      *
-     * Gets the intersection between the accessible part and the coaccessible
-     * part.
+     * \return A set containing the trim states intergers.
      */
     StatesSet TrimStates() const
     {
@@ -398,19 +451,18 @@ public:
     }
 
     /*! \brief Returns DES which is the Trim part of this
+     * \details Cut the non-trim states from the current system.
+     * TODO: Make it lazy. Maybe setting values by 0 and making the graph_
+     * compressed again would be a good solution.
      *
-     * Cut the non-accessible part of current system and then cut the
-     * non-coaccessible part of the last result. The final resultant system
-     * is called a trim system.
-     *
-     * @param aDevCacheEnabled Enables cache device graph on returned DES
+     * \return Reference to this system
      */
-    void Trim()
+    DESystemBase& Trim()
     {
         auto trimstates = this->TrimStates();
 
         if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
-            return;
+            return *this;
         }
 
         // States map: old state pos -> new state pos
@@ -498,26 +550,31 @@ public:
             }
         }
 
-        return;
+        return *this;
     }
 
     /*! \brief Insert events
-     *
-     * Set the member events_ with a set containing all events that are present
-     * on the current system. Take care using this method. It was designed for
+     * \details Set the member events_ with a set containing all events
+     * that are present
+     * on the current system.
+     * \warning Take care using this method. It was designed for
      * testing and debugging.
      *
-     * @params aEvents Set containing all the new events of the current system
+     * @param aEvents Set containing all the new events of the current system
+     * \return void
      */
     void InsertEvents(EventsSet const& aEvents)
     {
         this->events_ = EventsSet(aEvents);
     }
 
-    /*! \brief Returns true if DES transition exists
+    /*! \brief Check if transition exists
+     * \details given a transition f(q, e) = qto, it
+     * checks if qto is different of empty.
      *
      * @param aQ State
      * @param aEvent Event
+     * \return Returns true if DES transition exists, false otherwise
      */
     inline bool ContainsTrans(StorageIndex const& aQ,
                               ScalarType const& aEvent) const override
@@ -525,10 +582,13 @@ public:
         return this->states_events_[aQ].test(aEvent);
     }
 
-    /*! \brief Returns DES transition: q_to = f(q, e)
+    /*! \brief Transition function
+     * \details given a transition f(q, e) = qto, it
+     * calculates if qto is different of empty.
      *
      * @param aQ State
      * @param aEvent Event
+     * \return The state where the transition leads or -1 when it is empty
      */
     inline StorageIndexSigned Trans(StorageIndex const& aQ,
                                     ScalarType const& aEvent) const override
@@ -550,10 +610,14 @@ public:
         return -1;
     }
 
-    /*! \brief Returns true if DES inverse transition exists
+    /*! \brief Check if the current system contains at least one inverse
+     * transition
+     * \warning This method requires to run AllocateInvGraph previously. It
+     * can be very expensive for large systems.
      *
-     * @param aQfrom State
+     * @param aQ State
      * @param aEvent Event
+     * \return True if DES inverse transition exists, false otherwise
      */
     inline bool ContainsInvTrans(StorageIndex const& aQ,
                                  ScalarType const& aEvent) const override
@@ -561,10 +625,15 @@ public:
         return this->inv_states_events_[aQ].test(aEvent);
     }
 
-    /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
+    /*! \brief DES Inverse Transition function
+     * \warning This method requires to run AllocateInvGraph previously. It
+     * can be very expensive for large systems, because it implies in
+     * transposing the adjacency matrix.
      *
-     * @param aQfrom State
+     * @param aQ State
      * @param aEvent Event
+     * \return DES states array containing the inverse transition.
+     * It may be empty, if there is none.
      */
     inline StatesArray<StorageIndex> InvTrans(
       StorageIndex const& aQ,
@@ -586,18 +655,24 @@ public:
         return inv_trans;
     }
 
-    /*! \brief Returns EventsSet relative to state q
+    /*! \brief Get events of all transitions of a specific state
+     * \details Since this is information is stored on a vector on concrete
+     * systems, this operation is really cheap, O(1).
      *
      * @param aQ A state on the sys
+     * \return Returns EventsSet relative to state q
      */
     inline EventsSet GetStateEvents(StorageIndex const& aQ) const override
     {
         return this->states_events_[aQ];
     }
 
-    /*! \brief Returns EventsSet relative to state inv q
+    /*! \brief Get events of all transitions that lead to a specific state
+     * \details Since this is information is stored on a vector on concrete
+     * systems, this operation is really cheap, O(1).
      *
      * @param aQ A state on the sys
+     * \return Returns EventsSet relative to inverse transitions of the state q
      */
     inline EventsSet GetInvStateEvents(StorageIndex const& aQ) const override
     {
@@ -605,10 +680,12 @@ public:
     }
 
     /*! \brief Invert graph
-     *
-     * This is used on some operations... it can be very inneficient for very
-     * large graphs
+     * \details This is used in the monolithic supervisor synthesis. It needs
+     * to be executed before making inverse transitions operations.
      * It is const, since it changes only a mutable member
+     * \warning It can be very inneficient for very large graphs
+     *
+     * \return void
      */
     inline void AllocateInvertedGraph() const override
     {
@@ -616,32 +693,38 @@ public:
     }
 
     /*! \brief Free inverted graph
-     *
      * It is const, since it changes only a mutable member
+     * \warning It is recommended to clear the it make the inverted graph clear
+     * as much as possible when handling large systems.
+     *
+     * \return void
      */
     inline void ClearInvertedGraph() const override { inv_graph_ = nullptr; }
 
 protected:
     /*! \brief Method for caching the graph
+     * \details Copy the graph after transposing it to the device memory.
      *
-     * Put graph transposed data on the device memory.
+     * \return void
      */
     void CacheGraph_() { is_cache_outdated_ = false; }
 
     /*! \brief Method for updating the graph
+     * \details Refresh the existent graph data on device memory.
      *
-     * Refresh the graph data on device memory.
+     * \return void
      */
     void UpdateGraphCache_() { is_cache_outdated_ = false; }
 
     /*! \brief Setup BFS and return accessed states array
-     *
-     * Executes a breadth first search on the graph starting from N nodes
-     * in aInitialNodes. The algorithm is based on SpGEMM.
+     * \details Executes a breadth-first search on the graph starting from N
+     * nodes in aInitialNodes. The algorithm is based on SpGEMM.
      *
      * @param aInitialNodes Set of nodes where the searches will start
      * @param aBfsVisit Function to execute on every accessed state: it can be
      * null
+     * \return Return a set containing the accessed states, or nullptr if none
+     * was accessed or a bfs visit function was defined
      */
     template<class StatesType>
     StatesSet* Bfs_(
@@ -673,40 +756,48 @@ protected:
     }
 
     /*! \brief Overload Bfs_ for the special case of a single initial node
+     * \details Executes a breadth-first search on the graph starting from the
+     * specified node The algorithm is based on SpGEMM.
+     *
+     * @param aInitialNode Node where the search will start
+     * @param aBfsVisit Function to execute on every accessed state: it can be
+     * null
+     * \return Return a set containing the accessed states, or nullptr if none
+     * was accessed or a bfs visit function was defined
      */
     StatesSet* Bfs_(
       StorageIndex const& aInitialNode,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit) const
     {
-        /*
-         * BFS on a Linear Algebra approach:
-         *     Y = G^T * X
-         */
         StatesVector host_x{
             static_cast<StorageIndexSigned>(this->states_number_), 1
         };
 
-        // GPUs does not allow dynamic memory allocation. So, we have
-        // to set X on host first.
+        /*!
+         * GPUs does not allow dynamic memory allocation. So, we have
+         * to set X on host first.
+         */
         host_x.coeffRef(aInitialNode, 0) = true;
 
         return BfsCalc_(host_x, aBfsVisit, nullptr);
     }
 
-    /*! \brief Return a pointer to accessed states from the initial state
+    /*! \brief Overload Bfs_ for the special case of starting from the inital
+     * state
+     * \details Executes a breadth-first search on the graph starting from the
+     * system's initial node The algorithm is based on SpGEMM.
      *
-     * Executes a breadth first search on the graph starting from
-     * init_state_.
+     * \return Return a set containing the accessed states, or nullptr if none
+     * was accessed or a bfs visit function was defined
      */
     StatesSet* Bfs_() const { return Bfs_(this->init_state_, nullptr); }
 
     /*! \brief Calculates Bfs and returns accessed states array
+     * \details Executes a breadth first search on the graph starting from one
+     * single node. The algorithm is based on SpGEMM.
      *
-     * Executes a breadth first search on the graph starting from one single
-     * node. The algorithm is based on SpGEMM.
-     *
-     * @param aInitialNode Where the search will start
+     * @param aHostX Bit vector with initial nodes as nonzeros rows.
      * @param aBfsVisit Function to execute on every accessed state: it can be
      * null
      * @param aStatesMap Map each vector used to implement in a bfs when
@@ -720,13 +811,14 @@ protected:
     {
         auto n_initial_nodes = aHostX.cols();
 
-        // Executes BFS
+        /*!
+         * BFS on a Linear Algebra approach:
+         *     \f$Y = G^T * X\f$
+         */
         StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
                         static_cast<StorageIndexSigned>(n_initial_nodes) };
         auto n_accessed_states = 0l;
         for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
-            // Using auto bellow results in compile error
-            // on the following for statement
             y = bit_graph_ * aHostX;
 
             if (n_accessed_states == y.nonZeros()) {
@@ -738,7 +830,7 @@ protected:
             aHostX = y;
         }
 
-        // Add results to a std::set vector
+        /// Add results to a std::set vector
         if (aBfsVisit) {
             for (auto s = 0l; s < y.rows(); ++s) {
                 for (ColIteratorConst e(y, s); e; ++e) {
@@ -758,13 +850,6 @@ protected:
     }
 
 private:
-    /* \brief Proxy to a transition (matrix element)
-     *
-     * It is used to track when the graph was changed, which is useful when
-     * there is a copy of this object on the device memory (GPU). It works like
-     *
-     * (state_0, state_1) returns events (e.g {a} ; {a | b}....
-     */
     friend class TransitionProxy<NEvents, StorageIndex>;
 
     /*! \brief DESystem operations virtual proxies
@@ -779,29 +864,23 @@ private:
      * * More efficiency when accessing vars than using getters and setters.
      * * Define a different namespace for DES operations.
      */
-    // Sync operation proxy
     friend class op::SyncSysProxy<NEvents, StorageIndex>;
 
-    /*! \brief Graph represented by an adjascency matrix
-     *
-     * A sparse matrix which represents the automata as a graph in an
+    /*! \brief Graph represented by an adjacency matrix of bitsets
+     * \details A sparse matrix which represents the automata as a graph in an
      * adjascency matrix. It is implemented as a CSR scheme.
-     *
-     * Non zero element: transition from <row index> to <col index> when events
-     * represented by the set bit indexes occurs.
-     *
-     * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the condition
+     *  * Non zero element: events bit from <row index> to <col index> that
+     * lead to starting node (row index) to the arriving node (col index).
+     * * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the condition
      * event 0 OR event 2.
      */
     GraphHostData graph_;
 
-    /*! \brief Graph represented by an adjascency matrix
-     *
-     * A sparse bit matrix which each non zero elem represents that a state
+    /*! \brief Graph of bit represented by an adjacency matrix
+     * \details A sparse bit matrix which each non zero elem represents that a state
      * has at least one transition to other state.
      * It is used to calculate the accessible part, coaccessible part and trim
      * operations efficiently.
-     *
      * The matrix is also transposed and added to the identity in order to
      * make the accessible part op more efficient:
      * when calculating trim states, it is always necessary to calculate the
@@ -811,24 +890,24 @@ private:
      */
     BitGraphHostData bit_graph_;
 
-    /*! \brief Inverted graph
-     *
-     * Used for searching inverted transitions when necessary
+    /*! \brief Inverted graph shared pointer
+     * \details Used for searching inverted transitions when necessary.
+     * Keep it free whenever it is possible.
      * TODO: Make unique
      */
     std::shared_ptr<GraphHostData> mutable inv_graph_;
 
     /*! \brief Keeps if caching graph data on device is enabled
-     *
-     * If dev_cache_enabled_ is true, the graph should be cached on the
-     * device memory, so device_graph_ is not nullptr. It can be set at any
+     * \details If dev_cache_enabled_ is true, the graph should be cached on
+     * the device memory, so device_graph_ is not nullptr. It can be set at any
      * time at run time, so it is not a constant.
+     * \warning The OpenCL functions are disabled.
      */
     bool dev_cache_enabled_;
 
     /*! \brief Keeps track if the device graph cache is outdated
-     *
-     * Tracks if cache, dev_graph_, needs to be updated or not.
+     * \details  Tracks if cache needs to be updated or not.
+     * \warning The OpenCL functions are disabled.
      */
     bool is_cache_outdated_;
 };

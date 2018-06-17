@@ -45,22 +45,19 @@ namespace cldes {
 
 namespace op {
 /*! \brief tuple representing a state of a virtual synch (stage 1)
- *
- * (state_id_g0, state_id_g1)
+ * \details (state_id_g0, state_id_g1)
  */
 template<typename StorageIndex>
 using StatesTupleHost = std::pair<StorageIndex, StorageIndex>;
 
 /*! \brief Hash set of virtual states (stage 1)
- *
- * st = state_id_g1 * g0.size() + state_id_g0
+ * \details st = state_id_g1 * g0.size() + state_id_g0
  */
 template<typename StorageIndex>
 using StatesTableHost = spp::sparse_hash_set<StorageIndex>;
 
 /*! \brief Hash map type for maps a virtual state to its new index
- *
- * It is necessary when states are removed.
+ * \details It is necessary when states are removed.
  */
 template<typename StorageIndex>
 using SparseStatesMap = spp::sparse_hash_map<StorageIndex, StorageIndex>;
@@ -74,15 +71,19 @@ using StatesStack = std::stack<StorageIndex>;
  */
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
-/*! \brief Returns a system which represents a parallel composition
- * between two systems.
- *
- * The composed states are sorted by the right operand indexes:
+/*! \brief Calculate the parallel composition between two systems
+ * \details The composed states are sorted by the right operand indexes:
  * e.g. indexes(sys0.size{3} || sys.size{2}) =
  * {0 = (0, 0), 1 = (1, 0), 2 = (2, 0), 3 = (0, 1), 4 = (1, 1), 5 = (2, 1)}
+ * \warning Synchronize() is faster than the other synchronizing functions to
+ * calculate the whole system. However, parallel composition between large
+ * systems can occupy a lot of memory. Prefer lazy operations when this
+ * is a problem
  *
  * @param aSys0 The left operand of the parallel composition.
  * @param aSys1 The right operand of the parallel composition.
+ * \return A concrete system which represents a parallel composition
+ * between two systems
  */
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
@@ -95,16 +96,18 @@ Synchronize(DESystemBase<NEvents, StorageIndex> const& aSys0,
     return sys;
 }
 
-/*! \brief Returns a virtual system which represents a parallel composition
- * between two systems.
+ /*! \brief Lazy evaluation of the parallel composition between two systems
+ * \details The composed states are sorted by the right operand indexes:
+ * e.g. indexes(sys0.size{3} || sys.size{2}) =
+ * {0 = (0, 0), 1 = (1, 0), 2 = (2, 0), 3 = (0, 1), 4 = (1, 1), 5 = (2, 1)}
+ * \warning This funtion returns an object that evaluates the operation
+ * on demand. If you need the whole system at once, use Synchronize or
+ * convert with the result to DESystem using a type cast.
  *
- * The composed states are sorted by the right operand indexes:
- * e.g. virtualsync(sys0.size{3} || sys.size{2}) =
- * {(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)}
- *
- * @param aVirtualSys Reference to the system which will be transformed.
  * @param aSys0 The left operand of the parallel composition.
  * @param aSys1 The right operand of the parallel composition.
+ * \return A virtual system which represents a parallel composition
+ * between two systems.
  */
 template<uint8_t NEvents, typename StorageIndex>
 SyncSysProxy<NEvents, StorageIndex>
@@ -114,17 +117,16 @@ SynchronizeStage1(DESystemBase<NEvents, StorageIndex> const& aSys0,
     return SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 };
 }
 
-/*! \brief Transform a empty virtual system in a real system
- *
- * Calculate transitions and other parameters of a virtual system which
- * represents a virtual parallel composition.
+/*! \brief Final stage of the lazy parallel composition evaluation
+ * \details Transform a virtual proxy in a concrete system. It is implicited
+ * called when virtual proxy to the parallel composition operation that
+ * has no value calculated is converted to a concrete system.
  *
  * TODO: Cache lazy calculated transitions when the user visit transitions and
  * use it on synchronize stage 2
  *
- * @param aVirtualSys Reference to the system which will be transformed.
- * @param aSys0 The left operand of the parallel composition.
- * @param aSys1 The right operand of the parallel composition.
+ * @param[out] aVirtualSys Reference to the system which will be transformed.
+ * \return void
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
@@ -178,9 +180,8 @@ SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
  * states_events_ table, since supervisors are final system and may have a big
  * size
  *
- * @param aVirtualSys Reference to the system which will be transformed.
- * @param aSys0 The left operand of the parallel composition.
- * @param aSys1 The right operand of the parallel composition.
+ * @param[out] aVirtualSys Reference to the system which will be transformed.
+ * \return void
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
@@ -253,11 +254,10 @@ SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
 }
 
 /*! \brief Remove bad states recursively
- *
- * Remove a state and all the states that become a bad state when the previous
+ * \details Remove a state and all the states that become a bad state when the previous
  * one is removed.
  *
- * @param aVirtualSys reference to the virtual system which will have a state
+ * @param[out] aVirtualSys reference to the virtual system which will have a state
  * removed
  * @param aC A hash table containing the states currently added to the
  * virtual system.
@@ -265,6 +265,7 @@ SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
  * @param aNonContrBit Bit array containing the virtual system non controllable
  * events.
  * @param aRmTable A hash table containing all the removed states so far
+ * \return void
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
@@ -310,11 +311,12 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
     return;
 }
 
-/*! \brief Returns the monolithic supervisor of a plant and a pec
+/*! \brief Computes the monolithic supervisor of a plant and a spec
  *
  * @param aP Plant system const reference
  * @param aE Specs system const reference
  * @param aNonContr Hash table containing all non-controllable events indexes.
+ * \return The monolithic supervisorconcrete system
  */
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
@@ -417,14 +419,13 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
     return sys;
 }
 
-/*! \brief Returns the monolithic supervisor of a plant and a pec
+/*! \brief Computes the monolithic supervisor of plants and specs
+ * \warning Assumes that vectors has length >= 1
  *
- * Calculate it in a lazy way.
-// Assumes that vectors have length >= 1
- *
- * @param aP Plant system const reference
- * @param aE Specs system const reference
- * @param aNonContr Hash table containing all non-controllable events indexes.
+ * @param aPlants Vector containing plants systems const references
+ * @param aSpecs Vector containing specs systems const references
+ * @param aNonContr Hash table containing all non-controllable events indexes
+ * \return The monolithic supervisor concrete system
  */
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>

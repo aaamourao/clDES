@@ -27,6 +27,14 @@
  Description: Virtual Proxy for multiple parallel compositions
  =========================================================================
 */
+/*!
+ * \file cldes/operations/SyncSysProxy.hpp
+ *
+ * \author Adriano Mourao \@madc0ww
+ * \date 2018-06-16
+ *
+ * Virtual Proxy for multiple parallel compositions operations.
+ */
 
 #ifndef SYNC_SYS_PROXY_HPP
 #define SYNC_SYS_PROXY_HPP
@@ -59,45 +67,51 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
                 DESystemBase<NEvents, StorageIndex> const& aE,
                 EventsTableHost const& aNonContr);
 
-// Remove bad states recursively
-/*! \brief Proxy to a virtual sync sys
+/*! \class SyncSysProxy
+ * \brief Parallel composition return type
+ * \details Represents a parallel composition. Allows lazy evaluation, but can
+ * be converted to a concrete system any time with a DESystem() cast. It is
+ * implemented as a binary tree of implicit parallel compositions, where the
+ * leafs are concrete systems.
  *
- * @param NEvents Number of events
- * @param StorageIndex Unsigned type for storing the indexes of each state
+ * \tparam NEvents Number of events
+ * \tparam StorageIndex Unsigned type use for indexing the ajacency matrix
  */
 template<uint8_t NEvents, typename StorageIndex>
 class SyncSysProxy : public DESystemBase<NEvents, StorageIndex>
 {
 public:
+    /*! \brief Signed template parameter type for eigen indexes
+     */
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
 
     /*! \brief Base alias
-     *
+     * \details Alias to implicit speciallization of base class.
      */
     using DESystemBase = DESystemBase<NEvents, StorageIndex>;
 
     /*! \brief Vector of states type
+     * \details Vector containing states represented by unsigned indexes.
      */
     using StatesTable = typename DESystemBase::StatesTable;
 
     /*! \brief Vector of inverted transitions
-     *
+     * \details Vector which stores transitions:
      * f(s, e) = s_out -> (s_out, (s, e)) is the inverted transition.
      */
     using TrVector =
       std::vector<std::pair<StorageIndex, InvArgTrans<StorageIndex>*>>;
 
     /*! \brief Alias to the the related DESystem template
-     *
+     * \details alias Alias to implicit speciallization to concrete system.
      */
     using DESystem = DESystem<NEvents, StorageIndex>;
 
     /*! \brief SyncSysProxy unique constructor
+     * Create a binary tree that represents multiple operations.
      *
-     * Feed const data-members.
-     *
-     * @param aSys0Ptr Left operand DESystem reference
-     * @param aSys1Ptr Right operand DESystem reference
+     * @param aSys0 Left operand DESystem reference
+     * @param aSys1 Right operand DESystem reference
      */
     inline SyncSysProxy(DESystemBase const& aSys0, DESystemBase const& aSys1)
       : DESystemBase{ aSys0.GetStatesNumber() * aSys1.GetStatesNumber(),
@@ -125,37 +139,33 @@ public:
     }
 
     /*! \brief DESystem destructor
-     *
+     * \details Override base destructor.
      */
     ~SyncSysProxy() = default;
 
     /*! \brief Move constructor
-     *
-     * Enable move semantics
+     * \details Enable move semantics.
      */
     SyncSysProxy(SyncSysProxy&&) = default;
 
     /*! \brief Copy constructor
-     *
-     * Needs to define this, since move semantics is enabled
+     * \details Enable copy by reference.
      */
     SyncSysProxy(SyncSysProxy const&) = default;
 
     /*! \brief Operator =
-     *
-     * Uses move semantics
+     * Use move semantics when assigning to rvalues.
      */
     SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
 
     /*! \brief Operator = to const type
-     *
-     * Needs to define this, since move semantics is enabled
+     * \details Enables copy by reference.
      */
     SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
       default;
 
     /*! \brief Overload conversion to DESystem
-     *
+     * \details Convert the current virtual proxy to a concrete system.
      */
     operator DESystem()
     {
@@ -197,8 +207,9 @@ public:
     }
 
     /*! \brief Convert to DESystem from const proxy
-     *
-     * Expensive, implies a copy. Avoid it.
+     * \details Convert it to a concrete system when the current system is
+     * const.
+     * \warning Expensive, because it implies a copy. Avoid it.
      */
     operator DESystem() const
     {
@@ -207,18 +218,19 @@ public:
     }
 
     /*! \brief Is it real?
+     * \details Nooo!!!
      *
+     * \return False, always.
      */
     inline bool IsVirtual() const override
     {
-        if (sys_ptr_) {
-            return false;
-        }
         return true;
     }
 
     /*! \brief Clone method for polymorphic copy
+     * \details Method for cloning on a polymorphic way.
      *
+     * \return shared pointer to base.
      */
     inline std::shared_ptr<DESystemBase> Clone() const override
     {
@@ -288,7 +300,7 @@ public:
 
     /*! \brief Returns true if DES inverse transition exists
      *
-     * @param aQfrom State
+     * @param aQ State
      * @param aEvent Event
      */
     inline bool ContainsInvTrans(StorageIndex const& aQ,
@@ -311,9 +323,10 @@ public:
         return contains;
     }
 
-    /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
+    /*! \brief Returns DES inverse transition
+     * \details  q = f^-1(q_to, e)
      *
-     * @param aQfrom State
+     * @param aQ State
      * @param aEvent Event
      */
     inline StatesArray<StorageIndex> InvTrans(
@@ -369,14 +382,25 @@ public:
         return inv_transitions;
     }
 
-    /*! \brief Overload operator -> to access virtua sys
+    /*! \brief Overload operator -> to access concrete sys
+     * \warning If it was not converted yet, returns nullptr.
      *
+     * \return Shared pointer to concrete system.
      */
     std::shared_ptr<DESystem> operator->() { return *sys_ptr_; }
 
-    /*! \brief Returns EventsSet relative to state q
+    /*! \brief Overload operator dereference to access concrete sys
+     * \warning If it was not converted yet, returns nullptr.
+     *
+     * \return Shared pointer to concrete system.
+     */
+    std::shared_ptr<DESystem> operator*() { return *sys_ptr_; }
+
+    /*! \brief Get events that a state contains
+     * \warning On large binery trees, it can be very expensive.
      *
      * @param aQ A state on the sys
+     * \return Bit set with events of state events
      */
     inline EventsSet<NEvents> GetStateEvents(
       StorageIndex const& aQ) const override
@@ -390,9 +414,10 @@ public:
         return state_event;
     }
 
-    /*! \brief Returns EventsSet relative to state inv q
+    /*! \brief Get inverse events that a state contains
      *
      * @param aQ A state on the sys
+     * \return Bit set with events index set to true
      */
     inline EventsSet<NEvents> GetInvStateEvents(
       StorageIndex const& aQ) const override
@@ -407,10 +432,11 @@ public:
     }
 
     /*! \brief Invert graph
-     *
-     * This is used on some operations... it can be very inneficient for very
-     * large graphs
+     * \details This is used on some operations... it can be very inneficient
+     * for very large graphs
      * It is const, since it changes only a mutable member
+     *
+     * \return void
      */
     inline void AllocateInvertedGraph() const override
     {
@@ -419,8 +445,7 @@ public:
     }
 
     /*! \brief Free inverted graph
-     *
-     * It is const, since it changes only a mutable member
+     * \details It is const, since it changes only a mutable member
      */
     inline void ClearInvertedGraph() const override
     {
@@ -429,44 +454,33 @@ public:
     }
 
 protected:
-    /*
-     * Friend function
-     * Second step of the lazy parallel composition
+    /*! \brief Second step of the lazy parallel composition
      */
     friend void cldes::op::SynchronizeStage2<>(
       SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
 
-    /*
-     * Friend function
-     * Second step of the lazy parallel composition
+    /*! \brief Second step of the lazy parallel composition
      */
     friend void cldes::op::SynchronizeEmptyStage2<>(
       SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
 
-    /*
-     * Friend function
-     * Monolithic supervisor synthesis
+    /*! \brief Monolithic supervisor synthesis
      */
     friend DESystem SupervisorSynth<>(DESystemBase const& aP,
                                       DESystemBase const& aE,
                                       EventsTableHost const& aNonContr);
 
     /*! \brief Disabled default constructor
-     *
-     * There is no use for the default constructor.
+     * \details There is no use for the default constructor.
      */
     inline SyncSysProxy() = default;
 
 private:
-    /*! \brief Raw pointer to DESystemBase object
-     *
-     * Raw pointer to the owner of the proxied element.
+    /*! \brief Reference to the left operand
      */
     DESystemBase const& sys0_;
 
-    /*! \brief Raw pointer to DESystemBase object
-     *
-     * Raw pointer to the owner of the proxied element.
+    /*! \brief Reference to right operand
      */
     DESystemBase const& sys1_;
 
@@ -476,31 +490,26 @@ private:
     StorageIndex n_states_sys0_;
 
     /*! \brief Virtual states contained in the current system
-     *
      */
     StatesTable virtual_states_;
 
     /*! \brief Events contained only in the left operator of a synchronizing op.
-     *
      */
     EventsSet<NEvents> only_in_0_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
-     *
      */
     EventsSet<NEvents> only_in_1_;
 
     /*! \brief Pointer to real systems, if exists
-     *
-     * Since it is a lazy system, it needs to be declared mutable for enabling
-     * lazy evaluation.
+     * \details Since it is a lazy system, it needs to be declared mutable for
+     * enabling lazy evaluation.
      */
     std::shared_ptr<DESystem> sys_ptr_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
-     *
      */
     TrVector transtriplet_;
 
