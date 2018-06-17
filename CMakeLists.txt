@@ -62,7 +62,7 @@ configure_file (
 # Add the binary tree to the search path for include files
 # so that we will find clDESConfig.h
 include_directories("${PROJECT_SOURCE_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/cldes")
+include_directories("${PROJECT_SOURCE_DIR}/libcldes")
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
 # Add subdirectories
