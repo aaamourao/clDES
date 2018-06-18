@@ -314,23 +314,20 @@ public:
     }
 
     /*! \brief Returns state set containing the accessible part of automa
-     * \details Executes a breadth-first search in bit the graph, which represents the
-     * DES, starting from its initial state. It returns a set containing all nodes
-     * which are accessible from the initial state. This operation is
-     * implemented on a linear algebra approach by a multiplication between
-     * two sparse matrices.
+     * \details Executes a breadth-first search in bit the graph, which
+     * represents the DES, starting from its initial state. It returns a set
+     * containing all nodes which are accessible from the initial state. This
+     * operation is implemented on a linear algebra approach by a multiplication
+     * between two sparse matrices.
      *
      * \return A set of the accessed states
      */
     StatesSet AccessiblePart() const
     {
         // Executes a BFS on graph_
-        auto paccessible_states = Bfs_();
+        auto accessible_states = Bfs_();
 
-        auto accessible_states = *paccessible_states;
-        delete[] paccessible_states;
-
-        return accessible_states;
+        return *accessible_states;
     }
 
     /*! \brief Returns state set containing the coaccessible part of automata
@@ -727,7 +724,7 @@ protected:
      * was accessed or a bfs visit function was defined
      */
     template<class StatesType>
-    StatesSet* Bfs_(
+    std::shared_ptr<StatesSet> Bfs_(
       StatesType const& aInitialNodes,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit) const
@@ -765,7 +762,7 @@ protected:
      * \return Return a set containing the accessed states, or nullptr if none
      * was accessed or a bfs visit function was defined
      */
-    StatesSet* Bfs_(
+    std::shared_ptr<StatesSet> Bfs_(
       StorageIndex const& aInitialNode,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit) const
@@ -791,7 +788,10 @@ protected:
      * \return Return a set containing the accessed states, or nullptr if none
      * was accessed or a bfs visit function was defined
      */
-    StatesSet* Bfs_() const { return Bfs_(this->init_state_, nullptr); }
+    std::shared_ptr<StatesSet> Bfs_() const
+    {
+        return Bfs_(this->init_state_, nullptr);
+    }
 
     /*! \brief Calculates Bfs and returns accessed states array
      * \details Executes a breadth first search on the graph starting from one
@@ -803,7 +803,7 @@ protected:
      * @param aStatesMap Map each vector used to implement in a bfs when
      * multiple ones are execute togheter: it can be null
      */
-    StatesSet* BfsCalc_(
+    std::shared_ptr<StatesSet> BfsCalc_(
       StatesVector& aHostX,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit,
@@ -840,10 +840,13 @@ protected:
             return nullptr;
         }
 
-        auto accessed_states = new StatesSet[n_initial_nodes];
+        // Unfortunatelly, only C++17 allows shared_ptr to arrays
+        std::shared_ptr<StatesSet> accessed_states{
+            new StatesSet[n_initial_nodes], std::default_delete<StatesSet[]>()
+        };
         for (auto s = 0l; s < y.cols(); ++s) {
             for (ColIteratorConst e(y, s); e; ++e) {
-                accessed_states[e.col()].emplace(e.row());
+                accessed_states.get()[e.col()].emplace(e.row());
             }
         }
         return accessed_states;
@@ -871,16 +874,15 @@ private:
      * adjascency matrix. It is implemented as a CSR scheme.
      *  * Non zero element: events bit from <row index> to <col index> that
      * lead to starting node (row index) to the arriving node (col index).
-     * * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the condition
-     * event 0 OR event 2.
+     * * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the
+     * condition event 0 OR event 2.
      */
     GraphHostData graph_;
 
     /*! \brief Graph of bit represented by an adjacency matrix
-     * \details A sparse bit matrix which each non zero elem represents that a state
-     * has at least one transition to other state.
-     * It is used to calculate the accessible part, coaccessible part and trim
-     * operations efficiently.
+     * \details A sparse bit matrix which each non zero elem represents that a
+     * state has at least one transition to other state. It is used to calculate
+     * the accessible part, coaccessible part and trim operations efficiently.
      * The matrix is also transposed and added to the identity in order to
      * make the accessible part op more efficient:
      * when calculating trim states, it is always necessary to calculate the
