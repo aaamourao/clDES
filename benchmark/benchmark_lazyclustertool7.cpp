@@ -51,7 +51,7 @@ main()
     std::vector<cldes::DESystem<56, StorageIndex>> specs;
 
     std::cout << "Generating ClusterTool(7)" << std::endl;
-    ClusterTool(56, plants, specs, non_contr);
+    ClusterTool(7, plants, specs, non_contr);
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
