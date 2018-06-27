@@ -247,6 +247,9 @@ public:
     inline bool ContainsTrans(StorageIndex const& aQ,
                               ScalarType const& aEvent) const override
     {
+        if (!this->events_.test(aEvent)) {
+            return false;
+        }
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -272,6 +275,9 @@ public:
     inline StorageIndexSigned Trans(StorageIndex const& aQ,
                                     ScalarType const& aEvent) const override
     {
+        if (!this->events_.test(aEvent)) {
+            return -1;
+        }
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -306,6 +312,9 @@ public:
     inline bool ContainsInvTrans(StorageIndex const& aQ,
                                  ScalarType const& aEvent) const override
     {
+        if (!this->events_.test(aEvent)) {
+            return false;
+        }
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
@@ -333,14 +342,17 @@ public:
       StorageIndex const& aQ,
       ScalarType const& aEvent) const override
     {
+        StatesArray<StorageIndex> inv_transitions;
+
+        if (!this->events_.test(aEvent)) {
+            return inv_transitions;
+        }
         // q = (qx, qy)
         auto const qx = aQ % n_states_sys0_;
         auto const qy = aQ / n_states_sys0_;
 
         auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
         auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
-
-        StatesArray<StorageIndex> inv_transitions;
 
         if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
               (in_y && only_in_1_.test(aEvent)))) {
