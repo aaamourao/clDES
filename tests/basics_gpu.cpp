@@ -30,14 +30,11 @@
 
 #include "cldes/DESystem.hpp"
 #include "cldes/DESystemCL.hpp"
-#include <chrono>
 #include <iostream>
 #include <set>
 #include <string>
 
 #include "testlib.hpp"
-
-using namespace std::chrono;
 
 int
 main()
@@ -69,23 +66,13 @@ main()
 
     cldes::DESystemCL<3> sys_gpu{ sys };
 
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto accessible_states = sys_gpu.AccessiblePart();
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(t2 - t1).count();
 
     ProcessResult(accessible_states, "< Accessible part", "0 1 2 3 >");
-    std::cout << "Accessible States time: " << duration << " microseconds"
-              << std::endl;
 
-    t1 = high_resolution_clock::now();
     auto coaccessible_states = sys_gpu.CoaccessiblePart();
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
 
     ProcessResult(coaccessible_states, "< Coaccessible part", "0 1 2 >");
-    std::cout << "Coaccessible States time: " << duration << " microseconds"
-              << std::endl;
     std::cout << "Creating new system" << std::endl;
 
     cldes::DESystem<3> new_sys{ n_states, init_state, marked_states };
@@ -102,23 +89,13 @@ main()
 
     cldes::DESystemCL<3> new_sys_gpu{ new_sys };
 
-    t1 = high_resolution_clock::now();
     auto new_accessible_states = new_sys_gpu.AccessiblePart();
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
 
     ProcessResult(new_accessible_states, "< Accessible part", "0 1 2 >");
-    std::cout << "Accessible States time: " << duration << " microseconds"
-              << std::endl;
 
-    t1 = high_resolution_clock::now();
     auto new_coaccessible_states = new_sys_gpu.CoaccessiblePart();
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
 
     ProcessResult(new_coaccessible_states, "< Coaccessible part", "0 2 3 >");
-    std::cout << "Coaccessible States time: " << duration << " microseconds"
-              << std::endl;
 
     return 0;
 }

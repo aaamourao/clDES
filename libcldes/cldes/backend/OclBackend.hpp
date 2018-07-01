@@ -29,7 +29,10 @@
  =========================================================================
 */
 
-#include "constants.hpp"
+#ifndef OCL_BACKEND_HPP
+#define OCL_BACKEND_HPP
+
+#include "cldes/Constants.hpp"
 #include "viennacl/ocl/backend.hpp"
 
 namespace cl {
@@ -120,4 +123,6 @@ private:
 } // namespace cldes
 
 // Include Implementation
-#include "backend/OCLBackend.hpp"
+#include "cldes/src/backend/OclBackendCore.hpp"
+
+#endif // OCL_BACKEND_HPP

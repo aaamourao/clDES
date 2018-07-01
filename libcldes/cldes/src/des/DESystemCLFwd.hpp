@@ -28,13 +28,40 @@
  =========================================================================
 */
 
+#define VIENNACL_WITH_EIGEN 1
+
+#include "cldes/backend/OclBackend.hpp"
 #include "viennacl/compressed_matrix.hpp"
+#include <CL/cl.hpp>
 
 #ifndef VIENNACL_WITH_OPENCL
 #define VIENNACL_WITH_OPENCL
 #endif
 
+template<typename T>
+struct Eigen_vector
+{
+    typedef typename T::ERROR_NO_EIGEN_TYPE_AVAILABLE error_type;
+};
+template<>
+struct Eigen_vector<float>
+{
+    typedef Eigen::VectorXf type;
+};
+template<>
+struct Eigen_vector<double>
+{
+    typedef Eigen::VectorXd type;
+};
+
+namespace cldes {
+
+template<uint8_t NEvents, typename StorageIndex>
+class DESystem;
+
 namespace op {
 namespace backend {
 class OclBackend;
+}
+}
 }

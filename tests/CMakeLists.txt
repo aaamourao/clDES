@@ -9,4 +9,4 @@ add_executable(supervisorsynth_cpu ./supervisorsynth_cpu.cpp)
 add_executable(sync_supervisorsynth_cpu ./sync_supervisorsynth_cpu.cpp)
 
 # Link libraries
-target_link_libraries(basics OpenCL::OpenCL)
+target_link_libraries(basics_gpu OpenCL::OpenCL)

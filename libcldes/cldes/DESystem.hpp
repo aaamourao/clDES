@@ -44,9 +44,6 @@
 #include "cldes/DESystemBase.hpp"
 #include "cldes/src/des/DESystemFwd.hpp"
 
-/*
- * Forward declarations and some useful alias definitions
- */
 namespace cldes {
 
 /*! \class DESystem

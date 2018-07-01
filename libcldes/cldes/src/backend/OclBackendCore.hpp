@@ -29,15 +29,15 @@
  =========================================================================
 */
 
-#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
+// #pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
 
-#include <CL/cl.hpp>
 #include <cstdlib> // std::getenv()
 #include <fstream>
 #include <sstream>
 #include <string>
 
-using namespace cldes::backend;
+namespace cldes {
+namespace backend {
 
 // Initialize static data members
 OclBackend* OclBackend::instance_ = nullptr;
@@ -90,4 +90,7 @@ OclBackend::CLQueue
 OclBackend::CommandQueue()
 {
     return queue_;
+}
+
+}
 }
