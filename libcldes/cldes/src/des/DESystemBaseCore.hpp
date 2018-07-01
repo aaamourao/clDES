@@ -36,9 +36,9 @@
  *
  * DESystemBase template abstract class declaration and definition .
  */
-
+namespace cldes {
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystemBase<NEvents, StorageIndex>::DESystemBase(
+DESystemBase<NEvents, StorageIndex>::DESystemBase(
   StorageIndex const& aStatesNumber,
   StorageIndex const& aInitState)
 {
@@ -47,7 +47,7 @@ cldes::DESystemBase<NEvents, StorageIndex>::DESystemBase(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystemBase<NEvents, StorageIndex>::DESystemBase()
+DESystemBase<NEvents, StorageIndex>::DESystemBase()
 {
     states_number_ = 0;
     init_state_ = 0;
@@ -57,42 +57,42 @@ cldes::DESystemBase<NEvents, StorageIndex>::DESystemBase()
 
 template<uint8_t NEvents, typename StorageIndex>
 StorageIndex
-cldes::DESystemBase<NEvents, StorageIndex>::Size() const
+DESystemBase<NEvents, StorageIndex>::Size() const
 {
     return states_number_;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::EventsSet<NEvents>
-cldes::DESystemBase<NEvents, StorageIndex>::GetEvents() const
+EventsSet<NEvents>
+DESystemBase<NEvents, StorageIndex>::GetEvents() const
 {
     return events_;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 StorageIndex
-cldes::DESystemBase<NEvents, StorageIndex>::GetStatesNumber() const
+DESystemBase<NEvents, StorageIndex>::GetStatesNumber() const
 {
     return states_number_;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 StorageIndex
-cldes::DESystemBase<NEvents, StorageIndex>::GetInitialState() const
+DESystemBase<NEvents, StorageIndex>::GetInitialState() const
 {
     return init_state_;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystemBase<NEvents, StorageIndex>::StatesSet
-cldes::DESystemBase<NEvents, StorageIndex>::GetMarkedStates() const
+typename DESystemBase<NEvents, StorageIndex>::StatesSet
+DESystemBase<NEvents, StorageIndex>::GetMarkedStates() const
 {
     return marked_states_;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetEvents(
+DESystemBase<NEvents, StorageIndex>::SetEvents(
   EventsSet<NEvents> const& aEvents)
 {
     events_ = aEvents;
@@ -100,15 +100,14 @@ cldes::DESystemBase<NEvents, StorageIndex>::SetEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetStatesNumber(
-  StorageIndex const& aStNum)
+DESystemBase<NEvents, StorageIndex>::SetStatesNumber(StorageIndex const& aStNum)
 {
     states_number_ = aStNum;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetInitialState(
+DESystemBase<NEvents, StorageIndex>::SetInitialState(
   StorageIndex const& aInitState)
 {
     init_state_ = aInitState;
@@ -116,23 +115,21 @@ cldes::DESystemBase<NEvents, StorageIndex>::SetInitialState(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::InsertMarkedState(
-  StorageIndex const& aSt)
+DESystemBase<NEvents, StorageIndex>::InsertMarkedState(StorageIndex const& aSt)
 {
     marked_states_.emplace(aSt);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetMarkedStates(
-  StatesSet const& aStSet)
+DESystemBase<NEvents, StorageIndex>::SetMarkedStates(StatesSet const& aStSet)
 {
     marked_states_ = aStSet;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::ResizeStatesEvents(
+DESystemBase<NEvents, StorageIndex>::ResizeStatesEvents(
   StorageIndex const& aSize)
 {
     states_events_.resize(aSize);
@@ -141,7 +138,7 @@ cldes::DESystemBase<NEvents, StorageIndex>::ResizeStatesEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetStatesEvents(
+DESystemBase<NEvents, StorageIndex>::SetStatesEvents(
   StatesEventsTable const& aEvents)
 {
     states_events_ = aEvents;
@@ -149,7 +146,7 @@ cldes::DESystemBase<NEvents, StorageIndex>::SetStatesEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetInvStatesEvents(
+DESystemBase<NEvents, StorageIndex>::SetInvStatesEvents(
   StatesEventsTable const& aEvents)
 {
     inv_states_events_ = aEvents;
@@ -157,7 +154,7 @@ cldes::DESystemBase<NEvents, StorageIndex>::SetInvStatesEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetStateEvents(
+DESystemBase<NEvents, StorageIndex>::SetStateEvents(
   StorageIndex const& aQ,
   EventsSet<NEvents> const& aEvent)
 {
@@ -166,9 +163,10 @@ cldes::DESystemBase<NEvents, StorageIndex>::SetStateEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystemBase<NEvents, StorageIndex>::SetInvStateEvents(
+DESystemBase<NEvents, StorageIndex>::SetInvStateEvents(
   StorageIndex const& aQ,
   EventsSet<NEvents> const& aEvent)
 {
     inv_states_events_[aQ] = aEvent;
+}
 }

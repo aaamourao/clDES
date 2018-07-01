@@ -36,10 +36,10 @@
  * Virtual Proxy for multiple parallel compositions operations.
  */
 
+namespace cldes {
 template<uint8_t NEvents, typename StorageIndex>
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(
-  DESystemBase const& aSys0,
-  DESystemBase const& aSys1)
+op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
+                                                      DESystemBase const& aSys1)
   : DESystemBase{ aSys0.GetStatesNumber() * aSys1.GetStatesNumber(),
                   aSys1.GetInitialState() * aSys0.GetStatesNumber() +
                     aSys0.GetInitialState() }
@@ -65,7 +65,7 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem()
+op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem()
 {
     if (virtual_states_.empty()) {
         SynchronizeEmptyStage2(*this);
@@ -105,7 +105,7 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem()
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() const
+op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() const
 {
     auto cp = *this;
     return DESystem(cp);
@@ -113,14 +113,14 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::IsVirtual() const
+op::SyncSysProxy<NEvents, StorageIndex>::IsVirtual() const
 {
     return true;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<cldes::DESystemBase<NEvents, StorageIndex>>
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::Clone() const
+std::shared_ptr<DESystemBase<NEvents, StorageIndex>>
+op::SyncSysProxy<NEvents, StorageIndex>::Clone() const
 {
     std::shared_ptr<DESystemBase> this_ptr =
       std::make_shared<SyncSysProxy>(*this);
@@ -129,7 +129,7 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::Clone() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::ContainsTrans(
+op::SyncSysProxy<NEvents, StorageIndex>::ContainsTrans(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -154,10 +154,9 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::ContainsTrans(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::op::SyncSysProxy<NEvents, StorageIndex>::StorageIndexSigned
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::Trans(
-  StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+typename op::SyncSysProxy<NEvents, StorageIndex>::StorageIndexSigned
+op::SyncSysProxy<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
+                                               ScalarType const& aEvent) const
 {
     if (!this->events_.test(aEvent)) {
         return -1;
@@ -190,7 +189,7 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::Trans(
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::ContainsInvTrans(
+op::SyncSysProxy<NEvents, StorageIndex>::ContainsInvTrans(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -215,8 +214,8 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::ContainsInvTrans(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::StatesArray<StorageIndex>
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::InvTrans(
+StatesArray<StorageIndex>
+op::SyncSysProxy<NEvents, StorageIndex>::InvTrans(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -273,8 +272,8 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::InvTrans(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::EventsSet<NEvents>
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::GetStateEvents(
+EventsSet<NEvents>
+op::SyncSysProxy<NEvents, StorageIndex>::GetStateEvents(
   StorageIndex const& aQ) const
 {
     auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
@@ -287,8 +286,8 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::GetStateEvents(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::EventsSet<NEvents>
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::GetInvStateEvents(
+EventsSet<NEvents>
+op::SyncSysProxy<NEvents, StorageIndex>::GetInvStateEvents(
   StorageIndex const& aQ) const
 {
     auto const state_event_0 = sys0_.GetInvStateEvents(aQ % n_states_sys0_);
@@ -302,7 +301,7 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::GetInvStateEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::AllocateInvertedGraph() const
+op::SyncSysProxy<NEvents, StorageIndex>::AllocateInvertedGraph() const
 {
     sys0_.AllocateInvertedGraph();
     sys1_.AllocateInvertedGraph();
@@ -310,8 +309,9 @@ cldes::op::SyncSysProxy<NEvents, StorageIndex>::AllocateInvertedGraph() const
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::op::SyncSysProxy<NEvents, StorageIndex>::ClearInvertedGraph() const
+op::SyncSysProxy<NEvents, StorageIndex>::ClearInvertedGraph() const
 {
     sys0_.ClearInvertedGraph();
     sys1_.ClearInvertedGraph();
+}
 }

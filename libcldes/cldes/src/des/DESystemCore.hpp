@@ -36,8 +36,9 @@
  * DESystem template class definition.
  */
 
+namespace cldes {
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>::DESystem()
+DESystem<NEvents, StorageIndex>::DESystem()
 {
     inv_graph_ = nullptr;
     is_cache_outdated_ = false;
@@ -50,11 +51,10 @@ cldes::DESystem<NEvents, StorageIndex>::DESystem()
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>::DESystem(
-  StorageIndex const& aStatesNumber,
-  StorageIndex const& aInitState,
-  StatesSet& aMarkedStates,
-  bool const& aDevCacheEnabled)
+DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
+                                          StorageIndex const& aInitState,
+                                          StatesSet& aMarkedStates,
+                                          bool const& aDevCacheEnabled)
   : DESystemBase{ aStatesNumber, aInitState }
 {
     dev_cache_enabled_ = aDevCacheEnabled;
@@ -88,8 +88,8 @@ cldes::DESystem<NEvents, StorageIndex>::DESystem(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<cldes::DESystemBase<NEvents, StorageIndex>>
-cldes::DESystem<NEvents, StorageIndex>::Clone() const
+std::shared_ptr<DESystemBase<NEvents, StorageIndex>>
+DESystem<NEvents, StorageIndex>::Clone() const
 {
     std::shared_ptr<DESystemBase> this_ptr = std::make_shared<DESystem>(*this);
     return this_ptr;
@@ -97,38 +97,37 @@ cldes::DESystem<NEvents, StorageIndex>::Clone() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-cldes::DESystem<NEvents, StorageIndex>::IsVirtual() const
+DESystem<NEvents, StorageIndex>::IsVirtual() const
 {
     return false;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::GraphHostData
-cldes::DESystem<NEvents, StorageIndex>::GetGraph() const
+typename DESystem<NEvents, StorageIndex>::GraphHostData
+DESystem<NEvents, StorageIndex>::GetGraph() const
 {
     return graph_;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::EventsSet const
-cldes::DESystem<NEvents, StorageIndex>::operator()(
-  StorageIndex const& aQfrom,
-  StorageIndex const& aQto) const
+typename DESystem<NEvents, StorageIndex>::EventsSet const
+DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aQfrom,
+                                            StorageIndex const& aQto) const
 {
     return graph_.coeff(aQfrom, aQto);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::TransitionProxy<NEvents, StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aQfrom,
-                                                   StorageIndex const& aQto)
+TransitionProxy<NEvents, StorageIndex>
+DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aQfrom,
+                                            StorageIndex const& aQto)
 {
     return TransitionProxy<NEvents, StorageIndex>(this, aQfrom, aQto);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::StatesSet
-cldes::DESystem<NEvents, StorageIndex>::AccessiblePart() const
+typename DESystem<NEvents, StorageIndex>::StatesSet
+DESystem<NEvents, StorageIndex>::AccessiblePart() const
 {
     // Executes a BFS on graph_
     auto accessible_states = Bfs_();
@@ -137,8 +136,8 @@ cldes::DESystem<NEvents, StorageIndex>::AccessiblePart() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::StatesSet
-cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
+typename DESystem<NEvents, StorageIndex>::StatesSet
+DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
 {
     auto const invgraph = bit_graph_.transpose();
 
@@ -183,8 +182,8 @@ cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::StatesSet
-cldes::DESystem<NEvents, StorageIndex>::TrimStates() const
+typename DESystem<NEvents, StorageIndex>::StatesSet
+DESystem<NEvents, StorageIndex>::TrimStates() const
 {
     auto accpartstl = AccessiblePart();
     spp::sparse_hash_set<StorageIndex> accpart;
@@ -242,8 +241,8 @@ cldes::DESystem<NEvents, StorageIndex>::TrimStates() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::DESystemBase<NEvents, StorageIndex>&
-cldes::DESystem<NEvents, StorageIndex>::Trim()
+DESystemBase<NEvents, StorageIndex>&
+DESystem<NEvents, StorageIndex>::Trim()
 {
     auto trimstates = this->TrimStates();
 
@@ -339,24 +338,23 @@ cldes::DESystem<NEvents, StorageIndex>::Trim()
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystem<NEvents, StorageIndex>::InsertEvents(EventsSet const& aEvents)
+DESystem<NEvents, StorageIndex>::InsertEvents(EventsSet const& aEvents)
 {
     this->events_ = EventsSet(aEvents);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-cldes::DESystem<NEvents, StorageIndex>::ContainsTrans(
-  StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+DESystem<NEvents, StorageIndex>::ContainsTrans(StorageIndex const& aQ,
+                                               ScalarType const& aEvent) const
 {
     return this->states_events_[aQ].test(aEvent);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::DESystem<NEvents, StorageIndex>::StorageIndexSigned
-cldes::DESystem<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
-                                              ScalarType const& aEvent) const
+typename DESystem<NEvents, StorageIndex>::StorageIndexSigned
+DESystem<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
+                                       ScalarType const& aEvent) const
 {
     using RowIterator = Eigen::InnerIterator<
       DESystem<NEvents, StorageIndex>::GraphHostData const>;
@@ -377,7 +375,7 @@ cldes::DESystem<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-cldes::DESystem<NEvents, StorageIndex>::ContainsInvTrans(
+DESystem<NEvents, StorageIndex>::ContainsInvTrans(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -385,9 +383,9 @@ cldes::DESystem<NEvents, StorageIndex>::ContainsInvTrans(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-typename cldes::StatesArray<StorageIndex>
-cldes::DESystem<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
-                                                 ScalarType const& aEvent) const
+StatesArray<StorageIndex>
+DESystem<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
+                                          ScalarType const& aEvent) const
 {
     StatesArray<StorageIndex> inv_trans;
 
@@ -406,53 +404,51 @@ cldes::DESystem<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::EventsSet<NEvents>
-cldes::DESystem<NEvents, StorageIndex>::GetStateEvents(
-  StorageIndex const& aQ) const
+EventsSet<NEvents>
+DESystem<NEvents, StorageIndex>::GetStateEvents(StorageIndex const& aQ) const
 {
     return this->states_events_[aQ];
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-cldes::EventsSet<NEvents>
-cldes::DESystem<NEvents, StorageIndex>::GetInvStateEvents(
-  StorageIndex const& aQ) const
+EventsSet<NEvents>
+DESystem<NEvents, StorageIndex>::GetInvStateEvents(StorageIndex const& aQ) const
 {
     return this->inv_states_events_[aQ];
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystem<NEvents, StorageIndex>::AllocateInvertedGraph() const
+DESystem<NEvents, StorageIndex>::AllocateInvertedGraph() const
 {
     inv_graph_ = std::make_shared<GraphHostData>(graph_.transpose());
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystem<NEvents, StorageIndex>::ClearInvertedGraph() const
+DESystem<NEvents, StorageIndex>::ClearInvertedGraph() const
 {
     inv_graph_ = nullptr;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystem<NEvents, StorageIndex>::CacheGraph_()
+DESystem<NEvents, StorageIndex>::CacheGraph_()
 {
     is_cache_outdated_ = false;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-cldes::DESystem<NEvents, StorageIndex>::UpdateGraphCache_()
+DESystem<NEvents, StorageIndex>::UpdateGraphCache_()
 {
     is_cache_outdated_ = false;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 template<class StatesType>
-std::shared_ptr<typename cldes::DESystem<NEvents, StorageIndex>::StatesSet>
-cldes::DESystem<NEvents, StorageIndex>::Bfs_(
+std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
+DESystem<NEvents, StorageIndex>::Bfs_(
   StatesType const& aInitialNodes,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit) const
@@ -480,8 +476,8 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<typename cldes::DESystem<NEvents, StorageIndex>::StatesSet>
-cldes::DESystem<NEvents, StorageIndex>::Bfs_(
+std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
+DESystem<NEvents, StorageIndex>::Bfs_(
   StorageIndex const& aInitialNode,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit) const
@@ -499,15 +495,15 @@ cldes::DESystem<NEvents, StorageIndex>::Bfs_(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<typename cldes::DESystem<NEvents, StorageIndex>::StatesSet>
-cldes::DESystem<NEvents, StorageIndex>::Bfs_() const
+std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
+DESystem<NEvents, StorageIndex>::Bfs_() const
 {
     return Bfs_(this->init_state_, nullptr);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<typename cldes::DESystem<NEvents, StorageIndex>::StatesSet>
-cldes::DESystem<NEvents, StorageIndex>::BfsCalc_(
+std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
+DESystem<NEvents, StorageIndex>::BfsCalc_(
   StatesVector& aHostX,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit,
@@ -554,4 +550,5 @@ cldes::DESystem<NEvents, StorageIndex>::BfsCalc_(
         }
     }
     return accessed_states;
+}
 }
