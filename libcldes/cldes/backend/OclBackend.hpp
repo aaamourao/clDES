@@ -33,7 +33,6 @@
 #define OCL_BACKEND_HPP
 
 #include "cldes/Constants.hpp"
-#include "viennacl/ocl/backend.hpp"
 
 namespace cl {
 class CommandQueue;

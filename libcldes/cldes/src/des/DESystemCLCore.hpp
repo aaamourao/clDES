@@ -28,9 +28,6 @@
  =========================================================================
 */
 
-#define VIENNACL_WITH_EIGEN 1
-
-#include "viennacl/linalg/prod.hpp"
 #include <algorithm>
 #include <chrono>
 #include <functional>
@@ -111,21 +108,20 @@ DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
     std::chrono::high_resolution_clock::time_point t2;
 
     // Executes BFS
-    StatesDeviceVector y{ this->states_number_, static_cast<size_t>(n_marked) };
     auto n_accessed_states = 0ul;
     t1 = std::chrono::high_resolution_clock::now();
     for (auto i = 0ul; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        y = viennacl::linalg::prod(device_graph_, x);
+        StatesDeviceVector y = viennacl::linalg::prod(device_graph_, x);
 
-        if (n_accessed_states == y.nnz()) {
+        x = std::move(y);
+
+        if (n_accessed_states == x.nnz()) {
             break;
         } else {
-            n_accessed_states = y.nnz();
+            n_accessed_states = x.nnz();
         }
-
-        x = y;
     }
     t2 = std::chrono::high_resolution_clock::now();
     auto duration =
@@ -133,7 +129,7 @@ DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
     std::cout << "Coaccessible Part GPU time spent: " << duration
               << " microseconds" << std::endl;
 
-    viennacl::copy(y, host_x);
+    viennacl::copy(x, host_x);
 
     auto coaccessible_states = StatesSet{};
 
@@ -189,21 +185,20 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
     std::chrono::high_resolution_clock::time_point t2;
 
     // Executes BFS
-    StatesDeviceVector y;
     auto n_accessed_states = 0ul;
     t1 = std::chrono::high_resolution_clock::now();
     for (auto i = 0u; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        y = viennacl::linalg::prod(device_graph_, x);
+        StatesDeviceVector y = viennacl::linalg::prod(device_graph_, x);
 
-        if (n_accessed_states == y.nnz()) {
+        x = std::move(y);
+
+        if (n_accessed_states == x.nnz()) {
             break;
         } else {
-            n_accessed_states = y.nnz();
+            n_accessed_states = x.nnz();
         }
-
-        x = y;
     }
     t2 = std::chrono::high_resolution_clock::now();
     auto duration =
@@ -211,7 +206,7 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
     std::cout << "Accessible Part GPU time spent: " << duration
               << " microseconds" << std::endl;
 
-    viennacl::copy(y, aHostX);
+    viennacl::copy(x, aHostX);
 
     // Unfortunatelly, only C++17 allows shared_ptr to arrays
     std::shared_ptr<StatesSet> accessed_states{
