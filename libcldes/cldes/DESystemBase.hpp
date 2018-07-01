@@ -41,15 +41,9 @@
 
 #include "cldes/Constants.hpp"
 #include "cldes/EventsSet.hpp"
-#include "cldes/src/des/DESystemBaseCore.hpp"
+#include "cldes/src/des/DESystemBaseFwd.hpp"
 
 namespace cldes {
-
-/*! \brief Vector of states type
- * \details Vector containing states represented by usigned numbers.
- */
-template<typename StorageIndex>
-using StatesArray = std::vector<StorageIndex>;
 
 /*! \class DESystemBase
  *  \brief A discrete-events system base abstract class
@@ -91,25 +85,15 @@ public:
      * @param aStatesNumber Number of states of the system
      * @param aInitState System's initial state
      */
-    inline DESystemBase(StorageIndex const& aStatesNumber,
-                        StorageIndex const& aInitState)
-    {
-        states_number_ = aStatesNumber;
-        init_state_ = aInitState;
-    }
+    DESystemBase(StorageIndex const& aStatesNumber,
+                 StorageIndex const& aInitState);
 
     /*! \brief Default constructor
      * \details Creates an empty system with 0 states and initial
      * states 0. Marked states is undefined.
      *
      */
-    inline DESystemBase()
-    {
-        states_number_ = 0;
-        init_state_ = 0;
-        events_ = EventsSet<NEvents>{};
-        marked_states_ = StatesSet{};
-    };
+    DESystemBase();
 
     /*! \brief DESystem destructor
      * \details It is virtual for avoiding issues with polymorphism and memory
@@ -142,82 +126,67 @@ public:
      *
      * \return The number of states contained in the current system
      */
-    inline StorageIndex Size() const { return states_number_; }
+    StorageIndex Size() const;
 
     /*! \brief Get number of states of the current system
      * \details states_number_ getter.
      *
      * \return The number of states contained in the current system
      */
-    inline EventsSet<NEvents> GetEvents() const { return events_; }
+    EventsSet<NEvents> GetEvents() const;
 
     /*! \brief Returns number of states contained in the system
      *
      * \return Unsigned integer type represent the system's states number
      */
-    inline StorageIndex GetStatesNumber() const { return states_number_; }
+    StorageIndex GetStatesNumber() const;
 
     /*! \brief Returns number of states contained in the system
      *
      * \return Unsigned integer type representing the initial state
      */
-    inline StorageIndex GetInitialState() const { return init_state_; }
+    StorageIndex GetInitialState() const;
 
     /*! \brief Returns marked states
      *
      * \return Set of usigned integer type representing the marked states.
      */
-    inline StatesSet GetMarkedStates() const { return marked_states_; }
+    StatesSet GetMarkedStates() const;
 
     /*! \brief Set inverted states events
      *
      * \param aEvents Bit set with new events of the system
      * \return void
      */
-    inline void SetEvents(EventsSet<NEvents> const& aEvents)
-    {
-        events_ = aEvents;
-    }
+    void SetEvents(EventsSet<NEvents> const& aEvents);
 
     /*! \brief Set system's number of states
      *
      * \param aStNum New system's states number.
      * \return void
      */
-    inline void SetStatesNumber(StorageIndex const& aStNum)
-    {
-        states_number_ = aStNum;
-    }
+    void SetStatesNumber(StorageIndex const& aStNum);
 
     /*! \brief Set system's initial state
      *
      * \param aInitState New initial state
      * \return void
      */
-    inline void SetInitialState(StorageIndex const& aInitState)
-    {
-        init_state_ = aInitState;
-    }
+    void SetInitialState(StorageIndex const& aInitState);
 
     /*! \brief Returns marked states
      *
      * \param aSt state which will be inserted
      * \return void
      */
-    void InsertMarkedState(StorageIndex const& aSt)
-    {
-        marked_states_.emplace(aSt);
-    }
+    void InsertMarkedState(StorageIndex const& aSt);
 
     /*! \brief Set system's marked states
      *
      * \param aStSet Set of states
      * \return void
      */
-    inline void SetMarkedStates(StatesSet const& aStSet)
-    {
-        marked_states_ = aStSet;
-    }
+    void SetMarkedStates(StatesSet const& aStSet);
 
     /*! \brief Resize state_events
      * \details Necessary to run it when inserting or remove
@@ -228,11 +197,7 @@ public:
      * \param aSize New state_events_ size
      * \return void
      */
-    inline void ResizeStatesEvents(StorageIndex const& aSize)
-    {
-        states_events_.resize(aSize);
-        inv_states_events_.resize(aSize);
-    }
+    void ResizeStatesEvents(StorageIndex const& aSize);
 
     /*! \brief Resize state_events
      * \details Necessary to run it when inserting or remove
@@ -243,10 +208,7 @@ public:
      * \param aEvents Events set vector
      * \return void
      */
-    inline void SetStatesEvents(StatesEventsTable const& aEvents)
-    {
-        states_events_ = aEvents;
-    }
+    void SetStatesEvents(StatesEventsTable const& aEvents);
 
     /*! \brief Set inv_state_events
      * \details It is used by many operations. Set the inverse events
@@ -257,10 +219,7 @@ public:
      * \param aEvents Events set vector
      * \return void
      */
-    inline void SetInvStatesEvents(StatesEventsTable const& aEvents)
-    {
-        inv_states_events_ = aEvents;
-    }
+    void SetInvStatesEvents(StatesEventsTable const& aEvents);
 
     /*! \brief Set state_events of a specific state
      * \details It is used by many operations. Set the events of
@@ -272,11 +231,8 @@ public:
      * \param aEvent A event represented by a 8 bit unsigned integer
      * \return void
      */
-    inline void SetStateEvents(StorageIndex const& aQ,
-                               EventsSet<NEvents> const& aEvent)
-    {
-        states_events_[aQ] = aEvent;
-    }
+    void SetStateEvents(StorageIndex const& aQ,
+                        EventsSet<NEvents> const& aEvent);
 
     /*! \brief Set inv_state_events of a specific state
      * \details It is used by many operations. Set the events of
@@ -288,11 +244,8 @@ public:
      * \param aEvent A event represented by a 8 bit unsigned integer
      * \return void
      */
-    inline void SetInvStateEvents(StorageIndex const& aQ,
-                                  EventsSet<NEvents> const& aEvent)
-    {
-        inv_states_events_[aQ] = aEvent;
-    }
+    void SetInvStateEvents(StorageIndex const& aQ,
+                           EventsSet<NEvents> const& aEvent);
 
     /*! \brief Is it real?
      *
@@ -402,5 +355,8 @@ protected:
     StatesEventsTable inv_states_events_;
 };
 }
+
+// include method definitions
+#include "cldes/src/des/DESystemBaseCore.hpp"
 
 #endif // DESYSTEMBASE_HPP

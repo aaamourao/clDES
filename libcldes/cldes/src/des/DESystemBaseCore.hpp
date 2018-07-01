@@ -23,13 +23,152 @@
  LacSED - Laboratório de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: cldes/src/des/DESystemBase.hpp
- Description: DESystemBase alias and includes;
+ File: cldes/src/des/DESystemBaseCore.hpp
+ Description: DESystemBase abstract class methods definition (the
+ non-abstract methods, of course)
  =========================================================================
 */
+/*!
+ * \file cldes/DESystemBase.hpp
+ *
+ * \author Adriano Mourao \@madc0ww
+ * \date 2018-06-16
+ *
+ * DESystemBase template abstract class declaration and definition .
+ */
 
-#include <Eigen/Sparse>
-#include <algorithm>
-#include <memory>
-#include <set>
-#include <vector>
+template<uint8_t NEvents, typename StorageIndex>
+cldes::DESystemBase<NEvents, StorageIndex>::DESystemBase(
+  StorageIndex const& aStatesNumber,
+  StorageIndex const& aInitState)
+{
+    states_number_ = aStatesNumber;
+    init_state_ = aInitState;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+cldes::DESystemBase<NEvents, StorageIndex>::DESystemBase()
+{
+    states_number_ = 0;
+    init_state_ = 0;
+    events_ = EventsSet<NEvents>{};
+    marked_states_ = StatesSet{};
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+StorageIndex
+cldes::DESystemBase<NEvents, StorageIndex>::Size() const
+{
+    return states_number_;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+cldes::EventsSet<NEvents>
+cldes::DESystemBase<NEvents, StorageIndex>::GetEvents() const
+{
+    return events_;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+StorageIndex
+cldes::DESystemBase<NEvents, StorageIndex>::GetStatesNumber() const
+{
+    return states_number_;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+StorageIndex
+cldes::DESystemBase<NEvents, StorageIndex>::GetInitialState() const
+{
+    return init_state_;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+typename cldes::DESystemBase<NEvents, StorageIndex>::StatesSet
+cldes::DESystemBase<NEvents, StorageIndex>::GetMarkedStates() const
+{
+    return marked_states_;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetEvents(
+  EventsSet<NEvents> const& aEvents)
+{
+    events_ = aEvents;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetStatesNumber(
+  StorageIndex const& aStNum)
+{
+    states_number_ = aStNum;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetInitialState(
+  StorageIndex const& aInitState)
+{
+    init_state_ = aInitState;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::InsertMarkedState(
+  StorageIndex const& aSt)
+{
+    marked_states_.emplace(aSt);
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetMarkedStates(
+  StatesSet const& aStSet)
+{
+    marked_states_ = aStSet;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::ResizeStatesEvents(
+  StorageIndex const& aSize)
+{
+    states_events_.resize(aSize);
+    inv_states_events_.resize(aSize);
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetStatesEvents(
+  StatesEventsTable const& aEvents)
+{
+    states_events_ = aEvents;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetInvStatesEvents(
+  StatesEventsTable const& aEvents)
+{
+    inv_states_events_ = aEvents;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetStateEvents(
+  StorageIndex const& aQ,
+  EventsSet<NEvents> const& aEvent)
+{
+    states_events_[aQ] = aEvent;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+cldes::DESystemBase<NEvents, StorageIndex>::SetInvStateEvents(
+  StorageIndex const& aQ,
+  EventsSet<NEvents> const& aEvent)
+{
+    inv_states_events_[aQ] = aEvent;
+}

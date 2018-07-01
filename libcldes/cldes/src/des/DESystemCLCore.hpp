@@ -179,12 +179,6 @@ DESystemCL::Bfs_<cldes_size_t>(
 }
 
 DESystemCL::StatesSet*
-DESystemCL::Bfs_()
-{
-    return Bfs_(init_state_, nullptr);
-};
-
-DESystemCL::StatesSet*
 DESystemCL::BfsCalc_(StatesVector& aHostX,
                      std::function<void(cldes_size_t const&,
                                         cldes_size_t const&)> const& aBfsVisit,
