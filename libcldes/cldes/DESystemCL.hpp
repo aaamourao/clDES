@@ -32,21 +32,11 @@
 #ifndef DESYSTEMCL_HPP
 #define DESYSTEMCL_HPP
 
-#ifndef VIENNACL_WITH_OPENCL
-#define VIENNACL_WITH_OPENCL
-#endif
-
-#include "cldes/DESystemBase.hpp"
-#include "cldes/src/des/DESystemCLCore.hpp"
 #include "cldes/DESystem.hpp"
-#include "viennacl/compressed_matrix.hpp"
+#include "cldes/DESystemBase.hpp"
+#include "cldes/src/des/DESystemCLFwd.hpp"
 
 namespace cldes {
-
-namespace op {
-namespace backend {
-class OclBackend;
-}
 
 /*! \class DESystemCL
  * \brief Discrete-Events System on device memory
@@ -70,6 +60,7 @@ public:
      * \details Alias to base class with implicit template params
      */
     using DESystemBase = DESystemBase<NEvents, StorageIndex>;
+    using DESystem = DESystem<NEvents, StorageIndex>;
 
     /*! Adjacency matrix on device memory
      */
@@ -85,11 +76,7 @@ public:
      *
      * @param aSys System on device memory
      */
-    inline DESystemCL(DESystem const& aSys)
-      : DESystem{ aSys.Size(), aSys.GetMarkedStates() }
-    {
-        graph_ = aSys.bit_graph_.cast<float>();
-    }
+    DESystemCL(DESystem const& aSys);
 
     /*! \brief DESystemCL destructor
      */
@@ -106,24 +93,19 @@ public:
     /*! \brief Clone method for polymorphic copy
      *  \return Shared pointer to this object
      */
-    inline std::shared_ptr<DESystemBase> Clone() const override
-    {
-        std::shared_ptr<DESystemBase> this_ptr =
-          std::make_shared<DESystemCL>(*this);
-        return this_ptr;
-    }
+    std::shared_ptr<DESystemBase> Clone() const override;
 
     /*! \brief Check if this system is a virtual proxy
      * \details DESystemCL is always a real sys
      */
-    inline bool IsVirtual() const override { return false; }
+    bool IsVirtual() const override;
 
     /*! \brief Graph getter
      *
      * Returns a copy of DESystemCL's private data member graph. Considering
      * that graph is a pointer, it returns the contents of graph.
      */
-    GraphDeviceData GetGraph() const { return graph_ };
+    GraphDeviceData GetGraph() const;
 
     /*! \brief Returns state set containing the accessible part of automa
      *
@@ -131,22 +113,14 @@ public:
      * starting from its initial state. It returns a set containing all nodes
      * which are accessible from the initial state.
      */
-    StatesSet AccessiblePart() const
-    {
-        auto accessible_states = Bfs_();
-        return *accessible_states;
-    }
+    StatesSet AccessiblePart() const;
 
     /*! \brief Returns state set containing the coaccessible part of automata
      *
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart()
-    {
-        auto coaccessible_part = Bfs_();
-        return *coaccessible_part;
-    }
+    StatesSet CoaccessiblePart() const;
 
 protected:
     /*! \brief Default constructor disabled
@@ -184,20 +158,7 @@ private:
     std::shared_ptr<StatesSet> Bfs_(
       StatesType const& aInitialNodes,
       std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
-        aBfsVisit)
-    {
-        /*
-         * BFS on a Linear Algebra approach:
-         *     Y = G^T * X
-         */
-        StatesVector host_x{ states_number_, 1 };
-
-        // GPUs does not allow dynamic memory allocation. So, we have
-        // to set X on host first.
-        host_x(aInitialNode, 0) = 1;
-
-        return BfsCalc_(host_x, aBfsVisit, nullptr);
-    }
+        aBfsVisit);
 
     /*! \brief Calculates Bfs and returns accessed states array
      *
@@ -210,56 +171,17 @@ private:
       StatesVector& aHostX,
       std::function<void(cldes_size_t const&, cldes_size_t const&)> const&
         aBfsVisit,
-      std::vector<cldes_size_t> const* const aStatesMap)
-    {
-        cl_uint n_initial_nodes = aHostX.cols();
-
-        // Copy search vector to device memory
-        StatesDeviceVector x;
-        viennacl::copy(aHostX, x);
-
-        // Copy to device memory
-        viennacl::copy(trans(graph_), device_graph_);
-
-        // Executes BFS
-        StatesDeviceVector y;
-        auto n_accessed_states = 0;
-        for (auto i = 0; i < states_number_; ++i) {
-            // Using auto bellow results in compile error
-            // on the following for statement
-            y = viennacl::linalg::prod(dev_graph, x);
-
-            if (n_accessed_states == y.nnz()) {
-                break;
-            } else {
-                n_accessed_states = y.nnz();
-            }
-
-            x = y;
-        }
-
-        viennacl::copy(y, aHostX);
-
-        // Add results to a std::set vector
-        auto accessed_states = new StatesSet[n_initial_nodes];
-        for (auto node = aHostX.begin1(); node != aHostX.end1(); ++node) {
-            for (auto elem = node.begin(); elem != node.end(); ++elem) {
-                accessed_states[elem.index2()].emplace(node.index1());
-            }
-        }
-
-        return accessed_states;
-    }
+      std::vector<cldes_size_t> const* const aStatesMap);
 
     /*! \brief Return a pointer to accessed states from the initial state
      *
      * Executes a breadth first search on the graph starting from init_state_.
      */
-    std::shared_ptr<StatesSet> Bfs_() { return Bfs_(init_state_, nullptr); }
+    std::shared_ptr<StatesSet> Bfs_();
 };
 
-// OclBackend disable by now
-backend::OclBackend* DESystemCL::backend_ptr_ = nullptr;
-
 } // namespace cldes
+
+#include "cldes/src/des/DESystemCLCore.hpp"
+
 #endif // DESYSTEMCL_HPP
