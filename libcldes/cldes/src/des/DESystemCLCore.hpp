@@ -83,8 +83,54 @@ template<uint8_t NEvents, typename StorageIndex>
 typename DESystemCL<NEvents, StorageIndex>::StatesSet
 DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
 {
-    auto coaccessible_part = Bfs_();
-    return *coaccessible_part;
+    StorageIndexSigned const n_marked = this->marked_states_.size();
+    StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
+                         n_marked };
+    host_x.reserve(this->marked_states_.size());
+
+    {
+        auto pos = 0ul;
+        for (auto state : this->marked_states_) {
+            host_x.coeffRef(state, pos) = true;
+            ++pos;
+        }
+    }
+    // Copy search vector to device memory
+    StatesDeviceVector x;
+    viennacl::copy(host_x, x);
+
+    // Copy to device memory
+    viennacl::copy(trans(graph_), device_graph_);
+
+    // Executes BFS
+    StatesDeviceVector y{ this->states_number_, n_marked };
+    auto n_accessed_states = 0l;
+    for (auto i = 0ul; i < this->states_number_; ++i) {
+        // Using auto bellow results in compile error
+        // on the following for statement
+        y = viennacl::linalg::prod(dev_graph, x);
+
+        if (n_accessed_states == y.nnz()) {
+            break;
+        } else {
+            n_accessed_states = y.nnz();
+        }
+
+        x = y;
+    }
+
+    viennacl::copy(y, host_x);
+
+    auto coacessible_states = StatesSet;
+
+    // Add results to a std::set vector
+    for (auto node = host_x.begin1(); node != host_x.end1(); ++node) {
+        for (auto elem = node.begin(); elem != node.end(); ++elem) {
+            accessed_states[elem.index2()].emplace(node.index1());
+        }
+    }
+
+    return coaccessible_states;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -99,7 +145,7 @@ DESystemCL<NEvents, StorageIndex>::Bfs_(
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-    StatesVector host_x{ states_number_, 1 };
+    StatesVector host_x{ this->states_number_, 1 };
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.
@@ -123,12 +169,12 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
     viennacl::copy(aHostX, x);
 
     // Copy to device memory
-    viennacl::copy(trans(graph_), device_graph_);
+    viennacl::copy(graph_, device_graph_);
 
     // Executes BFS
     StatesDeviceVector y;
     auto n_accessed_states = 0;
-    for (auto i = 0; i < states_number_; ++i) {
+    for (auto i = 0; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
         y = viennacl::linalg::prod(dev_graph, x);
@@ -144,8 +190,12 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
 
     viennacl::copy(y, aHostX);
 
+    // Unfortunatelly, only C++17 allows shared_ptr to arrays
+    std::shared_ptr<StatesSet> accessed_states{
+        new StatesSet[n_initial_nodes], std::default_delete<StatesSet[]>()
+    };
+
     // Add results to a std::set vector
-    auto accessed_states = new StatesSet[n_initial_nodes];
     for (auto node = aHostX.begin1(); node != aHostX.end1(); ++node) {
         for (auto elem = node.begin(); elem != node.end(); ++elem) {
             accessed_states[elem.index2()].emplace(node.index1());
@@ -160,4 +210,5 @@ std::shared_ptr<typename DESystemCL<NEvents, StorageIndex>::StatesSet>
 DESystemCL<NEvents, StorageIndex>::Bfs_()
 {
     return Bfs_(init_state_, nullptr);
+}
 }

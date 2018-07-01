@@ -145,7 +145,7 @@ private:
 
     /*! \brief Pointer to beckend singleton object
      */
-    static backend::OclBackend* backend_ptr_;
+    static std::shared_ptr<backend::OclBackend> backend_ptr_;
 
     /*! \brief Setup BFS and return accessed states array
      *
