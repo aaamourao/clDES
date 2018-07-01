@@ -28,15 +28,21 @@
  =========================================================================
 */
 
-#define VIENNACL_WITH_EIGEN 1
 
-#include "cldes/backend/OclBackend.hpp"
-#include "viennacl/compressed_matrix.hpp"
 #include <CL/cl.hpp>
+
+#define VIENNACL_WITH_EIGEN 1
 
 #ifndef VIENNACL_WITH_OPENCL
 #define VIENNACL_WITH_OPENCL
 #endif
+
+#include "viennacl/compressed_matrix.hpp"
+#include "viennacl/linalg/prod.hpp"
+#include "viennacl/ocl/backend.hpp"
+
+// OclBackend should always be included after viennacl headers
+#include "cldes/backend/OclBackend.hpp"
 
 template<typename T>
 struct Eigen_vector
