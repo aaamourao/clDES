@@ -13,14 +13,12 @@ add_executable(benchmark_lazyfsm ./benchmark_lazyfsm.cpp)
 add_executable(benchmark_lazyclustertool6 ./benchmark_lazyclustertool6.cpp)
 add_executable(benchmark_lazyclustertool7 ./benchmark_lazyclustertool7.cpp)
 
+add_executable(benchmark_gpu_clustertool2 ./benchmark_gpu_clustertool2.cpp)
+add_executable(benchmark_gpu_clustertool6 ./benchmark_gpu_clustertool6.cpp)
+add_executable(benchmark_gpu_clustertool7 ./benchmark_gpu_clustertool7.cpp)
+add_executable(benchmark_gpu_fsm ./benchmark_gpu_fsm.cpp)
 # Link libraries
-# target_link_libraries(benchmark_clustertool2 Qt5::Core)# OpenCL::OpenCL)
-# target_link_libraries(benchmark_clustertool3 Qt5::Core)# OpenCL::OpenCL)
-# target_link_libraries(benchmark_clustertool4 Qt5::Core)# OpenCL::OpenCL)
-# target_link_libraries(benchmark_clustertool5 Qt5::Core)# OpenCL::OpenCL)
-# target_link_libraries(benchmark_clustertool6 Qt5::Core)# OpenCL::OpenCL)
-# target_link_libraries(benchmark_clustertool7 Qt5::Core)# OpenCL::OpenCL)
-# target_link_libraries(benchmark_fsm Qt5::Core)# OpenCL::OpenCL)
-
-# Link OpenCL library
-# target_link_libraries(viennacl OpenCL::OpenCL)
+target_link_libraries(benchmark_gpu_clustertool2 OpenCL::OpenCL)
+target_link_libraries(benchmark_gpu_clustertool6 OpenCL::OpenCL)
+target_link_libraries(benchmark_gpu_clustertool7 OpenCL::OpenCL)
+target_link_libraries(benchmark_gpu_fsm OpenCL::OpenCL)

@@ -148,7 +148,7 @@ DESystemCL<NEvents, StorageIndex>::Bfs_(
      * BFS on a Linear Algebra approach:
      *     Y = G^T * X
      */
-    StatesVector host_x{ this->states_number_, 1 };
+    StatesVector host_x{ static_cast<Eigen::Index>(this->states_number_), 1 };
 
     // GPUs does not allow dynamic memory allocation. So, we have
     // to set X on host first.

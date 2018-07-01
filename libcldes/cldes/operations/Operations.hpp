@@ -413,7 +413,8 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
     auto sys = DESystem<NEvents, StorageIndex>(virtualsys);
 
     // Remove non-accessible and non-coaccessible states
-    sys.Trim();
+    // TODO: Trim will be performed by GPU
+    // sys.Trim();
 
     // bye
     return sys;
