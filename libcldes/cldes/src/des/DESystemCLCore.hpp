@@ -103,11 +103,12 @@ DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
     viennacl::copy(graph_.transpose().eval(), device_graph_);
 
     // Executes BFS
+    StatesDeviceVector y;
     auto n_accessed_states = 0ul;
     for (auto i = 0ul; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        StatesDeviceVector y = viennacl::linalg::prod(device_graph_, x);
+        y = viennacl::linalg::prod(device_graph_, x);
 
         x = std::move(y);
 
@@ -171,11 +172,12 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
     viennacl::copy(graph_, device_graph_);
 
     // Executes BFS
+    StatesDeviceVector y;
     auto n_accessed_states = 0ul;
     for (auto i = 0u; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        StatesDeviceVector y = viennacl::linalg::prod(device_graph_, x);
+        y = viennacl::linalg::prod(device_graph_, x);
 
         x = std::move(y);
 
