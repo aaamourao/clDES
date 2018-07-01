@@ -108,12 +108,13 @@ DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
     std::chrono::high_resolution_clock::time_point t2;
 
     // Executes BFS
+    StatesDeviceVector y;
     auto n_accessed_states = 0ul;
     t1 = std::chrono::high_resolution_clock::now();
     for (auto i = 0ul; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        StatesDeviceVector y = viennacl::linalg::prod(device_graph_, x);
+        y = viennacl::linalg::prod(device_graph_, x);
 
         x = std::move(y);
 
@@ -185,12 +186,13 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
     std::chrono::high_resolution_clock::time_point t2;
 
     // Executes BFS
+    StatesDeviceVector y;
     auto n_accessed_states = 0ul;
     t1 = std::chrono::high_resolution_clock::now();
     for (auto i = 0u; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
-        StatesDeviceVector y = viennacl::linalg::prod(device_graph_, x);
+        y = viennacl::linalg::prod(device_graph_, x);
 
         x = std::move(y);
 
