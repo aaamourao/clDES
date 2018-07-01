@@ -31,6 +31,7 @@
 
 #define SPP_ALLOC_SZ 1
 
+#include "cldes/DESystemCL.hpp"
 #include "cldes/DESystem.hpp"
 #include "cldes/operations/Operations.hpp"
 #include "clustertool.hpp"
@@ -124,34 +125,18 @@ main()
     auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
     t2 = high_resolution_clock::now();
 
-    t1 = high_resolution_clock::now();
     auto accstates = supervisor.AccessiblePart();
-    t2 = high_resolution_clock::now();
-    std::cout << "Accessible Part time spent: " << duration << " microseconds"
-              << std::endl;
 
-    t1 = high_resolution_clock::now();
     auto coastates = supervisor.CoaccessiblePart();
-    t2 = high_resolution_clock::now();
-    std::cout << "Coaccessible Part time spent: " << duration << " microseconds"
-              << std::endl;
 
     std::cout << "Number of states of the supervisor: " << coastates.size()
               << std::endl;
 
     cldes::DESystemCL<56, StorageIndex> sup_gpu{supervisor};
 
-    t1 = high_resolution_clock::now();
     accstates = sup_gpu.AccessiblePart();
-    t2 = high_resolution_clock::now();
-    std::cout << "Accessible Part time spent: " << duration << " microseconds"
-              << std::endl;
 
-    t1 = high_resolution_clock::now();
     coastates = sup_gpu.CoaccessiblePart();
-    t2 = high_resolution_clock::now();
-    std::cout << "Coaccessible Part time spent: " << duration << " microseconds"
-              << std::endl;
 
     std::cout << "Number of states of the supervisor: " << coastates.size()
               << std::endl;

@@ -36,6 +36,9 @@
  * DESystem template class definition.
  */
 
+#include <chrono>
+#include <iostream>
+
 namespace cldes {
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>::DESystem()
@@ -157,6 +160,11 @@ DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
     StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
                     n_marked };
     auto n_accessed_states = 0l;
+
+    std::chrono::high_resolution_clock::time_point t1;
+    std::chrono::high_resolution_clock::time_point t2;
+
+    t1 = std::chrono::high_resolution_clock::now();
     for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
         y = invgraph * x;
 
@@ -168,6 +176,11 @@ DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
 
         x = y;
     }
+    t2 = std::chrono::high_resolution_clock::now();
+    auto duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "Coaccessible Part time spent: " << duration << " microseconds"
+              << std::endl;
 
     y.pruned();
 
@@ -518,6 +531,11 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
     StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
                     static_cast<StorageIndexSigned>(n_initial_nodes) };
     auto n_accessed_states = 0l;
+
+    std::chrono::high_resolution_clock::time_point t1;
+    std::chrono::high_resolution_clock::time_point t2;
+
+    t1 = std::chrono::high_resolution_clock::now();
     for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
         y = bit_graph_ * aHostX;
 
@@ -529,6 +547,11 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
 
         aHostX = y;
     }
+    t2 = std::chrono::high_resolution_clock::now();
+    auto duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "Accessible Part time spent: " << duration << " microseconds"
+              << std::endl;
 
     /// Add results to a std::set vector
     if (aBfsVisit) {

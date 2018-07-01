@@ -32,7 +32,9 @@
 
 #include "viennacl/linalg/prod.hpp"
 #include <algorithm>
+#include <chrono>
 #include <functional>
+#include <iostream>
 #include <vector>
 
 namespace cldes {
@@ -105,9 +107,13 @@ DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
     // Copy to device memory
     viennacl::copy(graph_.transpose().eval(), device_graph_);
 
+    std::chrono::high_resolution_clock::time_point t1;
+    std::chrono::high_resolution_clock::time_point t2;
+
     // Executes BFS
     StatesDeviceVector y{ this->states_number_, static_cast<size_t>(n_marked) };
     auto n_accessed_states = 0ul;
+    t1 = std::chrono::high_resolution_clock::now();
     for (auto i = 0ul; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
@@ -121,6 +127,11 @@ DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
 
         x = y;
     }
+    t2 = std::chrono::high_resolution_clock::now();
+    auto duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "Coaccessible Part GPU time spent: " << duration
+              << " microseconds" << std::endl;
 
     viennacl::copy(y, host_x);
 
@@ -174,9 +185,13 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
     // Copy to device memory
     viennacl::copy(graph_, device_graph_);
 
+    std::chrono::high_resolution_clock::time_point t1;
+    std::chrono::high_resolution_clock::time_point t2;
+
     // Executes BFS
     StatesDeviceVector y;
     auto n_accessed_states = 0ul;
+    t1 = std::chrono::high_resolution_clock::now();
     for (auto i = 0u; i < this->states_number_; ++i) {
         // Using auto bellow results in compile error
         // on the following for statement
@@ -190,6 +205,11 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
 
         x = y;
     }
+    t2 = std::chrono::high_resolution_clock::now();
+    auto duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    std::cout << "Accessible Part GPU time spent: " << duration
+              << " microseconds" << std::endl;
 
     viennacl::copy(y, aHostX);
 

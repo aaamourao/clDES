@@ -244,38 +244,18 @@ main()
     std::cout << "Supervisor synth time spent: " << duration << " microseconds"
               << std::endl;
 
-    t1 = high_resolution_clock::now();
     auto accstates = supervisor.AccessiblePart();
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
-    std::cout << "Accessible Part time spent: " << duration << " microseconds"
-              << std::endl;
 
-    t1 = high_resolution_clock::now();
     auto coastates = supervisor.CoaccessiblePart();
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
-    std::cout << "Coaccessible Part time spent: " << duration << " microseconds"
-              << std::endl;
 
     std::cout << "Number of states of the supervisor: " << coastates.size()
               << std::endl;
 
     cldes::DESystemCL<32> sup_gpu{ supervisor };
 
-    t1 = high_resolution_clock::now();
     accstates = sup_gpu.AccessiblePart();
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
-    std::cout << "Accessible Part GPU time spent: " << duration << " microseconds"
-              << std::endl;
 
-    t1 = high_resolution_clock::now();
     coastates = sup_gpu.CoaccessiblePart();
-    t2 = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(t2 - t1).count();
-    std::cout << "Coaccessible Part GPU time spent: " << duration << " microseconds"
-              << std::endl;
 
     std::cout << "Number of states of the supervisor: " << coastates.size()
               << std::endl;
