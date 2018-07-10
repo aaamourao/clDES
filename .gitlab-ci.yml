@@ -2,7 +2,8 @@ image: fedora:rawhide
 
 pages:
   script:
-  - dnf install -y cmake doxygen graphviz mscgen make gcc gcc-c++ kernel-devel clang ocl-icd clinfo
+  - dnf install -y cmake doxygen graphviz mscgen make gcc gcc-c++ kernel-devel
+  - dnf install -y clang ocl-icd clinfo opencl-headers opencl-filesystem opencl-utils
   - export CC=/usr/bin/clang && export CXX=/usr/bin/clang++
   - mkdir -p build && cd build
   - cmake ..
