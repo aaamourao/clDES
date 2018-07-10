@@ -20,15 +20,13 @@ such as the parallel composition.
 
 The following operations are going to be available on **clDES-1.0.0**:
 
-Automata operation | Implementation | Status
--------------------|----------------|--------
-Accessible part | `cldes::DESystem<NEvents, StorageIndex>::AccessiblePart()` | **Implemented**
-Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()` | **Implemented**
+Automata operation | Implementation
+-------------------|----------------
+Accessible part | `cldes::DESystem<NEvents, StorageIndex>::AccessiblePart()`
+Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::CoaccessiblePart()`
 Trim | `cldes::DESystem<NEvents, StorageIndex>::Trim()` | **Implemented**
-Synchronization: parallel composition | `cldes::op::Synchronize<NEvents, StorageIndex>()` | **Implemented**
-Virtual parallel composition | `cldes::op::SynchronizeStage1<NEvents, StorageIndex>()` | **Implemented**
-Real parallel composition | `cldes::op::SynchronizeStage2<NEvents, StorageIndex>()` | **Implemented**
-Controller Synthesis | `cldes::op::SupervisorSynth<NEvents, StorageIndex>()` | **Implemented**
+Synchronization: parallel composition | `cldes::op::Synchronize<NEvents, StorageIndex>()`
+Controller Synthesis | `cldes::op::SupervisorSynth<NEvents, StorageIndex>()`
 
 The following operations are going to be available on **clDES-1.1.0**:
 
