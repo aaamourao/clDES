@@ -1,4 +1,4 @@
-image: fedora
+image: fedora:rawhide
 
 before script:
   - dnf update
