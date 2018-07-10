@@ -3,6 +3,7 @@ image: gcc
 pages:
   script:
   - apt-get -qq update
+  - apt-get -qq install -y cmake
   - apt-get -qq install -y doxygen
   - apt-get -qq install -y ttf-freefont graphviz mscgen
   - mkdir -p build && cd build
