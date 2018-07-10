@@ -77,12 +77,12 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem()
     // Allocate memory for the real sys
     sys_ptr_ = std::make_shared<DESystem>(DESystem{});
 
-    sys_ptr_->states_number_ = this->states_number_;
-    sys_ptr_->init_state_ = this->init_state_;
-    sys_ptr_->marked_states_ = this->marked_states_;
-    sys_ptr_->states_events_ = this->states_events_;
-    sys_ptr_->inv_states_events_ = this->inv_states_events_;
-    sys_ptr_->events_ = this->events_;
+    sys_ptr_->states_number_ = std::move(this->states_number_);
+    sys_ptr_->init_state_ = std::move(this->init_state_);
+    sys_ptr_->marked_states_ = std::move(this->marked_states_);
+    sys_ptr_->states_events_ = std::move(this->states_events_);
+    sys_ptr_->inv_states_events_ = std::move(this->inv_states_events_);
+    sys_ptr_->events_ = std::move(this->events_);
 
     // Resize adj matrices
     sys_ptr_->graph_.resize(this->states_number_, this->states_number_);
