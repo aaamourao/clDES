@@ -2,9 +2,7 @@ image: fedora:rawhide
 
 pages:
   script:
-  - dnf install -y cmake
-  - dnf install -y doxygen
-  - dnf install -y ttf-freefont graphviz mscgen
+  - dnf install -y cmake doxygen graphviz mscgen
   - mkdir -p build && cd build
   - cmake ..
   - make doc
