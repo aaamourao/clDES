@@ -6,7 +6,7 @@ pages:
   - mkdir -p build && cd build
   - cmake -DCMAKE_BUILD_TYPE=doc ..
   - make doc
-  - mv doc/html/ public/
+  - mv doc/html/ ../public/
   artifacts:
     paths:
     - public
