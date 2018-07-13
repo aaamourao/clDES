@@ -139,7 +139,7 @@ template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
 DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
 {
-    auto const invgraph = bit_graph_.transpose();
+    StatesVector const invgraph = bit_graph_.transpose();
 
     StorageIndexSigned const n_marked = this->marked_states_.size();
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
@@ -191,7 +191,8 @@ DESystem<NEvents, StorageIndex>::TrimStates() const
         accpart.insert(s);
     }
 
-    auto const invgraph = bit_graph_.transpose();
+    // invgraph is a matrix, but it is column major (CSC)
+    StatesVector const invgraph = bit_graph_.transpose();
 
     auto const n_marked = this->marked_states_.size();
 

@@ -115,7 +115,7 @@ public:
      * * row index: from state
      * * col index: to state
      */
-    using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::RowMajor>;
+    using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::ColMajor>;
 
     /*! \brief Adjacency matrix of bit implementing searching nodes
      * \details Structure used for traversing the graph using a linear algebra
