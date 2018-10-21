@@ -138,11 +138,9 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
         }
     }
     rmtable.clear();
+    this->states_number_ = virtual_states_.size();
+    Trim();
     virtualsys.ClearInvertedGraph();
-
-    // Remove non-accessible and non-coaccessible states
-    // TODO: Implement Trim for virtual systems
-    // self->Trim();
     return;
 }
 
@@ -397,7 +395,34 @@ void
 op::SuperProxy<NEvents, StorageIndex>::Trim()
 {
     StatesTableHost<StorageIndex> trimmed_virtual_states;
-    // TODO
+    for (auto mstate : this->marked_states_) {
+        StatesStack<StorageIndex> f;
+        f.push(mstate);
+        while (!f.empty()) {
+            auto const q = f.top();
+            f.pop();
+            trimmed_virtual_states.insert(q);
+            auto const q_events = GetInvStateEvents(q);
+            cldes::ScalarType event = 0;
+            auto event_it = q_events;
+            while (event_it.any()) {
+                if (event_it.test(0)) {
+                    auto const fsqelist = InvTrans(q, event);
+                    for (auto fsqe : fsqelist) {
+                        if (virtual_states_.contains(fsqe)) {
+                            if (!trimmed_virtual_states.contains(fsqe)) {
+                                f.push(fsqe);
+                            }
+                        }
+                    }
+                }
+                ++event;
+                event_it >>= 1;
+            }
+        }
+    }
+    virtual_states_ = trimmed_virtual_states;
+    this->states_number_ = virtual_states_.size();
     return;
 }
 }
