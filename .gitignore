@@ -37,6 +37,7 @@ Makefile.in
 
 # Ignore build and lib dirs
 build
+build2
 lib/*
 external_dep/*
 libclDES/*
@@ -45,6 +46,8 @@ debug/*
 # http://www.vim.org/
 *.swp
 *.orig
+TODO.txt
+setenv.sh
 
 # YCM CMake DB
 compile_commands.json
