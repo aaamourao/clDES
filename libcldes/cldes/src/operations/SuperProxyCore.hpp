@@ -39,39 +39,111 @@
 namespace cldes {
 template<uint8_t NEvents, typename StorageIndex>
 op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
-  DESystemBase const& aSys0,
-  DESystemBase const& aSys1,
+  DESystemBase const& aPlant,
+  DESystemBase const& aSpec,
   EventsTableHost const& aNonContr)
-  : DESystemBase{ aSys0.GetStatesNumber() * aSys1.GetStatesNumber(),
-                  aSys1.GetInitialState() * aSys0.GetStatesNumber() +
-                    aSys0.GetInitialState() }
-  , sys0_{ aSys0 }
-  , sys1_{ aSys1 }
+  : DESystemBase{ aPlant.GetStatesNumber() * aSpec.GetStatesNumber(),
+                  aSpec.GetInitialState() * aPlant.GetStatesNumber() +
+                    aPlant.GetInitialState() }
+  , sys0_{ aPlant }
+  , sys1_{ aSpec }
 {
     sys_ptr_ = nullptr;
-    n_states_sys0_ = aSys0.GetStatesNumber();
+    n_states_sys0_ = aPlant.GetStatesNumber();
 
-    auto const in_both = aSys0.GetEvents() & aSys1.GetEvents();
+    auto const in_both = aPlant.GetEvents() & aSpec.GetEvents();
 
-    only_in_0_ = aSys0.GetEvents() ^ in_both;
-    only_in_1_ = aSys1.GetEvents() ^ in_both;
+    only_in_plant_ = aPlant.GetEvents() ^ in_both;
+    only_in_spec_ = aSpec.GetEvents() ^ in_both;
 
     // Initialize events_ from base class
-    this->events_ = aSys0.GetEvents() | aSys1.GetEvents();
+    this->events_ = aPlant.GetEvents() | aSpec.GetEvents();
 
-    for (auto q0 : aSys0.GetMarkedStates()) {
-        for (auto q1 : aSys1.GetMarkedStates()) {
+    for (auto q0 : aPlant.GetMarkedStates()) {
+        for (auto q1 : aSpec.GetMarkedStates()) {
             this->marked_states_.emplace(q1 * n_states_sys0_ + q0);
         }
     }
+
+    findRemovedStates_(aPlant, aSpec, aNonContr);
 }
 
+// template<uint8_t NEvents, typename StorageIndex>
+// op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
+//   DESVector<NEvents, StorageIndex> const& aPlants,
+//   DESVector<NEvents, StorageIndex> const& aSpecs,
+//   EventsTableHost const& aNonContr)
+// {
+//     // TODO: Implement this function
+// }
+
 template<uint8_t NEvents, typename StorageIndex>
-op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
-  DESVector<NEvents, StorageIndex> const& aPlants,
-  DESVector<NEvents, StorageIndex> const& aSpecs,
+void
+op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
+  DESystemBase const& aP,
+  DESystemBase const& aE,
   EventsTableHost const& aNonContr)
 {
+    SyncSysProxy<NEvents, StorageIndex> virtualsys{ aP, aE };
+    // non_contr in a bitarray structure
+    EventsSet<NEvents> non_contr_bit;
+    EventsSet<NEvents> p_non_contr_bit;
+    // Evaluate which non contr event is in system and convert it to a
+    // bitarray
+    for (cldes::ScalarType event : aNonContr) {
+        if (aP.GetEvents().test(event)) {
+            p_non_contr_bit.set(event);
+            if (virtualsys.events_.test(event)) {
+                non_contr_bit.set(event);
+            }
+        }
+    }
+    // Supervisor states
+    StatesTableHost<StorageIndex> rmtable;
+    // f is a stack of states accessed in a dfs
+    StatesStack<StorageIndex> f;
+    // Initialize f and ftable with the initial state
+    f.push(virtualsys.init_state_);
+    // Allocate inverted graph, since we are search for inverse transitions
+    virtualsys.AllocateInvertedGraph();
+    while (!f.empty()) {
+        auto const q = f.top();
+        f.pop();
+        if (!rmtable.contains(q) && !virtual_states_.contains(q)) {
+            auto const qx = q % virtualsys.n_states_sys0_;
+            auto const q_events = virtualsys.GetStateEvents(q);
+            auto const in_ncqx = p_non_contr_bit & aP.GetStateEvents(qx);
+            auto const in_ncqx_and_q = in_ncqx & q_events;
+            if (in_ncqx_and_q != in_ncqx) {
+                // TODO: Fix template implicit instantiation
+                RemoveBadStates<NEvents, StorageIndex>(
+                  virtualsys, virtual_states_, q, non_contr_bit, rmtable);
+            } else {
+                virtual_states_.insert(q);
+                cldes::ScalarType event = 0;
+                auto event_it = q_events;
+                while (event_it.any()) {
+                    if (event_it.test(0)) {
+                        auto const fsqe = virtualsys.Trans(q, event);
+                        if (!rmtable.contains(fsqe)) {
+                            if (!virtual_states_.contains(fsqe)) {
+                                f.push(fsqe);
+                            }
+                        }
+                    }
+                    ++event;
+                    event_it >>= 1;
+                }
+            }
+        }
+    }
+    rmtable.clear();
+    virtualsys.ClearInvertedGraph();
+
+    // Remove non-accessible and non-coaccessible states
+    // TODO: Implement Trim for virtual systems
+    // self->Trim();
+    return;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -139,7 +211,7 @@ op::SuperProxy<NEvents, StorageIndex>::ContainsTrans(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
-    if (!this->events_.test(aEvent)) {
+    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
         return false;
     }
     // q = (qx, qy)
@@ -151,8 +223,8 @@ op::SuperProxy<NEvents, StorageIndex>::ContainsTrans(
 
     auto contains = false;
 
-    if ((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
-        (in_y && only_in_1_.test(aEvent))) {
+    if ((in_x && in_y) || (in_x && only_in_plant_.test(aEvent)) ||
+        (in_y && only_in_spec_.test(aEvent))) {
         contains = true;
     }
 
@@ -164,7 +236,7 @@ typename op::SuperProxy<NEvents, StorageIndex>::StorageIndexSigned
 op::SuperProxy<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
                                              ScalarType const& aEvent) const
 {
-    if (!this->events_.test(aEvent)) {
+    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
         return -1;
     }
     // q = (qx, qy)
@@ -174,8 +246,8 @@ op::SuperProxy<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
     auto const in_x = sys0_.ContainsTrans(qx, aEvent);
     auto const in_y = sys1_.ContainsTrans(qy, aEvent);
 
-    if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
-          (in_y && only_in_1_.test(aEvent)))) {
+    if (!((in_x && in_y) || (in_x && only_in_plant_.test(aEvent)) ||
+          (in_y && only_in_spec_.test(aEvent)))) {
         return -1;
     }
 
@@ -199,7 +271,7 @@ op::SuperProxy<NEvents, StorageIndex>::ContainsInvTrans(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
-    if (!this->events_.test(aEvent)) {
+    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
         return false;
     }
     // q = (qx, qy)
@@ -211,8 +283,8 @@ op::SuperProxy<NEvents, StorageIndex>::ContainsInvTrans(
 
     auto contains = false;
 
-    if ((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
-        (in_y && only_in_1_.test(aEvent))) {
+    if ((in_x && in_y) || (in_x && only_in_plant_.test(aEvent)) ||
+        (in_y && only_in_spec_.test(aEvent))) {
         contains = true;
     }
 
@@ -226,7 +298,7 @@ op::SuperProxy<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
 {
     StatesArray<StorageIndex> inv_transitions;
 
-    if (!this->events_.test(aEvent)) {
+    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
         return inv_transitions;
     }
     // q = (qx, qy)
@@ -236,8 +308,8 @@ op::SuperProxy<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
     auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
     auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
 
-    if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
-          (in_y && only_in_1_.test(aEvent)))) {
+    if (!((in_x && in_y) || (in_x && only_in_plant_.test(aEvent)) ||
+          (in_y && only_in_spec_.test(aEvent)))) {
         return inv_transitions;
     }
 
@@ -284,8 +356,8 @@ op::SuperProxy<NEvents, StorageIndex>::GetStateEvents(
     auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
     auto const state_event_1 = sys1_.GetStateEvents(aQ / n_states_sys0_);
     auto const state_event = (state_event_0 & state_event_1) |
-                             (state_event_0 & only_in_0_) |
-                             (state_event_1 & only_in_1_);
+                             (state_event_0 & only_in_plant_) |
+                             (state_event_1 & only_in_spec_);
 
     return state_event;
 }
@@ -298,8 +370,8 @@ op::SuperProxy<NEvents, StorageIndex>::GetInvStateEvents(
     auto const state_event_0 = sys0_.GetInvStateEvents(aQ % n_states_sys0_);
     auto const state_event_1 = sys1_.GetInvStateEvents(aQ / n_states_sys0_);
     auto const state_event = (state_event_0 & state_event_1) |
-                             (state_event_0 & only_in_0_) |
-                             (state_event_1 & only_in_1_);
+                             (state_event_0 & only_in_plant_) |
+                             (state_event_1 & only_in_spec_);
 
     return state_event;
 }
@@ -318,5 +390,14 @@ op::SuperProxy<NEvents, StorageIndex>::ClearInvertedGraph() const
 {
     sys0_.ClearInvertedGraph();
     sys1_.ClearInvertedGraph();
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+op::SuperProxy<NEvents, StorageIndex>::Trim()
+{
+    StatesTableHost<StorageIndex> trimmed_virtual_states;
+    // TODO
+    return;
 }
 }

@@ -53,5 +53,7 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
                 DESystemBase<NEvents, StorageIndex> const& aE,
                 EventsTableHost const& aNonContr);
 
+template<uint8_t NEvents, typename StorageIndex>
+class SuperProxy;
 }
 }

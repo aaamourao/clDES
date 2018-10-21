@@ -212,6 +212,50 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
     return;
 }
 
+// TODO: Maybe an union would avoid overloading RemoveBadStates?
+template<uint8_t NEvents, typename StorageIndex>
+void
+RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+                StatesTableHost<StorageIndex>& aC,
+                StorageIndex const& aQ,
+                EventsSet<NEvents> const& aNonContrBit,
+                StatesTableHost<StorageIndex>& aRmTable)
+{
+    StatesStack<StorageIndex> f;
+    f.push(aQ);
+    aRmTable.insert(aQ);
+
+    while (!f.empty()) {
+        auto const x = f.top();
+        f.pop();
+
+        auto q_events = aVirtualSys.GetInvStateEvents(x);
+
+        q_events &= aNonContrBit;
+
+        cldes::ScalarType event = 0;
+        while (q_events.any()) {
+            if (q_events.test(0)) {
+                StatesArray<StorageIndex> const finv =
+                  aVirtualSys.InvTrans(x, event);
+
+                for (StorageIndex s : finv) {
+                    if (!aRmTable.contains(s)) {
+                        f.push(s);
+                        aRmTable.insert(s);
+                        if (aC.contains(s)) {
+                            aC.erase(s);
+                        }
+                    }
+                }
+            }
+            ++event;
+            q_events >>= 1;
+        }
+    }
+    return;
+}
+
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
 SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,

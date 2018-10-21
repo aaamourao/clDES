@@ -89,10 +89,12 @@ public:
     /*! \brief SyncSysProxy unique constructor
      * Create a binary tree that represents multiple operations.
      *
-     * @param aSys0 Left operand DESystem reference
-     * @param aSys1 Right operand DESystem reference
+     * @param aPlant Left operand DESystem reference
+     * @param aSpec Right operand DESystem reference
      */
-    SuperProxy(DESystemBase const& aSys0, DESystemBase const& aSys1);
+    SuperProxy(DESystemBase const& aPlant,
+               DESystemBase const& aSpec,
+               EventsTableHost const& aNonContr);
 
     /*! \brief DESystem destructor
      * \details Override base destructor.
@@ -178,6 +180,8 @@ public:
     StatesArray<StorageIndex> InvTrans(StorageIndex const& aQ,
                                        ScalarType const& aEvent) const override;
 
+    void Trim();
+
     /*! \brief Overload operator -> to access concrete sys
      * \warning If it was not converted yet, returns nullptr.
      *
@@ -233,6 +237,12 @@ protected:
      */
     SuperProxy() = default;
 
+    /*! \brief Find states that are not in SupC
+     */
+    void findRemovedStates_(DESystemBase const& aP,
+                            DESystemBase const& aE,
+                            EventsTableHost const& aNonContr);
+
 private:
     /*! \brief Reference to the left operand
      */
@@ -249,16 +259,16 @@ private:
 
     /*! \brief Virtual states contained in the current system
      */
-    StatesTable virtual_states_;
+    StatesTableHost<StorageIndex> virtual_states_;
 
     /*! \brief Events contained only in the left operator of a synchronizing op.
      */
-    EventsSet<NEvents> only_in_0_;
+    EventsSet<NEvents> only_in_plant_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
      */
-    EventsSet<NEvents> only_in_1_;
+    EventsSet<NEvents> only_in_spec_;
 
     /*! \brief Pointer to real systems, if exists
      * \details Since it is a lazy system, it needs to be declared mutable for

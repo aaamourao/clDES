@@ -240,6 +240,8 @@ protected:
                                       DESystemBase const& aE,
                                       EventsTableHost const& aNonContr);
 
+    friend class cldes::op::SuperProxy<NEvents, StorageIndex>;
+
     /*! \brief Disabled default constructor
      * \details There is no use for the default constructor.
      */
