@@ -194,26 +194,22 @@ DESystem<NEvents, StorageIndex>::TrimStates() const
     // invgraph is a matrix, but it is column major (CSC)
     StatesVector const invgraph = bit_graph_.transpose();
 
-    auto const n_marked = this->marked_states_.size();
+    // auto const n_marked = this->marked_states_.size();
 
-    StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
-                    static_cast<StorageIndexSigned>(n_marked) };
+    StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     x.reserve(this->marked_states_.size());
     std::vector<BitTriplet> xtriplet;
 
     {
-        auto pos = 0l;
         for (StorageIndex state : this->marked_states_) {
-            xtriplet.push_back(BitTriplet(state, pos, true));
-            ++pos;
+            xtriplet.push_back(BitTriplet(state, 0, true));
         }
     }
     x.setFromTriplets(xtriplet.begin(),
                       xtriplet.end(),
                       [](bool const&, bool const&) { return true; });
 
-    StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
-                    static_cast<StorageIndexSigned>(n_marked) };
+    StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < this->states_number_; ++i) {
         y = invgraph * x;
