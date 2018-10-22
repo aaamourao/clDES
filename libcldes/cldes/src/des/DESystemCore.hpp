@@ -139,7 +139,10 @@ template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
 DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
 {
-    StatesVector const invgraph = bit_graph_.transpose();
+    GraphHostData searchgraph{ this->states_number_, this->states_number_ };
+    searchgraph.setIdentity();
+    searchgraph += graph_;
+    StatesVector const invgraph{ searchgraph.template cast<bool>() };
 
     StorageIndexSigned const n_marked = this->marked_states_.size();
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
@@ -192,7 +195,10 @@ DESystem<NEvents, StorageIndex>::TrimStates() const
     }
 
     // invgraph is a matrix, but it is column major (CSC)
-    StatesVector const invgraph = bit_graph_.transpose();
+    GraphHostData searchgraph{ this->states_number_, this->states_number_ };
+    searchgraph.setIdentity();
+    searchgraph += graph_;
+    StatesVector const invgraph{ searchgraph.template cast<bool>() };
 
     // auto const n_marked = this->marked_states_.size();
 
@@ -507,6 +513,10 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
   std::vector<StorageIndex> const* const aStatesMap) const
 {
     auto n_initial_nodes = aHostX.cols();
+    GraphHostData searchgraph{ this->states_number_, this->states_number_ };
+    searchgraph.setIdentity();
+    searchgraph += graph_;
+    StatesVector const invgraph{ searchgraph.template cast<bool>().transpose() };
 
     /*!
      * BFS on a Linear Algebra approach:
@@ -516,7 +526,7 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
                     static_cast<StorageIndexSigned>(n_initial_nodes) };
     auto n_accessed_states = 0l;
     for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
-        y = bit_graph_ * aHostX;
+        y = invgraph * aHostX;
 
         if (n_accessed_states == y.nonZeros()) {
             break;
