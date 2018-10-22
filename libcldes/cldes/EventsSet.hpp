@@ -69,7 +69,13 @@ public:
       : std::bitset<NEvents>{ val }
     {}
 
-    operator bool() { return this->any(); }
+    operator bool() const { return this->any(); }
+
+    EventsSet<NEvents>& operator+=(EventsSet<NEvents> const& value)
+    {
+        this |= value;
+        return *this;
+    }
 };
 
 /*! \brief Overload operator+ from base class
