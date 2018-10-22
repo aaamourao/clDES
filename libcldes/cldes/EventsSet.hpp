@@ -31,6 +31,7 @@
 #ifndef CLDES_EVENTSSET_HPP
 #define CLDES_EVENTSSET_HPP
 
+#include <Eigen/Core>
 #include <bitset>
 
 namespace cldes {
@@ -51,20 +52,90 @@ namespace cldes {
  * @param NEvents Number of events: max = 255
  */
 template<uint8_t NEvents>
-using EventsSet = std::bitset<NEvents>;
+class EventsSet : public std::bitset<NEvents>
+{
+public:
+    EventsSet<NEvents>() = default;
 
-} // namespace cldes
+    EventsSet<NEvents>(unsigned long val)
+      : std::bitset<NEvents>{ val }
+    {}
 
-namespace std {
+    EventsSet<NEvents>(EventsSet<NEvents> const& val)
+      : std::bitset<NEvents>{ val }
+    {}
+
+    EventsSet<NEvents>(std::bitset<NEvents> const& val)
+      : std::bitset<NEvents>{ val }
+    {}
+
+    operator bool() { return this->any(); }
+};
 
 /*! \brief Overload operator+ from base class
  */
-template<std::size_t size>
-inline bitset<size>
-operator+(bitset<size> const& aLhs, bitset<size> const& aRhs)
+template<uint8_t NEvents>
+inline EventsSet<NEvents>
+operator+(EventsSet<NEvents> const& aLhs, EventsSet<NEvents> const& aRhs)
 {
     return aLhs | aRhs;
 }
+
+template<uint8_t NEvents>
+inline const EventsSet<NEvents>&
+conj(const EventsSet<NEvents>& x)
+{
+    return x;
+}
+template<uint8_t NEvents>
+inline const EventsSet<NEvents>&
+real(const EventsSet<NEvents>& x)
+{
+    return x;
+}
+template<uint8_t NEvents>
+inline EventsSet<NEvents>
+imag(const EventsSet<NEvents>&)
+{
+    return 0;
+}
+template<uint8_t NEvents>
+inline EventsSet<NEvents>
+abs(const EventsSet<NEvents>& x)
+{
+    return x;
+}
+template<uint8_t NEvents>
+inline EventsSet<NEvents>
+abs2(const EventsSet<NEvents>& x)
+{
+    return x;
+}
+
+} // namespace cldes
+
+// Add eigen support to EventsSet scalar type
+namespace Eigen {
+template<uint8_t NEvents>
+struct NumTraits<cldes::EventsSet<NEvents>>
+  : GenericNumTraits<cldes::EventsSet<NEvents>>
+{
+    typedef cldes::EventsSet<NEvents> Real;
+    typedef cldes::EventsSet<NEvents> Integer;
+    typedef cldes::EventsSet<NEvents> Nested;
+
+    enum
+    {
+        IsComplex = 0,
+        IsInteger = 1,
+        IsSigned = 0,
+        RequireInitialization = 1,
+        ReadCost = 1,
+        // TODO: I'm not sure about the following params
+        AddCost = 3,
+        MulCost = 3
+    };
+};
 }
 
 #endif // CLDES_EVENTSSET_HPP
