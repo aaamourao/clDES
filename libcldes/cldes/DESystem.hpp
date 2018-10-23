@@ -493,19 +493,6 @@ private:
      */
     GraphHostData graph_;
 
-    /*! \brief Graph of bit represented by an adjacency matrix
-     * \details A sparse bit matrix which each non zero elem represents that a
-     * state has at least one transition to other state. It is used to calculate
-     * the accessible part, coaccessible part and trim operations efficiently.
-     * The matrix is also transposed and added to the identity in order to
-     * make the accessible part op more efficient:
-     * when calculating trim states, it is always necessary to calculate the
-     * accessible part first. It implies that the accessible part usually is
-     * calculated with a larger matrix. Adding the identity avoid to add two
-     * sparse matrices each bfs iteration, which is inneficient.
-     */
-    BitGraphHostData bit_graph_;
-
     /*! \brief Inverted graph shared pointer
      * \details Used for searching inverted transitions when necessary.
      * Keep it free whenever it is possible.

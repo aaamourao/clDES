@@ -55,26 +55,50 @@ template<uint8_t NEvents>
 class EventsSet : public std::bitset<NEvents>
 {
 public:
-    EventsSet<NEvents>() = default;
+    explicit EventsSet<NEvents>()
+      : std::bitset<NEvents>{} {};
 
-    EventsSet<NEvents>(unsigned long val)
-      : std::bitset<NEvents>{ val }
-    {}
-
-    EventsSet<NEvents>(EventsSet<NEvents> const& val)
+    explicit EventsSet<NEvents>(unsigned long const val)
       : std::bitset<NEvents>{ val }
     {}
 
     EventsSet<NEvents>(std::bitset<NEvents> const& val)
       : std::bitset<NEvents>{ val }
     {}
+    EventsSet<NEvents>(std::bitset<NEvents>& val)
+      : std::bitset<NEvents>{ val }
+    {}
 
-    operator bool() const { return this->any(); }
+    EventsSet<NEvents>(EventsSet<NEvents>&) = default;
+    EventsSet<NEvents>(EventsSet<NEvents> const&) = default;
+    EventsSet<NEvents>(EventsSet<NEvents>&&) = default;
+    ~EventsSet<NEvents>() = default;
+
+    EventsSet<NEvents>& operator=(EventsSet<NEvents>&) = default;
+    EventsSet<NEvents>& operator=(unsigned long const val)
+    {
+        std::bitset<NEvents>::operator=(val);
+        return *this;
+    }
+    EventsSet<NEvents>& operator=(EventsSet<NEvents> const&) = default;
+    EventsSet<NEvents>& operator=(EventsSet<NEvents>&&) = default;
 
     EventsSet<NEvents>& operator+=(EventsSet<NEvents> const& value)
     {
-        this |= value;
+        std::bitset<NEvents>::operator|=(value);
         return *this;
+    }
+
+    operator bool() const { return this->any(); }
+
+    bool operator!=(EventsSet<NEvents> const& value)
+    {
+        return std::bitset<NEvents>::operator!=(value);
+    }
+
+    bool operator==(EventsSet<NEvents> const& value)
+    {
+        return std::bitset<NEvents>::operator==(value);
     }
 };
 
@@ -118,6 +142,12 @@ abs2(const EventsSet<NEvents>& x)
     return x;
 }
 
+template<uint8_t NEvents>
+inline EventsSet<NEvents>
+sqrt(const EventsSet<NEvents>& x)
+{
+    return x;
+}
 } // namespace cldes
 
 // Add eigen support to EventsSet scalar type
@@ -133,13 +163,12 @@ struct NumTraits<cldes::EventsSet<NEvents>>
     enum
     {
         IsComplex = 0,
-        IsInteger = 1,
+        IsInteger = 0,
         IsSigned = 0,
         RequireInitialization = 1,
         ReadCost = 1,
-        // TODO: I'm not sure about the following params
-        AddCost = 3,
-        MulCost = 3
+        AddCost = 1,
+        MulCost = 1
     };
 };
 }

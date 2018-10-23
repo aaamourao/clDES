@@ -86,20 +86,13 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem()
 
     // Resize adj matrices
     sys_ptr_->graph_.resize(this->states_number_, this->states_number_);
-    sys_ptr_->bit_graph_.resize(this->states_number_, this->states_number_);
 
     // Move triplets to graph storage
     sys_ptr_->graph_.setFromTriplets(triplet_.begin(), triplet_.end());
-    sys_ptr_->bit_graph_.setFromTriplets(
-      bittriplet_.begin(), bittriplet_.end(), [](bool const&, bool const&) {
-          return true;
-      });
 
     triplet_.clear();
-    bittriplet_.clear();
 
     sys_ptr_->graph_.makeCompressed();
-    sys_ptr_->bit_graph_.makeCompressed();
 
     return *sys_ptr_;
 }

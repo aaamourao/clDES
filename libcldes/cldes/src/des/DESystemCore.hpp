@@ -44,10 +44,6 @@ DESystem<NEvents, StorageIndex>::DESystem()
     is_cache_outdated_ = false;
     this->marked_states_ = StatesSet{};
     graph_ = GraphHostData{};
-    bit_graph_ = BitGraphHostData{};
-
-    // Initialize bit_graph_ with identity for searching
-    bit_graph_.setIdentity();
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -66,16 +62,9 @@ DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
     // Resize graphs and do not preserve elements
     graph_ = GraphHostData{ static_cast<StorageIndexSigned>(aStatesNumber),
                             static_cast<StorageIndexSigned>(aStatesNumber) };
-    bit_graph_ =
-      BitGraphHostData{ static_cast<StorageIndexSigned>(aStatesNumber),
-                        static_cast<StorageIndexSigned>(aStatesNumber) };
-
-    // Initialize bit graph with Identity
-    bit_graph_.setIdentity();
 
     // Change graphs storage type to CSR
     graph_.makeCompressed();
-    bit_graph_.makeCompressed();
 
     // Reserve memory to make insertions efficient
     this->states_events_ = StatesEventsTable(aStatesNumber);
@@ -195,7 +184,8 @@ DESystem<NEvents, StorageIndex>::TrimStates() const
     }
 
     // invgraph is a matrix, but it is column major (CSC)
-    GraphHostData searchgraph{ this->states_number_, this->states_number_ };
+    GraphHostData searchgraph{ static_cast<long>(this->states_number_),
+                               static_cast<long>(this->states_number_) };
     searchgraph.setIdentity();
     searchgraph += graph_;
     StatesVector const invgraph{ searchgraph.template cast<bool>() };
@@ -261,8 +251,6 @@ DESystem<NEvents, StorageIndex>::Trim()
     this->states_number_ = trimstates.size();
     graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
                   static_cast<StorageIndexSigned>(this->states_number_));
-    bit_graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
-                      static_cast<StorageIndexSigned>(this->states_number_));
 
     if (this->states_events_.size() > 0) {
         this->states_events_.erase(this->states_events_.begin() +
@@ -288,10 +276,7 @@ DESystem<NEvents, StorageIndex>::Trim()
     }
 
     std::vector<Triplet> triplet;
-    std::vector<BitTriplet> bittriplet;
-
     triplet.reserve(sparcitypattern);
-    bittriplet.reserve(sparcitypattern);
 
     // Build new graph_ slice by slice
     {
@@ -306,7 +291,6 @@ DESystem<NEvents, StorageIndex>::Trim()
                     auto const col_id = statesmap[e.col()];
 
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
-                    bittriplet.push_back(BitTriplet(col_id, row_id, true));
                     this->events_ |= e.value();
                     if (this->states_events_.size() > 0) {
                         this->states_events_[row_id] |= e.value();
@@ -320,12 +304,7 @@ DESystem<NEvents, StorageIndex>::Trim()
 
     // Remove aditional space
     graph_.setFromTriplets(triplet.begin(), triplet.end());
-    bit_graph_.setFromTriplets(bittriplet.begin(),
-                               bittriplet.end(),
-                               [](bool const&, bool const&) { return true; });
-
     graph_.makeCompressed();
-    bit_graph_.makeCompressed();
 
     // Calculate new marked states
     auto const old_marked = this->marked_states_;
@@ -513,10 +492,13 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
   std::vector<StorageIndex> const* const aStatesMap) const
 {
     auto n_initial_nodes = aHostX.cols();
-    GraphHostData searchgraph{ this->states_number_, this->states_number_ };
+    GraphHostData searchgraph{ static_cast<long>(this->states_number_),
+                               static_cast<long>(this->states_number_) };
     searchgraph.setIdentity();
     searchgraph += graph_;
-    StatesVector const invgraph{ searchgraph.template cast<bool>().transpose() };
+    StatesVector const invgraph{
+        searchgraph.template cast<bool>().transpose()
+    };
 
     /*!
      * BFS on a Linear Algebra approach:

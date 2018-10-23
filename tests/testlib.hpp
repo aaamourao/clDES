@@ -28,6 +28,7 @@
  =========================================================================
 */
 
+#include "cldes/EventsSet.hpp"
 #include <Eigen/Sparse>
 #include <iostream>
 
@@ -47,11 +48,11 @@ ReadResult(T const& aOpResult, StringType const aHeader)
 }
 template<unsigned int NEvents, typename StorageIndex>
 using eigen_matrix =
-  Eigen::SparseMatrix<std::bitset<NEvents>, Eigen::RowMajor, StorageIndex>;
+  Eigen::SparseMatrix<cldes::EventsSet<NEvents>, Eigen::RowMajor, StorageIndex>;
 
 template<typename StringType, size_t NEvents, typename StorageIndex>
 std::string
-ReadResult(Eigen::SparseMatrix<std::bitset<NEvents>,
+ReadResult(Eigen::SparseMatrix<cldes::EventsSet<NEvents>,
                                Eigen::RowMajor,
                                StorageIndex> const& aOpResult,
            StringType const aHeader)

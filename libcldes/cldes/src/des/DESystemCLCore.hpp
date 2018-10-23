@@ -44,7 +44,10 @@ DESystemCL<NEvents, StorageIndex>::DESystemCL(
   DESystem<NEvents, StorageIndex>& aSys)
   : DESystemBase{ aSys.Size(), aSys.GetInitialState() }
 {
-    graph_ = aSys.bit_graph_.template cast<float>();
+    GraphHostData ident{ this->states_number_, this->states_number_ };
+    ident.setIdentity();
+    ident += graph_;
+    graph_ = ident.template cast<float>();
     this->marked_states_ = aSys.GetMarkedStates();
 }
 
