@@ -32,29 +32,13 @@
 #include <Eigen/Sparse>
 #include <iostream>
 
-template<typename T, typename StringType>
-std::string
-ReadResult(T const& aOpResult, StringType const aHeader)
-{
-    std::ostringstream result;
-
-    result << aHeader << ": ";
-    for (auto state : aOpResult) {
-        result << state << " ";
-    }
-    result << ">" << std::endl;
-
-    return result.str();
-}
-template<unsigned int NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 using eigen_matrix =
   Eigen::SparseMatrix<cldes::EventsSet<NEvents>, Eigen::RowMajor, StorageIndex>;
 
-template<typename StringType, size_t NEvents, typename StorageIndex>
+template<typename StringType, uint8_t NEvents, typename StorageIndex>
 std::string
-ReadResult(Eigen::SparseMatrix<cldes::EventsSet<NEvents>,
-                               Eigen::RowMajor,
-                               StorageIndex> const& aOpResult,
+ReadResult(eigen_matrix<NEvents, StorageIndex> const& aOpResult,
            StringType const aHeader)
 {
     std::ostringstream result;
@@ -65,6 +49,21 @@ ReadResult(Eigen::SparseMatrix<cldes::EventsSet<NEvents>,
             result << aOpResult.coeff(it1, it2).to_ulong() << " ";
         }
         result << std::endl;
+    }
+    result << ">" << std::endl;
+
+    return result.str();
+}
+
+template<typename T, typename StringType>
+std::string
+ReadResult(T const& aOpResult, StringType const aHeader)
+{
+    std::ostringstream result;
+
+    result << aHeader << ": ";
+    for (auto state : aOpResult) {
+        result << state << " ";
     }
     result << ">" << std::endl;
 

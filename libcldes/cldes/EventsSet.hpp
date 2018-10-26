@@ -33,6 +33,10 @@
 
 #include <Eigen/Core>
 #include <bitset>
+#include <istream>
+#include <memory>
+#include <ostream>
+#include <string>
 
 namespace cldes {
 
@@ -60,6 +64,28 @@ public:
 
     explicit EventsSet<NEvents>(unsigned long const val)
       : std::bitset<NEvents>{ val }
+    {}
+
+    template<class _CharT, class _Traits, class _Alloc>
+    explicit EventsSet<NEvents>(
+      std::basic_string<_CharT, _Traits, _Alloc> const& __s,
+      size_t __position = 0)
+      : std::bitset<NEvents>{ __s, __position } {};
+
+    template<class _CharT, class _Traits, class _Alloc>
+    EventsSet<NEvents>(const std::basic_string<_CharT, _Traits, _Alloc>& __s,
+                       size_t __position,
+                       size_t __n)
+      : std::bitset<NEvents>{ __s, __position, __n }
+    {}
+
+    template<typename _CharT>
+    explicit EventsSet<NEvents>(_CharT const* __str,
+                                typename std::basic_string<_CharT>::size_type
+                                  __n = std::basic_string<_CharT>::npos,
+                                _CharT __zero = _CharT('0'),
+                                _CharT __one = _CharT('1'))
+      : std::bitset<NEvents>{ __str, __n, __zero, __one }
     {}
 
     EventsSet<NEvents>(std::bitset<NEvents> const& val)
@@ -112,43 +138,67 @@ operator+(EventsSet<NEvents> const& aLhs, EventsSet<NEvents> const& aRhs)
 }
 
 template<uint8_t NEvents>
-inline const EventsSet<NEvents>&
-conj(const EventsSet<NEvents>& x)
+inline EventsSet<NEvents> const&
+conj(EventsSet<NEvents> const& x)
 {
     return x;
 }
 template<uint8_t NEvents>
-inline const EventsSet<NEvents>&
-real(const EventsSet<NEvents>& x)
+inline EventsSet<NEvents> const&
+real(EventsSet<NEvents> const& x)
 {
     return x;
 }
 template<uint8_t NEvents>
 inline EventsSet<NEvents>
-imag(const EventsSet<NEvents>&)
+imag(EventsSet<NEvents> const&)
 {
     return 0;
 }
 template<uint8_t NEvents>
 inline EventsSet<NEvents>
-abs(const EventsSet<NEvents>& x)
+abs(EventsSet<NEvents> const& x)
 {
     return x;
 }
 template<uint8_t NEvents>
 inline EventsSet<NEvents>
-abs2(const EventsSet<NEvents>& x)
+abs2(EventsSet<NEvents> const& x)
 {
     return x;
 }
 
 template<uint8_t NEvents>
 inline EventsSet<NEvents>
-sqrt(const EventsSet<NEvents>& x)
+sqrt(EventsSet<NEvents> const& x)
 {
     return x;
 }
 } // namespace cldes
+
+namespace std {
+
+template<class _CharT, class _Traits, uint8_t _Nb>
+std::basic_istream<_CharT, _Traits>&
+operator>>(std::basic_istream<_CharT, _Traits>& __is,
+           cldes::EventsSet<_Nb>& __x)
+{
+    std::shared_ptr<std::bitset<_Nb>> baseslice =
+      std::dynamic_pointer_cast<std::bitset<_Nb>>(__x);
+    return std::operator>>(__is, *baseslice);
+}
+
+template<class _CharT, class _Traits, uint8_t _Nb>
+std::basic_ostream<_CharT, _Traits>&
+operator<<(std::basic_ostream<_CharT, _Traits>& __os,
+           cldes::EventsSet<_Nb> const& __x)
+{
+    std::shared_ptr<std::bitset<_Nb>> baseslice =
+      std::dynamic_pointer_cast<std::bitset<_Nb>>(__x);
+    return std::operator<<(__os, *baseslice);
+}
+
+} // namespace std
 
 // Add eigen support to EventsSet scalar type
 namespace Eigen {
@@ -157,13 +207,13 @@ struct NumTraits<cldes::EventsSet<NEvents>>
   : GenericNumTraits<cldes::EventsSet<NEvents>>
 {
     typedef cldes::EventsSet<NEvents> Real;
-    typedef cldes::EventsSet<NEvents> Integer;
+    typedef cldes::EventsSet<NEvents> NonInteger;
     typedef cldes::EventsSet<NEvents> Nested;
 
     enum
     {
         IsComplex = 0,
-        IsInteger = 0,
+        IsInteger = 1,
         IsSigned = 0,
         RequireInitialization = 1,
         ReadCost = 1,

@@ -11,6 +11,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -29,7 +30,6 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/doc")
 # { OpenCL, Boost, Eigen3, Doxygen } packages are required
 if(NOT ${CMAKE_BUILD_TYPE} MATCHES doc)
     include(ExternalProject)
-    set (CMAKE_CXX_STANDARD 11)
 
     find_package(OpenCL 1.2 REQUIRED)
     find_package(Boost 1.58 REQUIRED)

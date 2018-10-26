@@ -46,11 +46,11 @@ ReadResult(T const& aOpResult, StringType const aHeader)
 
     return result.str();
 }
-template<unsigned int NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex>
 using eigen_matrix =
   Eigen::SparseMatrix<cldes::EventsSet<NEvents>, Eigen::RowMajor, StorageIndex>;
 
-template<typename StringType, size_t NEvents, typename StorageIndex>
+template<typename StringType, uint8_t NEvents, typename StorageIndex>
 std::string
 ReadResult(Eigen::SparseMatrix<cldes::EventsSet<NEvents>,
                                Eigen::RowMajor,

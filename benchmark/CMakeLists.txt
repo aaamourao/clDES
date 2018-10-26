@@ -1,3 +1,4 @@
+set (CMAKE_CXX_STANDARD 11)
 # Set output dir
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/benchmark)
 
