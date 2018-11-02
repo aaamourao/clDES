@@ -48,12 +48,13 @@ namespace cldes {
 /*! \class DESystemBase
  *  \brief A discrete-events system base abstract class
  *  \details DESystemBase implements discrete-events interface and
- *  its basic properties.
+ *  its basic properties. It is implemented using CRTP pattern, static
+ *  polymorphism, for the sake of speed.
  *
  * \tparam NEvents Number of events
  * \tparam StorageIndex Unsigned type use for indexing the ajacency matrix
  */
-template<uint8_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 class DESystemBase
 {
 public:
@@ -78,33 +79,6 @@ public:
      *  state represented by the vector index contains.
      */
     using StatesEventsTable = std::vector<EventsSet<NEvents>>;
-
-    /*! \brief DESystem constructor
-     * \details Create a system with the defined params.
-     *
-     * @param aStatesNumber Number of states of the system
-     * @param aInitState System's initial state
-     */
-    DESystemBase(StorageIndex const& aStatesNumber,
-                 StorageIndex const& aInitState);
-
-    /*! \brief Default constructor
-     * \details Creates an empty system with 0 states and initial
-     * states 0. Marked states is undefined.
-     *
-     */
-    DESystemBase();
-
-    /*! \brief DESystem destructor
-     * \details It is virtual for avoiding issues with polymorphism and memory
-     * leaks.
-     */
-    virtual ~DESystemBase() = default;
-
-    /*! \brief Move constructor
-     * \details Enable move semantics.
-     */
-    DESystemBase(DESystemBase&&) = default;
 
     /*! \brief Copy constructor
      * \details Need to define this to enable copy by reference.
@@ -251,69 +225,66 @@ public:
      *
      * \return Boolean with the answer. It is true or false, not 42.
      */
-    virtual bool IsVirtual() const = 0;
+    bool IsVirtual() const;
 
     /*! \brief Clone method to enable poliphormism
      *
      * \return shared pointer of type base to the system
      */
-    virtual std::shared_ptr<DESystemBase> Clone() const = 0;
+    std::shared_ptr<DESystemBase> Clone() const;
 
     /*! \brief Returns true if DES transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    virtual bool ContainsTrans(StorageIndex const& aQ,
-                               ScalarType const& aEvent) const = 0;
+    bool ContainsTrans(StorageIndex const& aQ, ScalarType const& aEvent) const;
 
     /*! \brief Returns DES transition: q_to = f(q, e)
      *
      * @param aQ State
      * @param aEvent Event
      */
-    virtual StorageIndexSigned Trans(StorageIndex const& aQ,
-                                     ScalarType const& aEvent) const = 0;
+    StorageIndexSigned Trans(StorageIndex const& aQ,
+                             ScalarType const& aEvent) const;
 
     /*! \brief Returns true if DES inverse transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    virtual bool ContainsInvTrans(StorageIndex const& aQ,
-                                  ScalarType const& aEvent) const = 0;
+    bool ContainsInvTrans(StorageIndex const& aQ,
+                          ScalarType const& aEvent) const;
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
      *
      * @param aQfrom State
      * @param aEvent Event
      */
-    virtual StatesArray<StorageIndex> InvTrans(
-      StorageIndex const& aQfrom,
-      ScalarType const& aEvent) const = 0;
+    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
+                                       ScalarType const& aEvent) const;
 
     /*! \brief Returns EventsSet relative to state q
      *
      * @param aQ A state on the sys
      */
-    virtual EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const = 0;
+    EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const;
 
     /*! \brief Returns EventsSet relative to state inv q
      *
      * @param aQ A state on the sys
      */
-    virtual EventsSet<NEvents> GetInvStateEvents(
-      StorageIndex const& aQ) const = 0;
+    EventsSet<NEvents> GetInvStateEvents(StorageIndex const& aQ) const;
 
     /*! \brief Invert graph
      *
      */
-    virtual void AllocateInvertedGraph() const = 0;
+    void AllocateInvertedGraph() const;
 
     /*! \brief Free inverted graph
      *
      */
-    virtual void ClearInvertedGraph() const = 0;
+    void ClearInvertedGraph() const;
 
 protected:
     /*! \brief Current system's states number
@@ -353,6 +324,41 @@ protected:
      * synthesis.
      */
     StatesEventsTable inv_states_events_;
+
+private:
+    /*! \brief Derived class is a friend
+     *
+     * It avoids some issues with CRTP pattern. Constructors should be private,
+     * so only friend classes, aka derived classes, are allowed to call them.
+     */
+    friend RealDESystem;
+
+    /*! \brief DESystem constructor
+     * \details Create a system with the defined params.
+     *
+     * @param aStatesNumber Number of states of the system
+     * @param aInitState System's initial state
+     */
+    DESystemBase(StorageIndex const& aStatesNumber,
+                 StorageIndex const& aInitState);
+
+    /*! \brief Default constructor
+     * \details Creates an empty system with 0 states and initial
+     * states 0. Marked states is undefined.
+     *
+     */
+    DESystemBase();
+
+    /*! \brief DESystem destructor
+     * \details It is virtual for avoiding issues with polymorphism and memory
+     * leaks.
+     */
+    virtual ~DESystemBase() = default;
+
+    /*! \brief Move constructor
+     * \details Enable move semantics.
+     */
+    DESystemBase(DESystemBase&&) = default;
 };
 }
 

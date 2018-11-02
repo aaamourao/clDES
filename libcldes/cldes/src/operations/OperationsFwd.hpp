@@ -66,7 +66,7 @@ using StatesStack = std::stack<StorageIndex>;
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
 template<uint8_t NEvents, typename StorageIndex>
-using Node = std::shared_ptr<DESystemBase<NEvents, StorageIndex>>;
+using Node = std::shared_ptr<DESystemBase<NEvents, StorageIndex, SyncSysProxy<NEvents, StorageIndex>>>;
 
 template<uint8_t NEvents, typename StorageIndex>
 using RefNodes = std::vector<Node<NEvents, StorageIndex>>;

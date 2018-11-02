@@ -57,7 +57,10 @@ namespace op {
  * \tparam StorageIndex Unsigned type use for indexing the ajacency matrix
  */
 template<uint8_t NEvents, typename StorageIndex>
-class SuperProxy : public DESystemBase<NEvents, StorageIndex>
+class SuperProxy
+  : public DESystemBase<NEvents,
+                        StorageIndex,
+                        SuperProxy<NEvents, StorageIndex>>
 {
 public:
     /*! \brief Signed template parameter type for eigen indexes
@@ -67,7 +70,8 @@ public:
     /*! \brief Base alias
      * \details Alias to implicit speciallization of base class.
      */
-    using DESystemBase = DESystemBase<NEvents, StorageIndex>;
+    using DESystemBase =
+      DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>;
 
     /*! \brief Vector of states type
      * \details Vector containing states represented by unsigned indexes.
@@ -138,38 +142,41 @@ public:
      *
      * \return False, always.
      */
-    bool IsVirtual() const override;
+    bool isVirtual_impl() const;
 
     /*! \brief Clone method for polymorphic copy
      * \details Method for cloning on a polymorphic way.
      *
      * \return shared pointer to base.
      */
-    std::shared_ptr<DESystemBase> Clone() const override;
+    std::shared_ptr<cldes::DESystemBase<NEvents,
+                                        StorageIndex,
+                                        SuperProxy<NEvents, StorageIndex>>>
+    clone_impl() const;
 
     /*! \brief Returns true if DES transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsTrans(StorageIndex const& aQ,
-                       ScalarType const& aEvent) const override;
+    bool containsTrans_impl(StorageIndex const& aQ,
+                            ScalarType const& aEvent) const;
 
     /*! \brief Returns DES transition: q_to = f(q, e)
      *
      * @param aQ State
      * @param aEvent Event
      */
-    StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) const override;
+    StorageIndexSigned trans_impl(StorageIndex const& aQ,
+                                  ScalarType const& aEvent) const;
 
     /*! \brief Returns true if DES inverse transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsInvTrans(StorageIndex const& aQ,
-                          ScalarType const& aEvent) const override;
+    bool containsInvTrans_impl(StorageIndex const& aQ,
+                               ScalarType const& aEvent) const;
 
     /*! \brief Returns DES inverse transition
      * \details  q = f^-1(q_to, e)
@@ -177,8 +184,8 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQ,
-                                       ScalarType const& aEvent) const override;
+    StatesArray<StorageIndex> invTrans_impl(StorageIndex const& aQ,
+                                            ScalarType const& aEvent) const;
 
     void Trim();
 
@@ -202,14 +209,14 @@ public:
      * @param aQ A state on the sys
      * \return Bit set with events of state events
      */
-    EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const override;
+    EventsSet<NEvents> getStateEvents_impl(StorageIndex const& aQ) const;
 
     /*! \brief Get inverse events that a state contains
      *
      * @param aQ A state on the sys
      * \return Bit set with events index set to true
      */
-    EventsSet<NEvents> GetInvStateEvents(StorageIndex const& aQ) const override;
+    EventsSet<NEvents> getInvStateEvents_impl(StorageIndex const& aQ) const;
 
     /*! \brief Invert graph
      * \details This is used on some operations... it can be very inneficient
@@ -218,12 +225,12 @@ public:
      *
      * \return void
      */
-    void AllocateInvertedGraph() const override;
+    void allocateInvertedGraph_impl() const;
 
     /*! \brief Free inverted graph
      * \details It is const, since it changes only a mutable member
      */
-    void ClearInvertedGraph() const override;
+    void clearInvertedGraph_impl() const;
 
 protected:
     /*! \brief Monolithic supervisor synthesis

@@ -42,9 +42,14 @@ op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
   DESystemBase const& aPlant,
   DESystemBase const& aSpec,
   EventsTableHost const& aNonContr)
-  : DESystemBase{ aPlant.GetStatesNumber() * aSpec.GetStatesNumber(),
-                  aSpec.GetInitialState() * aPlant.GetStatesNumber() +
-                    aPlant.GetInitialState() }
+  : cldes::DESystemBase<
+      NEvents,
+      StorageIndex,
+      op::SuperProxy<NEvents, StorageIndex>>{ aPlant.GetStatesNumber() *
+                                                aSpec.GetStatesNumber(),
+                                              aSpec.GetInitialState() *
+                                                  aPlant.GetStatesNumber() +
+                                                aPlant.GetInitialState() }
   , sys0_{ aPlant }
   , sys1_{ aSpec }
 {
@@ -189,23 +194,26 @@ op::SuperProxy<NEvents, StorageIndex>::operator DESystem() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SuperProxy<NEvents, StorageIndex>::IsVirtual() const
+op::SuperProxy<NEvents, StorageIndex>::isVirtual_impl() const
 {
     return true;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<DESystemBase<NEvents, StorageIndex>>
-op::SuperProxy<NEvents, StorageIndex>::Clone() const
+std::shared_ptr<
+  DESystemBase<NEvents, StorageIndex, op::SuperProxy<NEvents, StorageIndex>>>
+op::SuperProxy<NEvents, StorageIndex>::clone_impl() const
 {
-    std::shared_ptr<DESystemBase> this_ptr =
-      std::make_shared<SuperProxy>(*this);
+    std::shared_ptr<cldes::DESystemBase<NEvents,
+                                        StorageIndex,
+                                        SuperProxy<NEvents, StorageIndex>>>
+      this_ptr = std::make_shared<SuperProxy>(*this);
     return this_ptr;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SuperProxy<NEvents, StorageIndex>::ContainsTrans(
+op::SuperProxy<NEvents, StorageIndex>::containsTrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -231,8 +239,9 @@ op::SuperProxy<NEvents, StorageIndex>::ContainsTrans(
 
 template<uint8_t NEvents, typename StorageIndex>
 typename op::SuperProxy<NEvents, StorageIndex>::StorageIndexSigned
-op::SuperProxy<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
-                                             ScalarType const& aEvent) const
+op::SuperProxy<NEvents, StorageIndex>::trans_impl(
+  StorageIndex const& aQ,
+  ScalarType const& aEvent) const
 {
     if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
         return -1;
@@ -265,7 +274,7 @@ op::SuperProxy<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SuperProxy<NEvents, StorageIndex>::ContainsInvTrans(
+op::SuperProxy<NEvents, StorageIndex>::containsInvTrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -291,8 +300,9 @@ op::SuperProxy<NEvents, StorageIndex>::ContainsInvTrans(
 
 template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
-op::SuperProxy<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
-                                                ScalarType const& aEvent) const
+op::SuperProxy<NEvents, StorageIndex>::invTrans_impl(
+  StorageIndex const& aQ,
+  ScalarType const& aEvent) const
 {
     StatesArray<StorageIndex> inv_transitions;
 
@@ -348,7 +358,7 @@ op::SuperProxy<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-op::SuperProxy<NEvents, StorageIndex>::GetStateEvents(
+op::SuperProxy<NEvents, StorageIndex>::getStateEvents_impl(
   StorageIndex const& aQ) const
 {
     auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
@@ -362,7 +372,7 @@ op::SuperProxy<NEvents, StorageIndex>::GetStateEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-op::SuperProxy<NEvents, StorageIndex>::GetInvStateEvents(
+op::SuperProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
   StorageIndex const& aQ) const
 {
     auto const state_event_0 = sys0_.GetInvStateEvents(aQ % n_states_sys0_);
@@ -376,7 +386,7 @@ op::SuperProxy<NEvents, StorageIndex>::GetInvStateEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SuperProxy<NEvents, StorageIndex>::AllocateInvertedGraph() const
+op::SuperProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
 {
     sys0_.AllocateInvertedGraph();
     sys1_.AllocateInvertedGraph();
@@ -384,7 +394,7 @@ op::SuperProxy<NEvents, StorageIndex>::AllocateInvertedGraph() const
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SuperProxy<NEvents, StorageIndex>::ClearInvertedGraph() const
+op::SuperProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const
 {
     sys0_.ClearInvertedGraph();
     sys1_.ClearInvertedGraph();
@@ -402,12 +412,12 @@ op::SuperProxy<NEvents, StorageIndex>::Trim()
             auto const q = f.top();
             f.pop();
             trimmed_virtual_states.insert(q);
-            auto const q_events = GetInvStateEvents(q);
+            auto const q_events = this->GetInvStateEvents(q);
             cldes::ScalarType event = 0;
             auto event_it = q_events;
             while (event_it.any()) {
                 if (event_it.test(0)) {
-                    auto const fsqelist = InvTrans(q, event);
+                    auto const fsqelist = this->InvTrans(q, event);
                     for (auto fsqe : fsqelist) {
                         if (virtual_states_.contains(fsqe)) {
                             if (!trimmed_virtual_states.contains(fsqe)) {

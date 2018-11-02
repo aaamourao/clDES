@@ -35,10 +35,10 @@
 namespace cldes {
 namespace op {
 
-template<uint8_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex, class TSys0>
 DESystem<NEvents, StorageIndex>
-Synchronize(DESystemBase<NEvents, StorageIndex> const& aSys0,
-            DESystemBase<NEvents, StorageIndex> const& aSys1)
+Synchronize(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
+            DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1)
 {
     DESystem<NEvents, StorageIndex> sys = DESystem<NEvents, StorageIndex>(
       SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 });
@@ -46,10 +46,10 @@ Synchronize(DESystemBase<NEvents, StorageIndex> const& aSys0,
     return sys;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<uint8_t NEvents, typename StorageIndex, class TSys0>
 SyncSysProxy<NEvents, StorageIndex>
-SynchronizeStage1(DESystemBase<NEvents, StorageIndex> const& aSys0,
-                  DESystemBase<NEvents, StorageIndex> const& aSys1)
+SynchronizeStage1(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
+                  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1)
 {
     return SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 };
 }
@@ -258,9 +258,12 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
 
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
-                DESystemBase<NEvents, StorageIndex> const& aE,
-                EventsTableHost const& aNonContr)
+SupervisorSynth(
+  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+    aP,
+  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+    aE,
+  EventsTableHost const& aNonContr)
 {
     // Define new systems params: Stage1 is not necessary
     SyncSysProxy<NEvents, StorageIndex> virtualsys{ aP, aE };
@@ -274,7 +277,7 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
     for (cldes::ScalarType event : aNonContr) {
         if (aP.GetEvents().test(event)) {
             p_non_contr_bit.set(event);
-            if (virtualsys.events_.test(event)) {
+            if (virtualsys.GetEvents().test(event)) {
                 non_contr_bit.set(event);
             }
         }
@@ -288,7 +291,7 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
     StatesStack<StorageIndex> f;
 
     // Initialize f and ftable with the initial state
-    f.push(virtualsys.init_state_);
+    f.push(virtualsys.GetInitialState());
 
     // Allocate inverted graph, since we are search for inverse transitions
     virtualsys.AllocateInvertedGraph();
@@ -357,62 +360,62 @@ SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
     return sys;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-BinExprTree<NEvents, StorageIndex>
-GenBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems)
-{
-    using SyncSysProxy = SyncSysProxy<NEvents, StorageIndex>;
-    using DESystemBase = DESystemBase<NEvents, StorageIndex>;
-    using DESystem = DESystem<NEvents, StorageIndex>;
-
-    std::vector<std::shared_ptr<DESystemBase>> sys;
-    std::vector<std::shared_ptr<DESystemBase>> nodes_ref;
-
-    for (auto s : aSystems) { // initialize tree
-        auto node = std::make_shared<DESystem>(s);
-        sys.push_back(node);
-        nodes_ref.push_back(node);
-    }
-    while (sys.size() != 1) {
-        auto cp_sys = std::move(sys);
-        if (cp_sys.size() % 2 != 0) {
-            std::shared_ptr<DESystemBase> node =
-              cp_sys.back(); // node is a shared ptr
-            cp_sys.pop_back();
-            sys.push_back(node);
-        }
-        size_t processed_nodes = 0ul;
-        while (!cp_sys.empty()) { // So it has even number of items
-            std::shared_ptr<DESystemBase> lhs = cp_sys.back();
-            cp_sys.pop_back();
-            std::shared_ptr<DESystemBase> rhs = cp_sys.back();
-            cp_sys.pop_back();
-            std::shared_ptr<DESystemBase> node =
-              std::make_shared<SyncSysProxy>(SyncSysProxy{ *lhs, *rhs });
-            nodes_ref.push_back(node);
-            sys.push_back(node);
-            processed_nodes += 2;
-        }
-    }
-    return std::make_pair(sys[0], nodes_ref);
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-DESystem<NEvents, StorageIndex>
-SupervisorSynth(DESVector<NEvents, StorageIndex> const& aPlants,
-                DESVector<NEvents, StorageIndex> const& aSpecs,
-                EventsTableHost const& aNonContr)
-{
-    using BinExprTree = BinExprTree<NEvents, StorageIndex>;
-
-    BinExprTree plant = GenBinExprTree(aPlants);
-    BinExprTree spec = GenBinExprTree(aSpecs);
-
-    auto const supervisor = SupervisorSynth<NEvents, StorageIndex>(
-      *(plant.first), *(spec.first), aNonContr);
-
-    return supervisor;
-}
+// template<uint8_t NEvents, typename StorageIndex>
+// BinExprTree<NEvents, StorageIndex>
+// GenBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems)
+// {
+//     using SyncSysProxy = SyncSysProxy<NEvents, StorageIndex>;
+//     using DESystemBase = DESystemBase<NEvents, StorageIndex, SyncSysProxy>;
+//     using DESystem = DESystem<NEvents, StorageIndex>;
+//
+//     std::vector<std::shared_ptr<DESystemBase>> sys;
+//     std::vector<std::shared_ptr<DESystemBase>> nodes_ref;
+//
+//     for (auto s : aSystems) { // initialize tree
+//         auto node = std::make_shared<DESystem>(s);
+//         sys.push_back(node);
+//         nodes_ref.push_back(node);
+//     }
+//     while (sys.size() != 1) {
+//         auto cp_sys = std::move(sys);
+//         if (cp_sys.size() % 2 != 0) {
+//             std::shared_ptr<DESystemBase> node =
+//               cp_sys.back(); // node is a shared ptr
+//             cp_sys.pop_back();
+//             sys.push_back(node);
+//         }
+//         size_t processed_nodes = 0ul;
+//         while (!cp_sys.empty()) { // So it has even number of items
+//             std::shared_ptr<DESystemBase> lhs = cp_sys.back();
+//             cp_sys.pop_back();
+//             std::shared_ptr<DESystemBase> rhs = cp_sys.back();
+//             cp_sys.pop_back();
+//             std::shared_ptr<DESystemBase> node =
+//               std::make_shared<SyncSysProxy>(SyncSysProxy{ *lhs, *rhs });
+//             nodes_ref.push_back(node);
+//             sys.push_back(node);
+//             processed_nodes += 2;
+//         }
+//     }
+//     return std::make_pair(sys[0], nodes_ref);
+// }
+//
+// template<uint8_t NEvents, typename StorageIndex>
+// DESystem<NEvents, StorageIndex>
+// SupervisorSynth(DESVector<NEvents, StorageIndex> const& aPlants,
+//                 DESVector<NEvents, StorageIndex> const& aSpecs,
+//                 EventsTableHost const& aNonContr)
+// {
+//     using BinExprTree = BinExprTree<NEvents, StorageIndex>;
+//
+//     BinExprTree plant = GenBinExprTree(aPlants);
+//     BinExprTree spec = GenBinExprTree(aSpecs);
+//
+//     auto const supervisor = SupervisorSynth<NEvents, StorageIndex>(
+//       *(plant.first), *(spec.first), aNonContr);
+//
+//     return supervisor;
+// }
 
 } // namespace op
 } // namespace cldes

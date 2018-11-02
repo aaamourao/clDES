@@ -77,8 +77,9 @@ DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<DESystemBase<NEvents, StorageIndex>>
-DESystem<NEvents, StorageIndex>::Clone() const
+std::shared_ptr<
+  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>>
+DESystem<NEvents, StorageIndex>::clone_impl() const
 {
     std::shared_ptr<DESystemBase> this_ptr = std::make_shared<DESystem>(*this);
     return this_ptr;
@@ -86,7 +87,7 @@ DESystem<NEvents, StorageIndex>::Clone() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystem<NEvents, StorageIndex>::IsVirtual() const
+DESystem<NEvents, StorageIndex>::isVirtual_impl() const
 {
     return false;
 }
@@ -234,7 +235,7 @@ DESystem<NEvents, StorageIndex>::TrimStates() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-DESystemBase<NEvents, StorageIndex>&
+DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>&
 DESystem<NEvents, StorageIndex>::Trim()
 {
     auto trimstates = this->TrimStates();
@@ -327,16 +328,17 @@ DESystem<NEvents, StorageIndex>::InsertEvents(EventsSet const& aEvents)
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystem<NEvents, StorageIndex>::ContainsTrans(StorageIndex const& aQ,
-                                               ScalarType const& aEvent) const
+DESystem<NEvents, StorageIndex>::containsTrans_impl(
+  StorageIndex const& aQ,
+  ScalarType const& aEvent) const
 {
     return this->states_events_[aQ].test(aEvent);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StorageIndexSigned
-DESystem<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
-                                       ScalarType const& aEvent) const
+DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
+                                            ScalarType const& aEvent) const
 {
     using RowIterator = Eigen::InnerIterator<
       DESystem<NEvents, StorageIndex>::GraphHostData const>;
@@ -357,7 +359,7 @@ DESystem<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystem<NEvents, StorageIndex>::ContainsInvTrans(
+DESystem<NEvents, StorageIndex>::containsInvTrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -366,8 +368,8 @@ DESystem<NEvents, StorageIndex>::ContainsInvTrans(
 
 template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
-DESystem<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
-                                          ScalarType const& aEvent) const
+DESystem<NEvents, StorageIndex>::invTrans_impl(StorageIndex const& aQ,
+                                               ScalarType const& aEvent) const
 {
     StatesArray<StorageIndex> inv_trans;
 
@@ -387,28 +389,30 @@ DESystem<NEvents, StorageIndex>::InvTrans(StorageIndex const& aQ,
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-DESystem<NEvents, StorageIndex>::GetStateEvents(StorageIndex const& aQ) const
+DESystem<NEvents, StorageIndex>::getStateEvents_impl(
+  StorageIndex const& aQ) const
 {
     return this->states_events_[aQ];
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-DESystem<NEvents, StorageIndex>::GetInvStateEvents(StorageIndex const& aQ) const
+DESystem<NEvents, StorageIndex>::getInvStateEvents_impl(
+  StorageIndex const& aQ) const
 {
     return this->inv_states_events_[aQ];
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::AllocateInvertedGraph() const
+DESystem<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
 {
     inv_graph_ = std::make_shared<GraphHostData>(graph_.transpose());
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::ClearInvertedGraph() const
+DESystem<NEvents, StorageIndex>::clearInvertedGraph_impl() const
 {
     inv_graph_ = nullptr;
 }

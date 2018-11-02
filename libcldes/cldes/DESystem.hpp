@@ -69,13 +69,15 @@ namespace cldes {
  * \tparam StorageIndex Unsigned type used for indexing the ajacency matrix
  */
 template<uint8_t NEvents, typename StorageIndex>
-class DESystem : public DESystemBase<NEvents, StorageIndex>
+class DESystem
+  : public DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>
 {
 public:
     /*! \brief Base alias
      * \details Alias to base class with implicit template params
      */
-    using DESystemBase = DESystemBase<NEvents, StorageIndex>;
+    using DESystemBase =
+      DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>;
 
     /*! \brief StorageIndex signed type
      * \details Eigen uses signed indexes
@@ -212,7 +214,7 @@ public:
     /*! \brief Clone method for polymorphic copy
      *  \return Shared pointer to this object
      */
-    std::shared_ptr<DESystemBase> Clone() const override;
+    std::shared_ptr<DESystemBase> clone_impl() const;
 
     /*! \brief Check if this system is a virtual proxy
      *
@@ -224,7 +226,7 @@ public:
      *
      *  \return True: DESystem is always a real object
      */
-    bool IsVirtual() const override;
+    bool isVirtual_impl() const;
 
     /*! \brief Graph getter
      *
@@ -317,8 +319,8 @@ public:
      * @param aEvent Event
      * \return Returns true if DES transition exists, false otherwise
      */
-    bool ContainsTrans(StorageIndex const& aQ,
-                       ScalarType const& aEvent) const override;
+    bool containsTrans_impl(StorageIndex const& aQ,
+                            ScalarType const& aEvent) const;
 
     /*! \brief Transition function
      * \details given a transition f(q, e) = qto, it
@@ -328,8 +330,8 @@ public:
      * @param aEvent Event
      * \return The state where the transition leads or -1 when it is empty
      */
-    StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) const override;
+    StorageIndexSigned trans_impl(StorageIndex const& aQ,
+                                  ScalarType const& aEvent) const;
 
     /*! \brief Check if the current system contains at least one inverse
      * transition
@@ -340,8 +342,8 @@ public:
      * @param aEvent Event
      * \return True if DES inverse transition exists, false otherwise
      */
-    bool ContainsInvTrans(StorageIndex const& aQ,
-                          ScalarType const& aEvent) const override;
+    bool containsInvTrans_impl(StorageIndex const& aQ,
+                               ScalarType const& aEvent) const;
 
     /*! \brief DES Inverse Transition function
      * \warning This method requires to run AllocateInvGraph previously. It
@@ -353,8 +355,8 @@ public:
      * \return DES states array containing the inverse transition.
      * It may be empty, if there is none.
      */
-    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQ,
-                                       ScalarType const& aEvent) const override;
+    StatesArray<StorageIndex> invTrans_impl(StorageIndex const& aQ,
+                                            ScalarType const& aEvent) const;
 
     /*! \brief Get events of all transitions of a specific state
      * \details Since this is information is stored on a vector on concrete
@@ -363,7 +365,7 @@ public:
      * @param aQ A state on the sys
      * \return Returns EventsSet relative to state q
      */
-    EventsSet GetStateEvents(StorageIndex const& aQ) const override;
+    EventsSet getStateEvents_impl(StorageIndex const& aQ) const;
 
     /*! \brief Get events of all transitions that lead to a specific state
      * \details Since this is information is stored on a vector on concrete
@@ -372,7 +374,7 @@ public:
      * @param aQ A state on the sys
      * \return Returns EventsSet relative to inverse transitions of the state q
      */
-    EventsSet GetInvStateEvents(StorageIndex const& aQ) const override;
+    EventsSet getInvStateEvents_impl(StorageIndex const& aQ) const;
 
     /*! \brief Invert graph
      * \details This is used in the monolithic supervisor synthesis. It needs
@@ -382,7 +384,7 @@ public:
      *
      * \return void
      */
-    void AllocateInvertedGraph() const override;
+    void allocateInvertedGraph_impl() const;
 
     /*! \brief Free inverted graph
      * It is const, since it changes only a mutable member
@@ -391,7 +393,7 @@ public:
      *
      * \return void
      */
-    void ClearInvertedGraph() const override;
+    void clearInvertedGraph_impl() const;
 
 protected:
     /*! \brief Method for caching the graph

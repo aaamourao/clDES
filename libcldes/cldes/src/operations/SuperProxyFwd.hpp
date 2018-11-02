@@ -49,8 +49,8 @@ using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-SupervisorSynth(DESystemBase<NEvents, StorageIndex> const& aP,
-                DESystemBase<NEvents, StorageIndex> const& aE,
+SupervisorSynth(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const& aP,
+                DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const& aE,
                 EventsTableHost const& aNonContr);
 
 }

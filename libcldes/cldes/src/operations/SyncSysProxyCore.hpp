@@ -40,9 +40,14 @@ namespace cldes {
 template<uint8_t NEvents, typename StorageIndex>
 op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
                                                       DESystemBase const& aSys1)
-  : DESystemBase{ aSys0.GetStatesNumber() * aSys1.GetStatesNumber(),
-                  aSys1.GetInitialState() * aSys0.GetStatesNumber() +
-                    aSys0.GetInitialState() }
+  : cldes::DESystemBase<
+      NEvents,
+      StorageIndex,
+      op::SyncSysProxy<NEvents, StorageIndex>>{ aSys0.GetStatesNumber() *
+                                                  aSys1.GetStatesNumber(),
+                                                aSys1.GetInitialState() *
+                                                    aSys0.GetStatesNumber() +
+                                                  aSys0.GetInitialState() }
   , sys0_{ aSys0 }
   , sys1_{ aSys1 }
 {
@@ -106,14 +111,15 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SyncSysProxy<NEvents, StorageIndex>::IsVirtual() const
+op::SyncSysProxy<NEvents, StorageIndex>::isVirtual_impl() const
 {
     return true;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<DESystemBase<NEvents, StorageIndex>>
-op::SyncSysProxy<NEvents, StorageIndex>::Clone() const
+std::shared_ptr<
+  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>>
+op::SyncSysProxy<NEvents, StorageIndex>::clone_impl() const
 {
     std::shared_ptr<DESystemBase> this_ptr =
       std::make_shared<SyncSysProxy>(*this);
@@ -122,7 +128,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::Clone() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SyncSysProxy<NEvents, StorageIndex>::ContainsTrans(
+op::SyncSysProxy<NEvents, StorageIndex>::containsTrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -148,8 +154,9 @@ op::SyncSysProxy<NEvents, StorageIndex>::ContainsTrans(
 
 template<uint8_t NEvents, typename StorageIndex>
 typename op::SyncSysProxy<NEvents, StorageIndex>::StorageIndexSigned
-op::SyncSysProxy<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
-                                               ScalarType const& aEvent) const
+op::SyncSysProxy<NEvents, StorageIndex>::trans_impl(
+  StorageIndex const& aQ,
+  ScalarType const& aEvent) const
 {
     if (!this->events_.test(aEvent)) {
         return -1;
@@ -182,7 +189,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::Trans(StorageIndex const& aQ,
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SyncSysProxy<NEvents, StorageIndex>::ContainsInvTrans(
+op::SyncSysProxy<NEvents, StorageIndex>::containsInvTrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -208,7 +215,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::ContainsInvTrans(
 
 template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
-op::SyncSysProxy<NEvents, StorageIndex>::InvTrans(
+op::SyncSysProxy<NEvents, StorageIndex>::invTrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -266,7 +273,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::InvTrans(
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-op::SyncSysProxy<NEvents, StorageIndex>::GetStateEvents(
+op::SyncSysProxy<NEvents, StorageIndex>::getStateEvents_impl(
   StorageIndex const& aQ) const
 {
     auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
@@ -280,7 +287,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::GetStateEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-op::SyncSysProxy<NEvents, StorageIndex>::GetInvStateEvents(
+op::SyncSysProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
   StorageIndex const& aQ) const
 {
     auto const state_event_0 = sys0_.GetInvStateEvents(aQ % n_states_sys0_);
@@ -294,7 +301,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::GetInvStateEvents(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SyncSysProxy<NEvents, StorageIndex>::AllocateInvertedGraph() const
+op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
 {
     sys0_.AllocateInvertedGraph();
     sys1_.AllocateInvertedGraph();
@@ -302,7 +309,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::AllocateInvertedGraph() const
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SyncSysProxy<NEvents, StorageIndex>::ClearInvertedGraph() const
+op::SyncSysProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const
 {
     sys0_.ClearInvertedGraph();
     sys1_.ClearInvertedGraph();
