@@ -2,7 +2,8 @@
 
 ## Introduction
 
-Efficient algorithms for **Discrete-Event Systems** modeled as **Automata**
+Efficient algorithms for **Discrete-Event Systems**, modeled as deterministic
+finite state automatons,
 operations targeting CPUs and GPGPU.
 A **Supervisor Synthesizer** algorithm is also available.
 
