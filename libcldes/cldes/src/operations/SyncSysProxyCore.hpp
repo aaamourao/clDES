@@ -110,8 +110,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-bool
-op::SyncSysProxy<NEvents, StorageIndex>::isVirtual_impl() const
+bool constexpr op::SyncSysProxy<NEvents, StorageIndex>::isVirtual_impl()
 {
     return true;
 }

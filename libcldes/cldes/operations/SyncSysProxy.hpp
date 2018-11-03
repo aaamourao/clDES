@@ -142,7 +142,7 @@ public:
      *
      * \return False, always.
      */
-    bool isVirtual_impl() const;
+    bool constexpr static isVirtual_impl();
 
     /*! \brief Clone method for polymorphic copy
      * \details Method for cloning on a polymorphic way.

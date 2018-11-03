@@ -225,7 +225,7 @@ public:
      *
      * \return Boolean with the answer. It is true or false, not 42.
      */
-    bool IsVirtual() const;
+    bool constexpr IsVirtual() const;
 
     /*! \brief Clone method to enable poliphormism
      *

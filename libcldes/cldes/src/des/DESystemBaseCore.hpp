@@ -184,8 +184,8 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::ContainsTrans(
 }
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-bool
-DESystemBase<NEvents, StorageIndex, RealDESystem>::IsVirtual() const
+bool constexpr DESystemBase<NEvents, StorageIndex, RealDESystem>::IsVirtual()
+  const
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.isVirtual_impl();

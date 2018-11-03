@@ -193,8 +193,7 @@ op::SuperProxy<NEvents, StorageIndex>::operator DESystem() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-bool
-op::SuperProxy<NEvents, StorageIndex>::isVirtual_impl() const
+bool constexpr op::SuperProxy<NEvents, StorageIndex>::isVirtual_impl()
 {
     return true;
 }
