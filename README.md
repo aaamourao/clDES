@@ -2,9 +2,9 @@
 
 ## Introduction
 
-  C++14/*OpenCL 1.2* library for **Discrete-Event Systems** modeled as **Automata**
-and their operations on a **parallel programming approach** . A
-**Supervisor Synthesizer** parallel algorithm is also available.
+Efficient algorithms for **Discrete-Event Systems** modeled as **Automata**
+operations targeting CPUs and GPGPU.
+A **Supervisor Synthesizer** algorithm is also available.
 
 ## Implementation
 
@@ -25,7 +25,7 @@ Automata operation | Implementation
 -------------------|----------------
 Accessible part | `cldes::DESystem<NEvents, StorageIndex>::accessiblePart()`
 Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::coaccessiblePart()`
-Trim | `cldes::DESystemBase<NEvents, StorageIndex>::trim()` | **Implemented**
+Trim | `cldes::DESystemBase<NEvents, StorageIndex>::trim()`
 Synchronization: parallel composition | `cldes::op::synchronize<NEvents, StorageIndex>()`
 Controller Synthesis | `cldes::op::supervisorSynth<NEvents, StorageIndex>()`
 
