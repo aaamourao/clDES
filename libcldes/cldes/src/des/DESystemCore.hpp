@@ -77,40 +77,16 @@ DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>>
-DESystem<NEvents, StorageIndex>::clone_impl() const
-{
-    std::shared_ptr<DESystemBase> this_ptr = std::make_shared<DESystem>(*this);
-    return this_ptr;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-typename DESystem<NEvents, StorageIndex>::GraphHostData
-DESystem<NEvents, StorageIndex>::GetGraph() const
-{
-    return graph_;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-typename DESystem<NEvents, StorageIndex>::EventsSet const
-DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aQfrom,
-                                            StorageIndex const& aQto) const
-{
-    return graph_.coeff(aQfrom, aQto);
-}
-
-template<uint8_t NEvents, typename StorageIndex>
 TransitionProxy<NEvents, StorageIndex>
 DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aQfrom,
                                             StorageIndex const& aQto)
 {
-    return TransitionProxy<NEvents, StorageIndex>(this, aQfrom, aQto);
+    return TransitionProxy<NEvents, StorageIndex>(*this, aQfrom, aQto);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
-DESystem<NEvents, StorageIndex>::AccessiblePart() const
+DESystem<NEvents, StorageIndex>::AccessiblePart() const noexcept
 {
     // Executes a BFS on graph_
     auto accessible_states = Bfs_();
@@ -120,7 +96,7 @@ DESystem<NEvents, StorageIndex>::AccessiblePart() const
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
-DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
+DESystem<NEvents, StorageIndex>::CoaccessiblePart() const noexcept
 {
     GraphHostData searchgraph{ this->states_number_, this->states_number_ };
     searchgraph.setIdentity();
@@ -169,7 +145,7 @@ DESystem<NEvents, StorageIndex>::CoaccessiblePart() const
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
-DESystem<NEvents, StorageIndex>::TrimStates() const
+DESystem<NEvents, StorageIndex>::TrimStates() const noexcept
 {
     auto accpartstl = AccessiblePart();
     spp::sparse_hash_set<StorageIndex> accpart;
@@ -229,7 +205,7 @@ DESystem<NEvents, StorageIndex>::TrimStates() const
 
 template<uint8_t NEvents, typename StorageIndex>
 DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>&
-DESystem<NEvents, StorageIndex>::Trim()
+DESystem<NEvents, StorageIndex>::Trim() noexcept
 {
     auto trimstates = this->TrimStates();
 
@@ -314,7 +290,7 @@ DESystem<NEvents, StorageIndex>::Trim()
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::InsertEvents(EventsSet const& aEvents)
+DESystem<NEvents, StorageIndex>::InsertEvents(EventsSet const& aEvents) noexcept
 {
     this->events_ = EventsSet(aEvents);
 }
@@ -323,7 +299,7 @@ template<uint8_t NEvents, typename StorageIndex>
 bool
 DESystem<NEvents, StorageIndex>::containsTrans_impl(
   StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+  ScalarType const& aEvent) const noexcept
 {
     return this->states_events_[aQ].test(aEvent);
 }
@@ -332,6 +308,7 @@ template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StorageIndexSigned
 DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
                                             ScalarType const& aEvent) const
+  noexcept
 {
     using RowIterator = Eigen::InnerIterator<
       DESystem<NEvents, StorageIndex>::GraphHostData const>;
@@ -383,7 +360,7 @@ DESystem<NEvents, StorageIndex>::invTrans_impl(StorageIndex const& aQ,
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
 DESystem<NEvents, StorageIndex>::getStateEvents_impl(
-  StorageIndex const& aQ) const
+  StorageIndex const& aQ) const noexcept
 {
     return this->states_events_[aQ];
 }
@@ -398,28 +375,28 @@ DESystem<NEvents, StorageIndex>::getInvStateEvents_impl(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
+DESystem<NEvents, StorageIndex>::allocateInvertedGraph_impl() const noexcept
 {
     inv_graph_ = std::make_shared<GraphHostData>(graph_.transpose());
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::clearInvertedGraph_impl() const
+DESystem<NEvents, StorageIndex>::clearInvertedGraph_impl() const noexcept
 {
     inv_graph_ = nullptr;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::CacheGraph_()
+DESystem<NEvents, StorageIndex>::CacheGraph_() noexcept
 {
     is_cache_outdated_ = false;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::UpdateGraphCache_()
+DESystem<NEvents, StorageIndex>::UpdateGraphCache_() noexcept
 {
     is_cache_outdated_ = false;
 }
@@ -430,7 +407,7 @@ std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
 DESystem<NEvents, StorageIndex>::Bfs_(
   StatesType const& aInitialNodes,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
-    aBfsVisit) const
+    aBfsVisit) const noexcept
 {
     /*
      * BFS on a Linear Algebra approach:
@@ -459,7 +436,7 @@ std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
 DESystem<NEvents, StorageIndex>::Bfs_(
   StorageIndex const& aInitialNode,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
-    aBfsVisit) const
+    aBfsVisit) const noexcept
 {
     StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
                          1 };
@@ -475,7 +452,7 @@ DESystem<NEvents, StorageIndex>::Bfs_(
 
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::Bfs_() const
+DESystem<NEvents, StorageIndex>::Bfs_() const noexcept
 {
     return Bfs_(this->init_state_, nullptr);
 }
@@ -486,7 +463,7 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
   StatesVector& aHostX,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit,
-  std::vector<StorageIndex> const* const aStatesMap) const
+  std::vector<StorageIndex> const* const aStatesMap) const noexcept
 {
     auto n_initial_nodes = aHostX.cols();
     GraphHostData searchgraph{ static_cast<long>(this->states_number_),

@@ -100,67 +100,76 @@ public:
      *
      * \return The number of states contained in the current system
      */
-    StorageIndex constexpr Size() const { return states_number_; }
+    StorageIndex constexpr Size() const noexcept { return states_number_; }
 
     /*! \brief Get number of states of the current system
      * \details states_number_ getter.
      *
      * \return The number of states contained in the current system
      */
-    EventsSet<NEvents> constexpr GetEvents() const { return events_; }
+    EventsSet<NEvents> constexpr GetEvents() const noexcept { return events_; }
 
     /*! \brief Returns number of states contained in the system
      *
      * \return Unsigned integer type represent the system's states number
      */
-    StorageIndex constexpr GetStatesNumber() const { return states_number_; }
+    StorageIndex constexpr GetStatesNumber() const noexcept
+    {
+        return states_number_;
+    }
 
     /*! \brief Returns number of states contained in the system
      *
      * \return Unsigned integer type representing the initial state
      */
-    StorageIndex constexpr GetInitialState() const { return init_state_; }
+    StorageIndex constexpr GetInitialState() const noexcept
+    {
+        return init_state_;
+    }
 
     /*! \brief Returns marked states
      *
      * \return Set of usigned integer type representing the marked states.
      */
-    StatesSet constexpr GetMarkedStates() const { return marked_states_; }
+    StatesSet constexpr GetMarkedStates() const noexcept
+    {
+        return marked_states_;
+    }
 
     /*! \brief Set inverted states events
      *
      * \param aEvents Bit set with new events of the system
      * \return void
      */
-    void SetEvents(EventsSet<NEvents> const& aEvents);
+    void SetEvents(EventsSet<NEvents> const& aEvents) noexcept;
 
     /*! \brief Set system's number of states
      *
      * \param aStNum New system's states number.
      * \return void
      */
-    void SetStatesNumber(StorageIndex const& aStNum);
+    void SetStatesNumber(StorageIndex const& aStNum) noexcept;
 
     /*! \brief Set system's initial state
      *
      * \param aInitState New initial state
      * \return void
      */
-    void SetInitialState(StorageIndex const& aInitState);
+    void SetInitialState(StorageIndex const& aInitState) noexcept;
 
     /*! \brief Returns marked states
      *
      * \param aSt state which will be inserted
      * \return void
      */
-    void InsertMarkedState(StorageIndex const& aSt);
+    void InsertMarkedState(StorageIndex const& aSt) noexcept;
 
     /*! \brief Set system's marked states
      *
      * \param aStSet Set of states
      * \return void
      */
-    void SetMarkedStates(StatesSet const& aStSet);
+    void SetMarkedStates(StatesSet const& aStSet) noexcept;
 
     /*! \brief Resize state_events
      * \details Necessary to run it when inserting or remove
@@ -171,7 +180,7 @@ public:
      * \param aSize New state_events_ size
      * \return void
      */
-    void ResizeStatesEvents(StorageIndex const& aSize);
+    void ResizeStatesEvents(StorageIndex const& aSize) noexcept;
 
     /*! \brief Resize state_events
      * \details Necessary to run it when inserting or remove
@@ -182,7 +191,7 @@ public:
      * \param aEvents Events set vector
      * \return void
      */
-    void SetStatesEvents(StatesEventsTable const& aEvents);
+    void SetStatesEvents(StatesEventsTable const& aEvents) noexcept;
 
     /*! \brief Set inv_state_events
      * \details It is used by many operations. Set the inverse events
@@ -193,7 +202,7 @@ public:
      * \param aEvents Events set vector
      * \return void
      */
-    void SetInvStatesEvents(StatesEventsTable const& aEvents);
+    void SetInvStatesEvents(StatesEventsTable const& aEvents) noexcept;
 
     /*! \brief Set state_events of a specific state
      * \details It is used by many operations. Set the events of
@@ -206,7 +215,7 @@ public:
      * \return void
      */
     void SetStateEvents(StorageIndex const& aQ,
-                        EventsSet<NEvents> const& aEvent);
+                        EventsSet<NEvents> const& aEvent) noexcept;
 
     /*! \brief Set inv_state_events of a specific state
      * \details It is used by many operations. Set the events of
@@ -219,13 +228,13 @@ public:
      * \return void
      */
     void SetInvStateEvents(StorageIndex const& aQ,
-                           EventsSet<NEvents> const& aEvent);
+                           EventsSet<NEvents> const& aEvent) noexcept;
 
     /*! \brief Is it real?
      *
      * \return Boolean with the answer. It is true or false, not 42.
      */
-    bool constexpr IsVirtual() const
+    bool constexpr IsVirtual() const noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
         return sys.isVirtual_impl();
@@ -235,14 +244,15 @@ public:
      *
      * \return shared pointer of type base to the system
      */
-    std::shared_ptr<DESystemBase> Clone() const;
+    std::shared_ptr<DESystemBase> Clone() const noexcept;
 
     /*! \brief Returns true if DES transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsTrans(StorageIndex const& aQ, ScalarType const& aEvent) const;
+    bool ContainsTrans(StorageIndex const& aQ, ScalarType const& aEvent) const
+      noexcept;
 
     /*! \brief Returns DES transition: q_to = f(q, e)
      *
@@ -250,7 +260,7 @@ public:
      * @param aEvent Event
      */
     StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) const;
+                             ScalarType const& aEvent) const noexcept;
 
     /*! \brief Returns true if DES inverse transition exists
      *
@@ -258,7 +268,7 @@ public:
      * @param aEvent Event
      */
     bool ContainsInvTrans(StorageIndex const& aQ,
-                          ScalarType const& aEvent) const;
+                          ScalarType const& aEvent) const noexcept;
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
      *
@@ -266,13 +276,14 @@ public:
      * @param aEvent Event
      */
     StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
-                                       ScalarType const& aEvent) const;
+                                       ScalarType const& aEvent) const noexcept;
 
     /*! \brief Returns EventsSet relative to state q
      *
      * @param aQ A state on the sys
      */
     EventsSet<NEvents> constexpr GetStateEvents(StorageIndex const& aQ) const
+      noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
         return sys.getStateEvents_impl(aQ);
@@ -282,7 +293,7 @@ public:
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> constexpr GetInvStateEvents(StorageIndex const& aQ) const
+    EventsSet<NEvents> constexpr GetInvStateEvents(StorageIndex const& aQ) const noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
         return sys.getInvStateEvents_impl(aQ);
@@ -291,12 +302,12 @@ public:
     /*! \brief Invert graph
      *
      */
-    void AllocateInvertedGraph() const;
+    void AllocateInvertedGraph() const noexcept;
 
     /*! \brief Free inverted graph
      *
      */
-    void ClearInvertedGraph() const;
+    void ClearInvertedGraph() const noexcept;
 
 protected:
     /*! \brief Current system's states number

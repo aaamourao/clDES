@@ -214,7 +214,12 @@ public:
     /*! \brief Clone method for polymorphic copy
      *  \return Shared pointer to this object
      */
-    std::shared_ptr<DESystemBase> clone_impl() const;
+    std::shared_ptr<DESystemBase> constexpr clone_impl() const noexcept
+    {
+        std::shared_ptr<DESystemBase> this_ptr =
+          std::make_shared<DESystem>(*this);
+        return this_ptr;
+    }
 
     /*! \brief Check if this system is a virtual proxy
      *
@@ -226,14 +231,14 @@ public:
      *
      *  \return True: DESystem is always a real object
      */
-    bool constexpr static isVirtual_impl() { return false; }
+    bool constexpr static isVirtual_impl() noexcept { return false; }
 
     /*! \brief Graph getter
      *
      *  \return Eigen sparse matrix of bitset representing the sysmte on
      *  compressed mode.
      */
-    GraphHostData GetGraph() const;
+    GraphHostData constexpr GetGraph() const noexcept { return graph_; }
 
     /*! \brief Returns events that lead a transition between two states
      *
@@ -242,8 +247,12 @@ public:
      * \return A bitset where each set bit index is a event that lead to the
      * next state.
      */
-    EventsSet const operator()(StorageIndex const& aQfrom,
-                               StorageIndex const& aQto) const;
+    EventsSet const constexpr operator()(StorageIndex const& aQfrom,
+                                         StorageIndex const& aQto) const
+      noexcept
+    {
+        return graph_.coeff(aQfrom, aQto);
+    }
 
     /*! \brief Returns reference events that lead a transition between two
      * states
@@ -268,7 +277,7 @@ public:
      *
      * \return A set of the accessed states
      */
-    StatesSet AccessiblePart() const;
+    StatesSet AccessiblePart() const noexcept;
 
     /*! \brief Returns state set containing the coaccessible part of automata
      * \details Inverts the bit graph by transposing it (does not store it
@@ -279,7 +288,7 @@ public:
      * \return A set containing the accessed states by the bfs (coacessible
      * states)
      */
-    StatesSet CoaccessiblePart() const;
+    StatesSet CoaccessiblePart() const noexcept;
 
     /*! \brief Get states set which represent the trim states of the current
      * system
@@ -288,7 +297,7 @@ public:
      *
      * \return A set containing the trim states intergers.
      */
-    StatesSet TrimStates() const;
+    StatesSet TrimStates() const noexcept;
 
     /*! \brief Returns DES which is the Trim part of this
      * \details Cut the non-trim states from the current system.
@@ -297,7 +306,7 @@ public:
      *
      * \return Reference to this system
      */
-    DESystemBase& Trim();
+    DESystemBase& Trim() noexcept;
 
     /*! \brief Insert events
      * \details Set the member events_ with a set containing all events
@@ -309,7 +318,7 @@ public:
      * @param aEvents Set containing all the new events of the current system
      * \return void
      */
-    void InsertEvents(EventsSet const& aEvents);
+    void InsertEvents(EventsSet const& aEvents) noexcept;
 
     /*! \brief Check if transition exists
      * \details given a transition f(q, e) = qto, it
@@ -320,7 +329,7 @@ public:
      * \return Returns true if DES transition exists, false otherwise
      */
     bool containsTrans_impl(StorageIndex const& aQ,
-                            ScalarType const& aEvent) const;
+                            ScalarType const& aEvent) const noexcept;
 
     /*! \brief Transition function
      * \details given a transition f(q, e) = qto, it
@@ -331,7 +340,7 @@ public:
      * \return The state where the transition leads or -1 when it is empty
      */
     StorageIndexSigned trans_impl(StorageIndex const& aQ,
-                                  ScalarType const& aEvent) const;
+                                  ScalarType const& aEvent) const noexcept;
 
     /*! \brief Check if the current system contains at least one inverse
      * transition
@@ -365,7 +374,7 @@ public:
      * @param aQ A state on the sys
      * \return Returns EventsSet relative to state q
      */
-    EventsSet getStateEvents_impl(StorageIndex const& aQ) const;
+    EventsSet getStateEvents_impl(StorageIndex const& aQ) const noexcept;
 
     /*! \brief Get events of all transitions that lead to a specific state
      * \details Since this is information is stored on a vector on concrete
@@ -384,7 +393,7 @@ public:
      *
      * \return void
      */
-    void allocateInvertedGraph_impl() const;
+    void allocateInvertedGraph_impl() const noexcept;
 
     /*! \brief Free inverted graph
      * It is const, since it changes only a mutable member
@@ -393,7 +402,7 @@ public:
      *
      * \return void
      */
-    void clearInvertedGraph_impl() const;
+    void clearInvertedGraph_impl() const noexcept;
 
 protected:
     /*! \brief Method for caching the graph
@@ -401,14 +410,14 @@ protected:
      *
      * \return void
      */
-    void CacheGraph_();
+    void CacheGraph_() noexcept;
 
     /*! \brief Method for updating the graph
      * \details Refresh the existent graph data on device memory.
      *
      * \return void
      */
-    void UpdateGraphCache_();
+    void UpdateGraphCache_() noexcept;
 
     /*! \brief Setup BFS and return accessed states array
      * \details Executes a breadth-first search on the graph starting from N
@@ -424,7 +433,7 @@ protected:
     std::shared_ptr<StatesSet> Bfs_(
       StatesType const& aInitialNodes,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
-        aBfsVisit) const;
+        aBfsVisit) const noexcept;
 
     /*! \brief Overload Bfs_ for the special case of a single initial node
      * \details Executes a breadth-first search on the graph starting from the
@@ -439,7 +448,7 @@ protected:
     std::shared_ptr<StatesSet> Bfs_(
       StorageIndex const& aInitialNode,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
-        aBfsVisit) const;
+        aBfsVisit) const noexcept;
 
     /*! \brief Overload Bfs_ for the special case of starting from the inital
      * state
@@ -449,7 +458,7 @@ protected:
      * \return Return a set containing the accessed states, or nullptr if none
      * was accessed or a bfs visit function was defined
      */
-    std::shared_ptr<StatesSet> Bfs_() const;
+    std::shared_ptr<StatesSet> Bfs_() const noexcept;
 
     /*! \brief Calculates Bfs and returns accessed states array
      * \details Executes a breadth first search on the graph starting from one
@@ -465,7 +474,7 @@ protected:
       StatesVector& aHostX,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit,
-      std::vector<StorageIndex> const* const aStatesMap) const;
+      std::vector<StorageIndex> const* const aStatesMap) const noexcept;
 
 private:
     friend class TransitionProxy<NEvents, StorageIndex>;

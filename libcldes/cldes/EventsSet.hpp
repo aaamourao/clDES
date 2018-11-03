@@ -59,17 +59,17 @@ template<uint8_t NEvents>
 class EventsSet : public std::bitset<NEvents>
 {
 public:
-    explicit EventsSet<NEvents>()
+    explicit constexpr EventsSet<NEvents>() noexcept
       : std::bitset<NEvents>{} {};
 
-    explicit EventsSet<NEvents>(unsigned long const val)
+    explicit constexpr EventsSet<NEvents>(unsigned long const val) noexcept
       : std::bitset<NEvents>{ val }
     {}
 
     template<class _CharT, class _Traits, class _Alloc>
-    explicit EventsSet<NEvents>(
+    explicit constexpr EventsSet<NEvents>(
       std::basic_string<_CharT, _Traits, _Alloc> const& __s,
-      size_t __position = 0)
+      size_t __position = 0) noexcept
       : std::bitset<NEvents>{ __s, __position } {};
 
     template<class _CharT, class _Traits, class _Alloc>
@@ -80,18 +80,20 @@ public:
     {}
 
     template<typename _CharT>
-    explicit EventsSet<NEvents>(_CharT const* __str,
-                                typename std::basic_string<_CharT>::size_type
-                                  __n = std::basic_string<_CharT>::npos,
-                                _CharT __zero = _CharT('0'),
-                                _CharT __one = _CharT('1'))
+    explicit constexpr EventsSet<NEvents>(
+      _CharT const* __str,
+      typename std::basic_string<_CharT>::size_type __n =
+        std::basic_string<_CharT>::npos,
+      _CharT __zero = _CharT('0'),
+      _CharT __one = _CharT('1')) noexcept
       : std::bitset<NEvents>{ __str, __n, __zero, __one }
     {}
 
-    EventsSet<NEvents>(std::bitset<NEvents> const& val)
+    constexpr EventsSet<NEvents>(std::bitset<NEvents> const& val) noexcept
       : std::bitset<NEvents>{ val }
     {}
-    EventsSet<NEvents>(std::bitset<NEvents>& val)
+
+    constexpr EventsSet<NEvents>(std::bitset<NEvents>& val) noexcept
       : std::bitset<NEvents>{ val }
     {}
 
@@ -109,20 +111,20 @@ public:
     EventsSet<NEvents>& operator=(EventsSet<NEvents> const&) = default;
     EventsSet<NEvents>& operator=(EventsSet<NEvents>&&) = default;
 
-    EventsSet<NEvents>& operator+=(EventsSet<NEvents> const& value)
+    EventsSet<NEvents>& operator+=(EventsSet<NEvents> const& value) noexcept
     {
         std::bitset<NEvents>::operator|=(value);
         return *this;
     }
 
-    operator bool() const { return this->any(); }
+    constexpr operator bool() const { return this->any(); }
 
-    bool operator!=(EventsSet<NEvents> const& value)
+    bool constexpr operator!=(EventsSet<NEvents> const& value) const noexcept
     {
         return std::bitset<NEvents>::operator!=(value);
     }
 
-    bool operator==(EventsSet<NEvents> const& value)
+    bool constexpr operator==(EventsSet<NEvents> const& value) const noexcept
     {
         return std::bitset<NEvents>::operator==(value);
     }
@@ -131,7 +133,7 @@ public:
 /*! \brief Overload operator+ from base class
  */
 template<uint8_t NEvents>
-inline EventsSet<NEvents>
+inline EventsSet<NEvents> constexpr
 operator+(EventsSet<NEvents> const& aLhs, EventsSet<NEvents> const& aRhs)
 {
     return aLhs | aRhs;
@@ -139,7 +141,7 @@ operator+(EventsSet<NEvents> const& aLhs, EventsSet<NEvents> const& aRhs)
 
 template<uint8_t NEvents>
 inline EventsSet<NEvents> const&
-conj(EventsSet<NEvents> const& x)
+conj(EventsSet<NEvents> const& x) noexcept
 {
     return x;
 }
@@ -150,27 +152,27 @@ real(EventsSet<NEvents> const& x)
     return x;
 }
 template<uint8_t NEvents>
-inline EventsSet<NEvents>
-imag(EventsSet<NEvents> const&)
+inline EventsSet<NEvents> constexpr imag(EventsSet<NEvents> const&) noexcept
 {
     return 0;
 }
 template<uint8_t NEvents>
-inline EventsSet<NEvents>
-abs(EventsSet<NEvents> const& x)
-{
-    return x;
-}
-template<uint8_t NEvents>
-inline EventsSet<NEvents>
-abs2(EventsSet<NEvents> const& x)
+inline EventsSet<NEvents> constexpr abs(EventsSet<NEvents> const& x) noexcept
 {
     return x;
 }
 
+// It does not mean anything for an events set, but eigen requires it
+// WARNING: It could lead to errors using different lin algebra algorithms
 template<uint8_t NEvents>
-inline EventsSet<NEvents>
-sqrt(EventsSet<NEvents> const& x)
+inline EventsSet<NEvents> constexpr abs2(EventsSet<NEvents> const& x) noexcept
+{
+    return x;
+}
+
+// WARNING: It could lead to errors using different lin algebra algorithms
+template<uint8_t NEvents>
+inline EventsSet<NEvents> constexpr sqrt(EventsSet<NEvents> const& x) noexcept
 {
     return x;
 }

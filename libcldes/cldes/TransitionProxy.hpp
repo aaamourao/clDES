@@ -33,6 +33,7 @@
 #define TRANSITION_PROXY_HPP
 
 #include "cldes/Constants.hpp"
+#include <memory>
 
 namespace cldes {
 
@@ -53,9 +54,13 @@ public:
      * @param aLin Line of the element
      * @param aCol Column of the element
      */
-    TransitionProxy(DESystem<NEvents, StorageIndex>* const aSysPtr,
-                    StorageIndex const& aLin,
-                    StorageIndex const& aCol);
+    constexpr TransitionProxy(DESystem<NEvents, StorageIndex>& aSysRef,
+                              StorageIndex const& aLin,
+                              StorageIndex const& aCol) noexcept
+      : sys_ptr_{ aSysRef }
+      , lin_{ aLin }
+      , col_{ aCol }
+    {}
 
     /*! \brief Override operator "=" from TransitionProxy class
      *
@@ -71,7 +76,14 @@ public:
      * Operator used when element from graph_ is accessed, but its value is not
      * changed.
      */
-    operator EventsSet<NEvents>() const;
+    constexpr operator EventsSet<NEvents>() const noexcept
+    {
+        auto const ret =
+          (lin_ < sys_ptr_.states_number_ && col_ < sys_ptr_.states_number_)
+            ? (sys_ptr_.graph_)(lin_, col_)
+            : EventsSet<NEvents>{ 0ul };
+        return ret;
+    }
 
 protected:
     /*! \brief Disabled default constructor
@@ -83,9 +95,9 @@ protected:
 private:
     /*! \brief Raw pointer to DESystemBase object
      *
-     * Raw pointer to the owner of the proxied element.
+     * Smart pointer to the owner of the proxied element.
      */
-    DESystem<NEvents, StorageIndex>* sys_ptr_;
+    DESystem<NEvents, StorageIndex>& sys_ptr_;
 
     /*! \brief Element line.
      *

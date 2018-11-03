@@ -58,7 +58,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::DESystemBase()
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetEvents(
-  EventsSet<NEvents> const& aEvents)
+  EventsSet<NEvents> const& aEvents) noexcept
 {
     events_ = aEvents;
 }
@@ -66,7 +66,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetEvents(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesNumber(
-  StorageIndex const& aStNum)
+  StorageIndex const& aStNum) noexcept
 {
     states_number_ = aStNum;
 }
@@ -74,7 +74,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesNumber(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInitialState(
-  StorageIndex const& aInitState)
+  StorageIndex const& aInitState) noexcept
 {
     init_state_ = aInitState;
 }
@@ -82,7 +82,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInitialState(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::InsertMarkedState(
-  StorageIndex const& aSt)
+  StorageIndex const& aSt) noexcept
 {
     marked_states_.emplace(aSt);
 }
@@ -90,7 +90,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::InsertMarkedState(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetMarkedStates(
-  StatesSet const& aStSet)
+  StatesSet const& aStSet) noexcept
 {
     marked_states_ = aStSet;
 }
@@ -98,7 +98,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetMarkedStates(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::ResizeStatesEvents(
-  StorageIndex const& aSize)
+  StorageIndex const& aSize) noexcept
 {
     states_events_.resize(aSize);
     inv_states_events_.resize(aSize);
@@ -107,7 +107,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::ResizeStatesEvents(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesEvents(
-  StatesEventsTable const& aEvents)
+  StatesEventsTable const& aEvents) noexcept
 {
     states_events_ = aEvents;
 }
@@ -115,7 +115,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesEvents(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInvStatesEvents(
-  StatesEventsTable const& aEvents)
+  StatesEventsTable const& aEvents) noexcept
 {
     inv_states_events_ = aEvents;
 }
@@ -124,7 +124,7 @@ template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStateEvents(
   StorageIndex const& aQ,
-  EventsSet<NEvents> const& aEvent)
+  EventsSet<NEvents> const& aEvent) noexcept
 {
     states_events_[aQ] = aEvent;
 }
@@ -133,7 +133,7 @@ template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInvStateEvents(
   StorageIndex const& aQ,
-  EventsSet<NEvents> const& aEvent)
+  EventsSet<NEvents> const& aEvent) noexcept
 {
     inv_states_events_[aQ] = aEvent;
 }
@@ -142,7 +142,7 @@ template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 bool
 DESystemBase<NEvents, StorageIndex, RealDESystem>::ContainsTrans(
   StorageIndex const& aQ,
-  ScalarType const& aEvents) const
+  ScalarType const& aEvents) const noexcept
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.containsTrans_impl(aQ, aEvents);
@@ -150,7 +150,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::ContainsTrans(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 std::shared_ptr<DESystemBase<NEvents, StorageIndex, RealDESystem>>
-DESystemBase<NEvents, StorageIndex, RealDESystem>::Clone() const
+DESystemBase<NEvents, StorageIndex, RealDESystem>::Clone() const noexcept
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.clone_impl();
@@ -160,7 +160,7 @@ template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 typename DESystemBase<NEvents, StorageIndex, RealDESystem>::StorageIndexSigned
 DESystemBase<NEvents, StorageIndex, RealDESystem>::Trans(
   StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+  ScalarType const& aEvent) const noexcept
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.trans_impl(aQ, aEvent);
@@ -170,7 +170,7 @@ template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 bool
 DESystemBase<NEvents, StorageIndex, RealDESystem>::ContainsInvTrans(
   StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+  ScalarType const& aEvent) const noexcept
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.containsInvTrans_impl(aQ, aEvent);
@@ -180,7 +180,7 @@ template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 StatesArray<StorageIndex>
 DESystemBase<NEvents, StorageIndex, RealDESystem>::InvTrans(
   StorageIndex const& aQfrom,
-  ScalarType const& aEvent) const
+  ScalarType const& aEvent) const noexcept
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.invTrans_impl(aQfrom, aEvent);
@@ -189,6 +189,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::InvTrans(
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::AllocateInvertedGraph() const
+  noexcept
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.allocateInvertedGraph_impl();
@@ -197,6 +198,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::AllocateInvertedGraph() const
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::ClearInvertedGraph() const
+  noexcept
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.clearInvertedGraph_impl();
