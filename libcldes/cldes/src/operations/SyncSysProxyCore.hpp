@@ -110,12 +110,6 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-bool constexpr op::SyncSysProxy<NEvents, StorageIndex>::isVirtual_impl()
-{
-    return true;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>>
 op::SyncSysProxy<NEvents, StorageIndex>::clone_impl() const

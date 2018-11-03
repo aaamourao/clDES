@@ -100,32 +100,32 @@ public:
      *
      * \return The number of states contained in the current system
      */
-    StorageIndex Size() const;
+    StorageIndex constexpr Size() const { return states_number_; }
 
     /*! \brief Get number of states of the current system
      * \details states_number_ getter.
      *
      * \return The number of states contained in the current system
      */
-    EventsSet<NEvents> GetEvents() const;
+    EventsSet<NEvents> constexpr GetEvents() const { return events_; }
 
     /*! \brief Returns number of states contained in the system
      *
      * \return Unsigned integer type represent the system's states number
      */
-    StorageIndex GetStatesNumber() const;
+    StorageIndex constexpr GetStatesNumber() const { return states_number_; }
 
     /*! \brief Returns number of states contained in the system
      *
      * \return Unsigned integer type representing the initial state
      */
-    StorageIndex GetInitialState() const;
+    StorageIndex constexpr GetInitialState() const { return init_state_; }
 
     /*! \brief Returns marked states
      *
      * \return Set of usigned integer type representing the marked states.
      */
-    StatesSet GetMarkedStates() const;
+    StatesSet constexpr GetMarkedStates() const { return marked_states_; }
 
     /*! \brief Set inverted states events
      *
@@ -225,7 +225,11 @@ public:
      *
      * \return Boolean with the answer. It is true or false, not 42.
      */
-    bool constexpr IsVirtual() const;
+    bool constexpr IsVirtual() const
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.isVirtual_impl();
+    }
 
     /*! \brief Clone method to enable poliphormism
      *
@@ -268,13 +272,21 @@ public:
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const;
+    EventsSet<NEvents> constexpr GetStateEvents(StorageIndex const& aQ) const
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.getStateEvents_impl(aQ);
+    }
 
     /*! \brief Returns EventsSet relative to state inv q
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> GetInvStateEvents(StorageIndex const& aQ) const;
+    EventsSet<NEvents> constexpr GetInvStateEvents(StorageIndex const& aQ) const
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.getInvStateEvents_impl(aQ);
+    }
 
     /*! \brief Invert graph
      *
@@ -289,8 +301,7 @@ public:
 protected:
     /*! \brief Current system's states number
      *
-     * Hold the number of states that the automata contains. As the automata
-     * can be cut, the states number is not a constant at all.
+     *
      */
     StorageIndex states_number_;
 

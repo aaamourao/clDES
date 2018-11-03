@@ -56,41 +56,6 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::DESystemBase()
 }
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-StorageIndex
-DESystemBase<NEvents, StorageIndex, RealDESystem>::Size() const
-{
-    return states_number_;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-EventsSet<NEvents>
-DESystemBase<NEvents, StorageIndex, RealDESystem>::GetEvents() const
-{
-    return events_;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-StorageIndex
-DESystemBase<NEvents, StorageIndex, RealDESystem>::GetStatesNumber() const
-{
-    return states_number_;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-StorageIndex
-DESystemBase<NEvents, StorageIndex, RealDESystem>::GetInitialState() const
-{
-    return init_state_;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-typename DESystemBase<NEvents, StorageIndex, RealDESystem>::StatesSet
-DESystemBase<NEvents, StorageIndex, RealDESystem>::GetMarkedStates() const
-{
-    return marked_states_;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
 DESystemBase<NEvents, StorageIndex, RealDESystem>::SetEvents(
   EventsSet<NEvents> const& aEvents)
@@ -184,14 +149,6 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::ContainsTrans(
 }
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-bool constexpr DESystemBase<NEvents, StorageIndex, RealDESystem>::IsVirtual()
-  const
-{
-    RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-    return sys.isVirtual_impl();
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 std::shared_ptr<DESystemBase<NEvents, StorageIndex, RealDESystem>>
 DESystemBase<NEvents, StorageIndex, RealDESystem>::Clone() const
 {
@@ -227,24 +184,6 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::InvTrans(
 {
     RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
     return sys.invTrans_impl(aQfrom, aEvent);
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-EventsSet<NEvents>
-DESystemBase<NEvents, StorageIndex, RealDESystem>::GetStateEvents(
-  StorageIndex const& aQ) const
-{
-    RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-    return sys.getStateEvents_impl(aQ);
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-EventsSet<NEvents>
-DESystemBase<NEvents, StorageIndex, RealDESystem>::GetInvStateEvents(
-  StorageIndex const& aQ) const
-{
-    RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-    return sys.getInvStateEvents_impl(aQ);
 }
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>

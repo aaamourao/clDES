@@ -226,7 +226,7 @@ public:
      *
      *  \return True: DESystem is always a real object
      */
-    bool constexpr static isVirtual_impl();
+    bool constexpr static isVirtual_impl() { return false; }
 
     /*! \brief Graph getter
      *

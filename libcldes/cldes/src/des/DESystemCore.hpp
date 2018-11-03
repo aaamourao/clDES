@@ -86,12 +86,6 @@ DESystem<NEvents, StorageIndex>::clone_impl() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-bool constexpr DESystem<NEvents, StorageIndex>::isVirtual_impl()
-{
-    return false;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::GraphHostData
 DESystem<NEvents, StorageIndex>::GetGraph() const
 {

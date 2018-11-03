@@ -193,12 +193,6 @@ op::SuperProxy<NEvents, StorageIndex>::operator DESystem() const
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-bool constexpr op::SuperProxy<NEvents, StorageIndex>::isVirtual_impl()
-{
-    return true;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<
   DESystemBase<NEvents, StorageIndex, op::SuperProxy<NEvents, StorageIndex>>>
 op::SuperProxy<NEvents, StorageIndex>::clone_impl() const
