@@ -244,39 +244,60 @@ public:
      *
      * \return shared pointer of type base to the system
      */
-    std::shared_ptr<DESystemBase> Clone() const noexcept;
+    std::shared_ptr<DESystemBase> constexpr Clone() const noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.clone_impl();
+    }
 
     /*! \brief Returns true if DES transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsTrans(StorageIndex const& aQ, ScalarType const& aEvent) const
-      noexcept;
+    bool constexpr ContainsTrans(StorageIndex const& aQ,
+                                 ScalarType const& aEvent) const noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.containsTrans_impl(aQ, aEvent);
+    }
 
     /*! \brief Returns DES transition: q_to = f(q, e)
      *
      * @param aQ State
      * @param aEvent Event
      */
-    StorageIndexSigned Trans(StorageIndex const& aQ,
-                             ScalarType const& aEvent) const noexcept;
+    StorageIndexSigned constexpr Trans(StorageIndex const& aQ,
+                                       ScalarType const& aEvent) const noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.trans_impl(aQ, aEvent);
+    }
 
     /*! \brief Returns true if DES inverse transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsInvTrans(StorageIndex const& aQ,
-                          ScalarType const& aEvent) const noexcept;
+    bool constexpr ContainsInvTrans(StorageIndex const& aQ,
+                                    ScalarType const& aEvent) const noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.containsInvTrans_impl(aQ, aEvent);
+    }
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
      *
      * @param aQfrom State
      * @param aEvent Event
      */
-    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
-                                       ScalarType const& aEvent) const noexcept;
+    StatesArray<StorageIndex> constexpr InvTrans(StorageIndex const& aQfrom,
+                                                 ScalarType const& aEvent) const
+      noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.invTrans_impl(aQfrom, aEvent);
+    }
 
     /*! \brief Returns EventsSet relative to state q
      *
@@ -293,7 +314,8 @@ public:
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> constexpr GetInvStateEvents(StorageIndex const& aQ) const noexcept
+    EventsSet<NEvents> constexpr GetInvStateEvents(StorageIndex const& aQ) const
+      noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
         return sys.getInvStateEvents_impl(aQ);
@@ -302,12 +324,20 @@ public:
     /*! \brief Invert graph
      *
      */
-    void AllocateInvertedGraph() const noexcept;
+    void constexpr AllocateInvertedGraph() const noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.allocateInvertedGraph_impl();
+    }
 
     /*! \brief Free inverted graph
      *
      */
-    void ClearInvertedGraph() const noexcept;
+    void constexpr ClearInvertedGraph() const noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.clearInvertedGraph_impl();
+    }
 
 protected:
     /*! \brief Current system's states number
