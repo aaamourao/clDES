@@ -12,7 +12,7 @@ A **Supervisor Synthesizer** algorithm is also available.
 **clDES** uses a graph based model to represent discrete-event systems,
 which are implemented with adjacency sparse matrices. It has a
 [ViennaCL](http://viennacl.sourceforge.net/) back-end for multiplying
-sparse matrices on GPU and customs **OpenCL** kernels for operations
+sparse matrices on GPU and custom **OpenCL** kernels for operations
 such as the parallel composition.
 
 > Only CPU operations are available now. The *OpenCL* code is being refactored.
