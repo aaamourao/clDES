@@ -20,7 +20,7 @@
  Copyright (c) 2018 - Adriano Mourao <adrianomourao@protonmail.com>
                       madc0ww @ [https://github.com/madc0ww]
 
- LacSED - Laboratório de Sistemas a Eventos Discretos
+ LacSED - Laboratorio de Analise e Controle de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
  File: cldes/operations/SyncSysProxy.hpp
@@ -128,28 +128,29 @@ public:
     /*! \brief Overload conversion to DESystem
      * \details Convert the current virtual proxy to a concrete system.
      */
-    operator DESystem();
-
-    /*! \brief Convert to DESystem from const proxy
-     * \details Convert it to a concrete system when the current system is
-     * const.
-     * \warning Expensive, because it implies a copy. Avoid it.
-     */
-    operator DESystem() const;
+    operator DESystem() noexcept;
 
     /*! \brief Is it real?
      * \details Nooo!!!
      *
      * \return False, always.
      */
-    bool constexpr static isVirtual_impl() { return true; }
+    bool constexpr static isVirtual_impl() noexcept { return true; }
 
     /*! \brief Clone method for polymorphic copy
      * \details Method for cloning on a polymorphic way.
      *
      * \return shared pointer to base.
      */
-    std::shared_ptr<DESystemBase> clone_impl() const;
+    std::shared_ptr<DESystemBase> constexpr clone_impl() const noexcept
+    {
+        std::shared_ptr<
+          cldes::DESystemBase<NEvents,
+                              StorageIndex,
+                              SyncSysProxy<NEvents, StorageIndex>>>
+          this_ptr = std::make_shared<SuperProxy>(*this);
+        return this_ptr;
+    }
 
     /*! \brief Returns true if DES transition exists
      *
@@ -157,7 +158,7 @@ public:
      * @param aEvent Event
      */
     bool containsTrans_impl(StorageIndex const& aQ,
-                            ScalarType const& aEvent) const;
+                            ScalarType const& aEvent) const noexcept;
 
     /*! \brief Returns DES transition: q_to = f(q, e)
      *
@@ -165,7 +166,7 @@ public:
      * @param aEvent Event
      */
     StorageIndexSigned trans_impl(StorageIndex const& aQ,
-                                  ScalarType const& aEvent) const;
+                                  ScalarType const& aEvent) const noexcept;
 
     /*! \brief Returns true if DES inverse transition exists
      *
@@ -184,27 +185,14 @@ public:
     StatesArray<StorageIndex> invTrans_impl(StorageIndex const& aQ,
                                             ScalarType const& aEvent) const;
 
-    /*! \brief Overload operator -> to access concrete sys
-     * \warning If it was not converted yet, returns nullptr.
-     *
-     * \return Shared pointer to concrete system.
-     */
-    std::shared_ptr<DESystem> operator->() { return *sys_ptr_; }
-
-    /*! \brief Overload operator dereference to access concrete sys
-     * \warning If it was not converted yet, returns nullptr.
-     *
-     * \return Shared pointer to concrete system.
-     */
-    std::shared_ptr<DESystem> operator*() { return *sys_ptr_; }
-
     /*! \brief Get events that a state contains
      * \warning On large binery trees, it can be very expensive.
      *
      * @param aQ A state on the sys
      * \return Bit set with events of state events
      */
-    EventsSet<NEvents> getStateEvents_impl(StorageIndex const& aQ) const;
+    EventsSet<NEvents> getStateEvents_impl(StorageIndex const& aQ) const
+      noexcept;
 
     /*! \brief Get inverse events that a state contains
      *
@@ -220,23 +208,23 @@ public:
      *
      * \return void
      */
-    void allocateInvertedGraph_impl() const;
+    void allocateInvertedGraph_impl() const noexcept;
 
     /*! \brief Free inverted graph
      * \details It is const, since it changes only a mutable member
      */
-    void clearInvertedGraph_impl() const;
+    void clearInvertedGraph_impl() const noexcept;
 
 protected:
     /*! \brief Second step of the lazy parallel composition
      */
     friend void cldes::op::SynchronizeStage2<>(
-      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
     /*! \brief Second step of the lazy parallel composition
      */
     friend void cldes::op::SynchronizeEmptyStage2<>(
-      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
     friend class cldes::op::SuperProxy<NEvents, StorageIndex>;
 
@@ -248,7 +236,7 @@ protected:
 private:
     friend DESystem SupervisorSynth<>(DESystemBase const& aP,
                                       DESystemBase const& aE,
-                                      EventsTableHost const& aNonContr);
+                                      EventsTableHost const& aNonContr) noexcept;
 
     /*! \brief Reference to the left operand
      */
@@ -275,12 +263,6 @@ private:
      * op.
      */
     EventsSet<NEvents> only_in_1_;
-
-    /*! \brief Pointer to real systems, if exists
-     * \details Since it is a lazy system, it needs to be declared mutable for
-     * enabling lazy evaluation.
-     */
-    std::shared_ptr<DESystem> sys_ptr_;
 
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.

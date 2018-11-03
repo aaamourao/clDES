@@ -20,7 +20,7 @@
  Copyright (c) 2018 - Adriano Mourao <adrianomourao@protonmail.com>
                       madc0ww @ [https://github.com/madc0ww]
 
- LacSED - Laboratório de Sistemas a Eventos Discretos
+ LacSED - Laboratorio de Analise e Controle de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
  File: cldes/src/des/DESystemCLCore.hpp

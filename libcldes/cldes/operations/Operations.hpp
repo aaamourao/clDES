@@ -20,7 +20,7 @@
  Copyright (c) 2018 - Adriano Mourao <adrianomourao@protonmail.com>
                       madc0ww @ [https://github.com/madc0ww]
 
- LacSED - Laboratório de Sistemas a Eventos Discretos
+ LacSED - Laboratorio de Analise e Controle de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
  File: cldes/operations/Operations.hpp
@@ -56,9 +56,15 @@ namespace op {
  * between two systems
  */
 template<uint8_t NEvents, typename StorageIndex, class TSys0>
-DESystem<NEvents, StorageIndex>
-Synchronize(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
-            DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1);
+DESystem<NEvents, StorageIndex> constexpr Synchronize(
+  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
+  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1) noexcept
+{
+    DESystem<NEvents, StorageIndex> sys = DESystem<NEvents, StorageIndex>(
+      SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 });
+
+    return sys;
+}
 
 /*! \brief Lazy evaluation of the parallel composition between two systems
  * \details The composed states are sorted by the right operand indexes:
@@ -74,9 +80,12 @@ Synchronize(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
  * between two systems.
  */
 template<uint8_t NEvents, typename StorageIndex, class TSys0>
-SyncSysProxy<NEvents, StorageIndex>
-SynchronizeStage1(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
-                  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1);
+SyncSysProxy<NEvents, StorageIndex> constexpr SynchronizeStage1(
+  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
+  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1) noexcept
+{
+    return SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 };
+}
 
 /*! \brief Final stage of the lazy parallel composition evaluation
  * \details Transform a virtual proxy in a concrete system. It is implicited
@@ -91,7 +100,8 @@ SynchronizeStage1(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+SynchronizeEmptyStage2(
+  SyncSysProxy<NEvents, StorageIndex> const&& aVirtualSys) noexcept;
 
 /*! \brief Transform a virtual system in a real system: optmized to supervisor
  * synthesis
@@ -106,7 +116,8 @@ SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+SynchronizeStage2(
+  SyncSysProxy<NEvents, StorageIndex> const&& aVirtualSys) noexcept;
 
 /*! \brief Remove bad states recursively
  * \details Remove a state and all the states that become a bad state when the
@@ -128,7 +139,7 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 TransMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
-                StatesTableHost<StorageIndex>& aRmTable);
+                StatesTableHost<StorageIndex>& aRmTable) noexcept;
 
 /*! \brief Computes the monolithic supervisor of a plant and a spec
  *
@@ -144,7 +155,7 @@ SupervisorSynth(
     aP,
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     aE,
-  EventsTableHost const& aNonContr);
+  EventsTableHost const& aNonContr) noexcept;
 
 // /*! \brief Generate a expression tree of synchronize operations
 //  * \details Build a binary expression tree of parallel compositions

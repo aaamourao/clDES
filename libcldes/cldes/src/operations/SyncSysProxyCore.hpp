@@ -20,7 +20,7 @@
  Copyright (c) 2018 - Adriano Mourao <adrianomourao@protonmail.com>
                       madc0ww @ [https://github.com/madc0ww]
 
- LacSED - Laboratório de Sistemas a Eventos Discretos
+ LacSED - Laboratorio de Analise e Controle de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
  File: cldes/src/operations/SyncSysProxyCore.hpp
@@ -51,7 +51,6 @@ op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
   , sys0_{ aSys0 }
   , sys1_{ aSys1 }
 {
-    sys_ptr_ = nullptr;
     n_states_sys0_ = aSys0.GetStatesNumber();
 
     auto const in_both = aSys0.GetEvents() & aSys1.GetEvents();
@@ -70,7 +69,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem()
+op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
 {
     if (virtual_states_.empty()) {
         SynchronizeEmptyStage2(*this);
@@ -80,50 +79,33 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem()
     }
 
     // Allocate memory for the real sys
-    sys_ptr_ = std::make_shared<DESystem>(DESystem{});
+    auto sys_ptr = std::make_shared<DESystem>(DESystem{});
 
-    sys_ptr_->states_number_ = std::move(this->states_number_);
-    sys_ptr_->init_state_ = std::move(this->init_state_);
-    sys_ptr_->marked_states_ = std::move(this->marked_states_);
-    sys_ptr_->states_events_ = std::move(this->states_events_);
-    sys_ptr_->inv_states_events_ = std::move(this->inv_states_events_);
-    sys_ptr_->events_ = std::move(this->events_);
+    sys_ptr->states_number_ = std::move(this->states_number_);
+    sys_ptr->init_state_ = std::move(this->init_state_);
+    sys_ptr->marked_states_ = std::move(this->marked_states_);
+    sys_ptr->states_events_ = std::move(this->states_events_);
+    sys_ptr->inv_states_events_ = std::move(this->inv_states_events_);
+    sys_ptr->events_ = std::move(this->events_);
 
     // Resize adj matrices
-    sys_ptr_->graph_.resize(this->states_number_, this->states_number_);
+    sys_ptr->graph_.resize(this->states_number_, this->states_number_);
 
     // Move triplets to graph storage
-    sys_ptr_->graph_.setFromTriplets(triplet_.begin(), triplet_.end());
+    sys_ptr->graph_.setFromTriplets(triplet_.begin(), triplet_.end());
 
     triplet_.clear();
 
-    sys_ptr_->graph_.makeCompressed();
+    sys_ptr->graph_.makeCompressed();
 
-    return *sys_ptr_;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() const
-{
-    auto cp = *this;
-    return DESystem(cp);
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>>
-op::SyncSysProxy<NEvents, StorageIndex>::clone_impl() const
-{
-    std::shared_ptr<DESystemBase> this_ptr =
-      std::make_shared<SyncSysProxy>(*this);
-    return this_ptr;
+    return *sys_ptr;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
 op::SyncSysProxy<NEvents, StorageIndex>::containsTrans_impl(
   StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+  ScalarType const& aEvent) const noexcept
 {
     if (!this->events_.test(aEvent)) {
         return false;
@@ -149,7 +131,7 @@ template<uint8_t NEvents, typename StorageIndex>
 typename op::SyncSysProxy<NEvents, StorageIndex>::StorageIndexSigned
 op::SyncSysProxy<NEvents, StorageIndex>::trans_impl(
   StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+  ScalarType const& aEvent) const noexcept
 {
     if (!this->events_.test(aEvent)) {
         return -1;
@@ -267,7 +249,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::invTrans_impl(
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
 op::SyncSysProxy<NEvents, StorageIndex>::getStateEvents_impl(
-  StorageIndex const& aQ) const
+  StorageIndex const& aQ) const noexcept
 {
     auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
     auto const state_event_1 = sys1_.GetStateEvents(aQ / n_states_sys0_);
@@ -294,7 +276,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
+op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const noexcept
 {
     sys0_.AllocateInvertedGraph();
     sys1_.AllocateInvertedGraph();
@@ -302,7 +284,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SyncSysProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const
+op::SyncSysProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const noexcept
 {
     sys0_.ClearInvertedGraph();
     sys1_.ClearInvertedGraph();

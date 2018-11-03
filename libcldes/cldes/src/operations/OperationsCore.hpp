@@ -20,7 +20,7 @@
  Copyright (c) 2018 - Adriano Mourao <adrianomourao@protonmail.com>
                       madc0ww @ [https://github.com/madc0ww]
 
- LacSED - Laboratório de Sistemas a Eventos Discretos
+ LacSED - Laboratorio de Analise e Controle de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
  File: cldes/operations/Operations.hpp
@@ -35,28 +35,10 @@
 namespace cldes {
 namespace op {
 
-template<uint8_t NEvents, typename StorageIndex, class TSys0>
-DESystem<NEvents, StorageIndex>
-Synchronize(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
-            DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1)
-{
-    DESystem<NEvents, StorageIndex> sys = DESystem<NEvents, StorageIndex>(
-      SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 });
-
-    return sys;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class TSys0>
-SyncSysProxy<NEvents, StorageIndex>
-SynchronizeStage1(DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
-                  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1)
-{
-    return SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 };
-}
-
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
+SynchronizeEmptyStage2(
+  SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
     // Estimated sparcity pattern: Calculate on the same loop than statesmap
     StorageIndex const sparcitypattern =
@@ -100,7 +82,7 @@ SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys)
+SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
     SparseStatesMap<StorageIndex> statesmap;
 
@@ -174,7 +156,7 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 TransMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
-                StatesTableHost<StorageIndex>& aRmTable)
+                StatesTableHost<StorageIndex>& aRmTable) noexcept
 {
     StatesStack<StorageIndex> f;
     f.push(aQ);
@@ -219,7 +201,7 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 StatesTableHost<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
-                StatesTableHost<StorageIndex>& aRmTable)
+                StatesTableHost<StorageIndex>& aRmTable) noexcept
 {
     StatesStack<StorageIndex> f;
     f.push(aQ);
@@ -263,7 +245,7 @@ SupervisorSynth(
     aP,
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     aE,
-  EventsTableHost const& aNonContr)
+  EventsTableHost const& aNonContr) noexcept
 {
     // Define new systems params: Stage1 is not necessary
     SyncSysProxy<NEvents, StorageIndex> virtualsys{ aP, aE };

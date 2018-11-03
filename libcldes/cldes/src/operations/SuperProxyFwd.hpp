@@ -20,7 +20,7 @@
  Copyright (c) 2018 - Adriano Mourao <adrianomourao@protonmail.com>
                       madc0ww @ [https://github.com/madc0ww]
 
- LacSED - Laboratório de Sistemas a Eventos Discretos
+ LacSED - Laboratorio de Analise e Controle de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
  File: cldes/src/operations/SyncSysProxyCore.hpp
@@ -36,12 +36,13 @@ namespace op {
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeEmptyStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys);
+SynchronizeEmptyStage2(
+  SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
 // Alias to events hash map
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
@@ -54,6 +55,6 @@ SupervisorSynth(
     aP,
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     aE,
-  EventsTableHost const& aNonContr);
+  EventsTableHost const& aNonContr) noexcept;
 }
 }
