@@ -153,12 +153,10 @@ DESystem<NEvents, StorageIndex>::TrimStates() const noexcept
         accpart.insert(s);
     }
 
-    // invgraph is a matrix, but it is column major (CSC)
-    GraphHostData searchgraph{ static_cast<long>(this->states_number_),
-                               static_cast<long>(this->states_number_) };
-    searchgraph.setIdentity();
-    searchgraph += graph_;
-    StatesVector const invgraph{ searchgraph.template cast<bool>() };
+    GraphHostData ident{ static_cast<Eigen::Index>(this->states_number_),
+                         static_cast<Eigen::Index>(this->states_number_) };
+    ident.setIdentity();
+    StatesVector const searchgraph{ (graph_ + ident).template cast<bool>() };
 
     // auto const n_marked = this->marked_states_.size();
 
@@ -178,7 +176,7 @@ DESystem<NEvents, StorageIndex>::TrimStates() const noexcept
     StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < this->states_number_; ++i) {
-        y = invgraph * x;
+        y = searchgraph * x;
 
         if (n_accessed_states == y.nonZeros()) {
             break;
