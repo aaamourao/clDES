@@ -41,8 +41,10 @@
 
 namespace cldes {
 
+#ifdef CLDES_OPENCL_ENABLED
 template<uint8_t NEvents, typename StorageIndex>
 class DESystemCL;
+#endif
 
 /*! \brief Vector that contains arguments of inverse transition function
  *

@@ -483,7 +483,9 @@ protected:
 
 private:
     friend class TransitionProxy<NEvents, StorageIndex>;
+#ifdef CLDES_OPENCL_ENABLED
     friend class DESystemCL<NEvents, StorageIndex>;
+#endif
 
     /*! \brief DESystem operations virtual proxies
      *
