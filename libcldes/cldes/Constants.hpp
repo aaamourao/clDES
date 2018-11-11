@@ -32,7 +32,9 @@
 
 // Need to define it, since it could be compiled on platforms which support
 // newer OpenCL standards.
+#ifdef CLDES_OPENCL_ENABLED
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#endif
 
 #include <Eigen/Sparse>
 #include <bitset>

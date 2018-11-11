@@ -28,8 +28,10 @@
  =========================================================================
 */
 
-#ifndef OPERATIONS_HPP
-#define OPERATIONS_HPP
+#ifdef CLDES_OPENCL_ENABLED
+
+#ifndef OPERATIONS_CL_HPP
+#define OPERATIONS_CL_HPP
 
 #include "cldes/Constants.hpp"
 #include <Eigen/Sparse>
@@ -81,4 +83,5 @@ synchronize(cldes::DESystem<NEvents> CL& aSys0,
 
 // Including implementation
 #include "cldes/src/operations/OperationsCLCore.hpp"
-#endif // DESYSTEM_HPP
+#endif // OPERATIONS_CL
+#endif // CLDES_OPENCL_ENABLED

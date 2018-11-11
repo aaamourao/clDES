@@ -29,6 +29,8 @@
  =========================================================================
 */
 
+#ifdef CLDES_OPENCL_ENABLED
+
 #ifndef DESYSTEMCL_HPP
 #define DESYSTEMCL_HPP
 
@@ -252,3 +254,4 @@ private:
 #include "cldes/src/des/DESystemCLCore.hpp"
 
 #endif // DESYSTEMCL_HPP
+#endif // CLDES_OPENCL_ENABLED
