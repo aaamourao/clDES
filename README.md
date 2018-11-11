@@ -28,7 +28,7 @@ Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::coaccessiblePart()`
 Trim | `cldes::DESystemBase<NEvents, StorageIndex>::trim()`
 Synchronization: parallel composition | `cldes::op::synchronize<NEvents, StorageIndex>()`
 Observer Property Checker | `cldes::DESystem<NEvents, StorageIndex>::containsObsProp()`
-Controller Synthesis | `cldes::op::supC<NEvents, StorageIndex>()`
+Monolithic Supervisor Synthesis | `cldes::op::supC<NEvents, StorageIndex>()`
 Projection | `cldes::op::proj<NEvents, StorageIndex>()`
 
 ## Compiling
