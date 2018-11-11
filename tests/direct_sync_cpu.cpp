@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: test/kernels.hpp
- Description: Test cldes::op::Synchronize function, the parallel
+ Description: Test cldes::op::synchronize function, the parallel
  composition implementation.
  =========================================================================
 */
@@ -81,7 +81,7 @@ main()
     g2(1, 1) = a;
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    auto sync_sys = cldes::op::Synchronize(g1, g2);
+    auto sync_sys = cldes::op::synchronize(g1, g2);
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
@@ -96,8 +96,8 @@ main()
     expected_result << "0 0 2 0 5 0 " << std::endl;
     expected_result << ">" << std::endl;
     ProcessResult(
-      sync_sys.GetGraph(), "< Sync graph", expected_result.str().c_str());
-    std::cout << "Synchronize time: " << duration << " microseconds"
+      sync_sys.getGraph(), "< Sync graph", expected_result.str().c_str());
+    std::cout << "synchronize time: " << duration << " microseconds"
               << std::endl;
 
     std::cout << "Finishing test" << std::endl;

@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: test/kernels.hpp
- Description: Test cldes::op::Synchronize function, the parallel
+ Description: Test cldes::op::synchronize function, the parallel
  composition implementation.
  =========================================================================
 */
@@ -69,7 +69,7 @@ main()
     plant(3, 1) = b1;
     plant(3, 2) = b0;
 
-    PrintGraph(plant.GetGraph(), "Plant");
+    PrintGraph(plant.getGraph(), "Plant");
 
     std::set<StorageIndex> spec_marked_states = { 0, 1 };
 
@@ -78,10 +78,10 @@ main()
     spec(0, 1) = b0;
     spec(1, 0) = a1;
 
-    PrintGraph(spec.GetGraph(), "Spec");
+    PrintGraph(spec.getGraph(), "Spec");
 
     auto t1 = high_resolution_clock::now();
-    auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
+    auto supervisor = cldes::op::supC(plant, spec, non_contr);
     auto t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
@@ -91,7 +91,7 @@ main()
     std::cout << "Number of states of the supervisor: " << supervisor.Size()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
-              << supervisor.GetGraph().nonZeros() << std::endl;
+              << supervisor.getGraph().nonZeros() << std::endl;
 
     std::ostringstream expected_result;
 
@@ -103,8 +103,8 @@ main()
     expected_result << "0 0 0 0 8 0 " << std::endl;
     expected_result << ">" << std::endl;
     ProcessResult(
-      supervisor.GetGraph(), "< Sync graph", expected_result.str().c_str());
-    std::cout << "Synchronize time: " << duration << " microseconds"
+      supervisor.getGraph(), "< Sync graph", expected_result.str().c_str());
+    std::cout << "synchronize time: " << duration << " microseconds"
               << std::endl;
 
     return 0;

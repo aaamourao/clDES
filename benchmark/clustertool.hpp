@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: test/kernels.hpp
- Description: Test cldes::op::Synchronize function, the parallel
+ Description: Test cldes::op::synchronize function, the parallel
  composition implementation.
  =========================================================================
 */

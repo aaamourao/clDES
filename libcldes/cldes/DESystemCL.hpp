@@ -118,7 +118,7 @@ public:
      * Returns a copy of DESystemCL's private data member graph. Considering
      * that graph is a pointer, it returns the contents of graph.
      */
-    GraphDeviceData GetGraph() const;
+    GraphDeviceData getGraph() const;
 
     /*! \brief Returns state set containing the accessible part of automa
      *

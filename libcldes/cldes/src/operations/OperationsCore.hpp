@@ -37,7 +37,7 @@ namespace op {
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeEmptyStage2(
+synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
     // Estimated sparcity pattern: Calculate on the same loop than statesmap
@@ -82,7 +82,7 @@ SynchronizeEmptyStage2(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
+synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
     SparseStatesMap<StorageIndex> statesmap;
 
@@ -152,7 +152,7 @@ SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 transMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
@@ -194,10 +194,10 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
     return;
 }
 
-// TODO: Maybe an union would avoid overloading RemoveBadStates?
+// TODO: Maybe an union would avoid overloading removeBadStates?
 template<uint8_t NEvents, typename StorageIndex>
 void
-RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 StatesTableHost<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
@@ -240,7 +240,7 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
 
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-SupervisorSynth(
+supC(
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     aP,
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
@@ -291,7 +291,7 @@ SupervisorSynth(
 
             if (in_ncqx_and_q != in_ncqx) {
                 // TODO: Fix template implicit instantiation
-                RemoveBadStates<NEvents, StorageIndex>(
+                removeBadStates<NEvents, StorageIndex>(
                   virtualsys, c, q, non_contr_bit, rmtable);
             } else {
                 c[q] = new InvArgtrans<StorageIndex>();
@@ -330,7 +330,7 @@ SupervisorSynth(
     c.clear();
 
     // Finish synching without removed states
-    // SynchronizeStage2(virtualsys);
+    // synchronizeStage2(virtualsys);
 
     // transform virtual sys in a real sys by forcing conversion
     auto sys = std::move(DESystem<NEvents, StorageIndex>(virtualsys));
@@ -384,7 +384,7 @@ SupervisorSynth(
 //
 // template<uint8_t NEvents, typename StorageIndex>
 // DESystem<NEvents, StorageIndex>
-// SupervisorSynth(DESVector<NEvents, StorageIndex> const& aPlants,
+// supC(DESVector<NEvents, StorageIndex> const& aPlants,
 //                 DESVector<NEvents, StorageIndex> const& aSpecs,
 //                 EventsTableHost const& aNonContr)
 // {
@@ -393,7 +393,7 @@ SupervisorSynth(
 //     BinExprTree plant = GenBinExprTree(aPlants);
 //     BinExprTree spec = GenBinExprTree(aSpecs);
 //
-//     auto const supervisor = SupervisorSynth<NEvents, StorageIndex>(
+//     auto const supervisor = supC<NEvents, StorageIndex>(
 //       *(plant.first), *(spec.first), aNonContr);
 //
 //     return supervisor;

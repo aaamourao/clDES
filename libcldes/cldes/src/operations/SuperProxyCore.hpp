@@ -120,7 +120,7 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
             auto const in_ncqx_and_q = in_ncqx & q_events;
             if (in_ncqx_and_q != in_ncqx) {
                 // TODO: Fix template implicit instantiation
-                RemoveBadStates<NEvents, StorageIndex>(
+                removeBadStates<NEvents, StorageIndex>(
                   virtualsys, virtual_states_, q, non_contr_bit, rmtable);
             } else {
                 virtual_states_.insert(q);
@@ -152,7 +152,7 @@ template<uint8_t NEvents, typename StorageIndex>
 op::SuperProxy<NEvents, StorageIndex>::operator DESystem() noexcept
 {
     std::sort(virtual_states_.begin(), virtual_states_.end());
-    SynchronizeStage2(*this);
+    synchronizeStage2(*this);
 
     // Allocate memory for the real sys
     auto sys_ptr = std::make_shared<DESystem>(DESystem{});

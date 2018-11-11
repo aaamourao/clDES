@@ -218,12 +218,12 @@ public:
 protected:
     /*! \brief Second step of the lazy parallel composition
      */
-    friend void cldes::op::SynchronizeStage2<>(
+    friend void cldes::op::synchronizeStage2<>(
       SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
     /*! \brief Second step of the lazy parallel composition
      */
-    friend void cldes::op::SynchronizeEmptyStage2<>(
+    friend void cldes::op::synchronizeEmptyStage2<>(
       SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
     friend class cldes::op::SuperProxy<NEvents, StorageIndex>;
@@ -234,7 +234,7 @@ protected:
     SyncSysProxy() = default;
 
 private:
-    friend DESystem SupervisorSynth<>(DESystemBase const& aP,
+    friend DESystem supC<>(DESystemBase const& aP,
                                       DESystemBase const& aE,
                                       EventsTableHost const& aNonContr) noexcept;
 

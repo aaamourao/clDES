@@ -36,12 +36,12 @@ namespace op {
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeEmptyStage2(
+synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
 // Alias to events hash map
@@ -50,7 +50,7 @@ using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-SupervisorSynth(
+supC(
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     aP,
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&

@@ -38,6 +38,7 @@ Makefile.in
 # Ignore build and lib dirs
 build
 build2
+buildopenmp
 lib/*
 external_dep/*
 libclDES/*

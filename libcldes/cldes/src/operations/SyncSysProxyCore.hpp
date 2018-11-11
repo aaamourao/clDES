@@ -72,10 +72,10 @@ template<uint8_t NEvents, typename StorageIndex>
 op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
 {
     if (virtual_states_.empty()) {
-        SynchronizeEmptyStage2(*this);
+        synchronizeEmptyStage2(*this);
     } else {
         std::sort(virtual_states_.begin(), virtual_states_.end());
-        SynchronizeStage2(*this);
+        synchronizeStage2(*this);
     }
 
     // Allocate memory for the real sys

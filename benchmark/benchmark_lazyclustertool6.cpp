@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: test/kernels.hpp
- Description: Test cldes::op::Synchronize function, the parallel
+ Description: Test cldes::op::synchronize function, the parallel
  composition implementation.
  =========================================================================
 */
@@ -53,7 +53,7 @@ main()
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-    auto supervisor = cldes::op::SupervisorSynth(plants, specs, non_contr);
+    auto supervisor = cldes::op::supC(plants, specs, non_contr);
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(t2 - t1).count();
@@ -65,5 +65,5 @@ main()
     std::cout << "Number of states of the supervisor: " << supervisor.Size()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
-              << supervisor.GetGraph().nonZeros() << std::endl;
+              << supervisor.getGraph().nonZeros() << std::endl;
 }

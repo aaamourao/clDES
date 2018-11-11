@@ -243,7 +243,7 @@ public:
      *  \return Eigen sparse matrix of bitset representing the sysmte on
      *  compressed mode.
      */
-    GraphHostData constexpr GetGraph() const noexcept { return graph_; }
+    GraphHostData constexpr getGraph() const noexcept { return graph_; }
 
     /*! \brief Returns events that lead a transition between two states
      *

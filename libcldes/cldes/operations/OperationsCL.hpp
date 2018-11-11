@@ -40,12 +40,12 @@ namespace cldes {
 
 namespace op {
 cldes::DESystemCL<NEvents>
-SynchronizeStage2(StatesTable const* aTable,
+synchronizeStage2(StatesTable const* aTable,
                   cldes::DESystem<NEvents> CL& aSys0,
                   cldes::DESystem<NEvents> CL& aSys1);
 
 StatesTable*
-SynchronizeStage1(cldes::DESystem<NEvents> CL const& aSys0,
+synchronizeStage1(cldes::DESystem<NEvents> CL const& aSys0,
                   cldes::DESystem<NEvents> CL const& aSys1);
 typedef struct StatesTuple
 {
@@ -74,7 +74,7 @@ SetWorkGroups_(KernelType* k,
 }
 
 cldes::DESystemCL<NEvents>
-Synchronize(cldes::DESystem<NEvents> CL& aSys0,
+synchronize(cldes::DESystem<NEvents> CL& aSys0,
             cldes::DESystem<NEvents> CL& aSys1);
 } // namespace op
 } // namespace cldes

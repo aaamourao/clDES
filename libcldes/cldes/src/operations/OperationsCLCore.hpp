@@ -35,7 +35,7 @@
 #include <cmath>
 
 DESystemCL<NEvents>
-op::Synchronize(DESystemCL<NEvents>& aSys0, DESystemCL<NEvents>& aSys1)
+op::synchronize(DESystemCL<NEvents>& aSys0, DESystemCL<NEvents>& aSys1)
 {
     /*
     auto table_size = aSys0.states_number_ * aSys1.states_number_;
@@ -44,7 +44,7 @@ op::Synchronize(DESystemCL<NEvents>& aSys0, DESystemCL<NEvents>& aSys1)
     auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
       CL_MEM_READ_WRITE, table_size * sizeof(StatesTuple), nullptr);
 
-    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage1");
+    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("synchronize_Stage1");
 
     // Set Work groups size
     SetWorkGroups_(
@@ -84,7 +84,7 @@ op::Synchronize(DESystemCL<NEvents>& aSys0, DESystemCL<NEvents>& aSys1)
                    aSys1.marked_states_.end(),
                    std::inserter(markedstates_sync, markedstates_sync.begin()));
 
-    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage2");
+    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("synchronize_Stage2");
 
     // Set Work groups size
     SetWorkGroups_(&syncstage2kernel, table_size, aSys0.events_.size(), 1, 1);
@@ -126,7 +126,7 @@ op::Synchronize(DESystemCL<NEvents>& aSys0, DESystemCL<NEvents>& aSys1)
 }
 
 op::StatesTable*
-op::SynchronizeStage1(DESystemCL<NEvents> const& aSys0,
+op::synchronizeStage1(DESystemCL<NEvents> const& aSys0,
                       DESystemCL<NEvents> const& aSys1)
 {
     /*
@@ -136,7 +136,7 @@ op::SynchronizeStage1(DESystemCL<NEvents> const& aSys0,
     auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
       CL_MEM_WRITE_ONLY, table_size * sizeof(StatesTuple), nullptr);
 
-    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage1");
+    auto syncstage1kernel = aSys0.backend_ptr_->GetKernel("synchronize_Stage1");
 
     // Set Work groups size
     SetWorkGroups_(
@@ -168,7 +168,7 @@ op::SynchronizeStage1(DESystemCL<NEvents> const& aSys0,
 }
 
 DESystemCL<NEvents>
-op::SynchronizeStage2(op::StatesTable const* aTable,
+op::synchronizeStage2(op::StatesTable const* aTable,
                       DESystemCL<NEvents>& aSys0,
                       DESystemCL<NEvents>& aSys1)
 {
@@ -195,7 +195,7 @@ op::SynchronizeStage2(op::StatesTable const* aTable,
     auto states_tuple_dev = aSys0.backend_ptr_->GetContext().create_memory(
       CL_MEM_READ_ONLY, aTable->tsize * sizeof(StatesTuple), aTable->table);
 
-    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("Synchronize_Stage2");
+    auto syncstage2kernel = aSys0.backend_ptr_->GetKernel("synchronize_Stage2");
 
     // Set Work groups size
     SetWorkGroups_(

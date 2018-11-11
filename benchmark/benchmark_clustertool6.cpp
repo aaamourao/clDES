@@ -24,7 +24,7 @@
  Universidade Federal de Minas Gerais
 
  File: test/kernels.hpp
- Description: Test cldes::op::Synchronize function, the parallel
+ Description: Test cldes::op::synchronize function, the parallel
  composition implementation.
  =========================================================================
 */
@@ -65,7 +65,7 @@ main()
         auto last_result = plants[0ul];
         plant = last_result;
         for (auto i = 1ul; i < plants.size(); ++i) {
-            plant = cldes::op::Synchronize(last_result, plants[i]);
+            plant = cldes::op::synchronize(last_result, plants[i]);
             last_result = plant;
         }
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
@@ -79,7 +79,7 @@ main()
         last_result = specs[0ul];
         spec = last_result;
         for (auto i = 1ul; i < specs.size(); ++i) {
-            spec = cldes::op::Synchronize(last_result, specs[i]);
+            spec = cldes::op::synchronize(last_result, specs[i]);
             last_result = spec;
         }
         t2 = high_resolution_clock::now();
@@ -92,10 +92,10 @@ main()
     std::cout << std::endl
               << "Number of states of plant: " << plant.Size() << std::endl;
     std::cout << "Number of transitions of the plant "
-              << plant.GetGraph().nonZeros() << std::endl;
+              << plant.getGraph().nonZeros() << std::endl;
     std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
     std::cout << "Number of transitions of the spec "
-              << spec.GetGraph().nonZeros() << std::endl
+              << spec.getGraph().nonZeros() << std::endl
               << std::endl;
 
     std::cout << "{plant, spec}.trim()" << std::endl;
@@ -107,10 +107,10 @@ main()
     std::cout << std::endl
               << "Number of states of plant: " << plant.Size() << std::endl;
     std::cout << "Number of transitions of the plant "
-              << plant.GetGraph().nonZeros() << std::endl;
+              << plant.getGraph().nonZeros() << std::endl;
     std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
     std::cout << "Number of transitions of the spec "
-              << spec.GetGraph().nonZeros() << std::endl
+              << spec.getGraph().nonZeros() << std::endl
               << std::endl;
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
@@ -120,7 +120,7 @@ main()
     std::cout << std::endl;
     std::cout << "Computing the supervisor" << std::endl;
     t1 = high_resolution_clock::now();
-    auto supervisor = cldes::op::SupervisorSynth(plant, spec, non_contr);
+    auto supervisor = cldes::op::supC(plant, spec, non_contr);
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<microseconds>(t2 - t1).count();
@@ -130,5 +130,5 @@ main()
     std::cout << "Number of states of the supervisor: " << supervisor.Size()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
-              << supervisor.GetGraph().nonZeros() << std::endl;
+              << supervisor.getGraph().nonZeros() << std::endl;
 }

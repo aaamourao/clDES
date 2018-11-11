@@ -70,7 +70,7 @@ class TransitionProxy;
 
 /*
  * Forward declarion of DESystem class necessary for the forward declaration of
- * the DESystem's friend function op::Synchronize
+ * the DESystem's friend function op::synchronize
  */
 template<uint8_t NEvents = kDefaultEventsN, typename StorageIndex = uint32_t>
 class DESystem;
@@ -83,7 +83,7 @@ using DESVector = std::vector<DESystem<NEvents, StorageIndex>>;
 // Forward declartions of friends functions which implement des operations
 namespace op {
 /*
- * Forward declaration of the Synchronize virtual proxy
+ * Forward declaration of the synchronize virtual proxy
  */
 template<uint8_t NEvents, typename StorageIndex>
 class SyncSysProxy;

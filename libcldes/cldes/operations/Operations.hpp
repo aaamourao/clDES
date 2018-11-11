@@ -45,7 +45,7 @@ namespace op {
  * \details The composed states are sorted by the right operand indexes:
  * e.g. indexes(sys0.size{3} || sys.size{2}) =
  * {0 = (0, 0), 1 = (1, 0), 2 = (2, 0), 3 = (0, 1), 4 = (1, 1), 5 = (2, 1)}
- * \warning Synchronize() is faster than the other synchronizing functions to
+ * \warning synchronize() is faster than the other synchronizing functions to
  * calculate the whole system. However, parallel composition between large
  * systems can occupy a lot of memory. Prefer lazy operations when this
  * is a problem
@@ -56,7 +56,7 @@ namespace op {
  * between two systems
  */
 template<uint8_t NEvents, typename StorageIndex, class TSys0>
-DESystem<NEvents, StorageIndex> constexpr Synchronize(
+DESystem<NEvents, StorageIndex> constexpr synchronize(
   DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
   DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1) noexcept
 {
@@ -71,7 +71,7 @@ DESystem<NEvents, StorageIndex> constexpr Synchronize(
  * e.g. indexes(sys0.size{3} || sys.size{2}) =
  * {0 = (0, 0), 1 = (1, 0), 2 = (2, 0), 3 = (0, 1), 4 = (1, 1), 5 = (2, 1)}
  * \warning This funtion returns an object that evaluates the operation
- * on demand. If you need the whole system at once, use Synchronize or
+ * on demand. If you need the whole system at once, use synchronize or
  * convert with the result to DESystem using a type cast.
  *
  * @param aSys0 The left operand of the parallel composition.
@@ -80,7 +80,7 @@ DESystem<NEvents, StorageIndex> constexpr Synchronize(
  * between two systems.
  */
 template<uint8_t NEvents, typename StorageIndex, class TSys0>
-SyncSysProxy<NEvents, StorageIndex> constexpr SynchronizeStage1(
+SyncSysProxy<NEvents, StorageIndex> constexpr synchronizeStage1(
   DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
   DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1) noexcept
 {
@@ -100,7 +100,7 @@ SyncSysProxy<NEvents, StorageIndex> constexpr SynchronizeStage1(
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeEmptyStage2(
+synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex> const&& aVirtualSys) noexcept;
 
 /*! \brief transform a virtual system in a real system: optmized to supervisor
@@ -116,7 +116,7 @@ SynchronizeEmptyStage2(
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
-SynchronizeStage2(
+synchronizeStage2(
   SyncSysProxy<NEvents, StorageIndex> const&& aVirtualSys) noexcept;
 
 /*! \brief Remove bad states recursively
@@ -135,7 +135,7 @@ SynchronizeStage2(
  */
 template<uint8_t NEvents, typename StorageIndex>
 void
-RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 transMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
@@ -150,12 +150,11 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
  */
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-SupervisorSynth(
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aP,
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aE,
-  EventsTableHost const& aNonContr) noexcept;
+supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aP,
+     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aE,
+     EventsTableHost const& aNonContr) noexcept;
 
 // /*! \brief Generate a expression tree of synchronize operations
 //  * \details Build a binary expression tree of parallel compositions
@@ -197,7 +196,7 @@ SupervisorSynth(
 //  */
 // template<uint8_t NEvents, typename StorageIndex>
 // DESystem<NEvents, StorageIndex>
-// SupervisorSynth(DESVector<NEvents, StorageIndex> const& aPlants,
+// supC(DESVector<NEvents, StorageIndex> const& aPlants,
 //                 DESVector<NEvents, StorageIndex> const& aSpecs,
 //                 EventsTableHost const& aNonContr);
 

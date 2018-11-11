@@ -66,7 +66,7 @@ main()
     sys(2, 2) = b;
     sys(2, 3) = a;
 
-    auto graph = sys.GetGraph();
+    auto graph = sys.getGraph();
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     auto accessible_states = sys.accessiblePart();
@@ -108,7 +108,7 @@ main()
     new_sys(3, 1) = a;
     new_sys(3, 2) = a;
 
-    auto new_graph = new_sys.GetGraph();
+    auto new_graph = new_sys.getGraph();
     //  PrintGraph(new_graph, "New Sys");
 
     t1 = high_resolution_clock::now();

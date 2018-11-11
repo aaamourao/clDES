@@ -224,7 +224,7 @@ public:
 protected:
     /*! \brief Monolithic supervisor synthesis
      */
-    friend DESystem SupervisorSynth<>(DESystemBase const& aP,
+    friend DESystem supC<>(DESystemBase const& aP,
                                       DESystemBase const& aE,
                                       EventsTableHost const& aNonContr) noexcept;
 

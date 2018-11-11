@@ -69,7 +69,7 @@ DESystemCL<NEvents, StorageIndex>::IsVirtual() const
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystemCL<NEvents, StorageIndex>::GraphDeviceData
-DESystemCL<NEvents, StorageIndex>::GetGraph() const
+DESystemCL<NEvents, StorageIndex>::getGraph() const
 {
     return graph_;
 }
