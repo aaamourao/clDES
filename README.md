@@ -4,31 +4,32 @@
 
 Efficient algorithms for **Discrete-Event Systems**/deterministic
 finite state automatons
-operations targeting CPUs and GPGPU.
+operations targeting heterogeneous platforms.
 A **Supervisor Synthesizer** algorithm is also available.
 
 ## Implementation
 
 **clDES** uses a graph based model to represent discrete-event systems,
 which are implemented with adjacency sparse matrices. It has a
-[ViennaCL](http://viennacl.sourceforge.net/) back-end for multiplying
-sparse matrices on GPU and custom **OpenCL** kernels for operations
-such as the parallel composition.
+[ViennaCL](http://viennacl.sourceforge.net/) OpenCL back-end to enable
+a *gpgpu* approach. The CPU processing is made using the
+[Eigen3](http://eigen.tuxfamily.org) library and it can exploit multiple
+cores present in your hardware by enabling OpenMP on your compiler.
 
 > Only CPU operations are available now. The *OpenCL* code is being refactored.
 > ViennaCL is going to be replaced by VexCL + custom kernels implementation.
 
 ### Available operations
 
-The following operations are going to be available on **clDES-1.0.0**:
-
-Automata operation | Implementation
+Automaton operation | Implementation
 -------------------|----------------
 Accessible part | `cldes::DESystem<NEvents, StorageIndex>::accessiblePart()`
 Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::coaccessiblePart()`
 Trim | `cldes::DESystemBase<NEvents, StorageIndex>::trim()`
 Synchronization: parallel composition | `cldes::op::synchronize<NEvents, StorageIndex>()`
-Controller Synthesis | `cldes::op::supervisorSynth<NEvents, StorageIndex>()`
+Observer Property Checker | `cldes::DESystem<NEvents, StorageIndex>::containsObsProp()`
+Controller Synthesis | `cldes::op::supC<NEvents, StorageIndex>()`
+Projection | `cldes::op::projection<NEvents, StorageIndex>()`
 
 ## Compiling
 
@@ -39,16 +40,13 @@ Follow the instructions bellow to build the project.
 It is necessary to make sure that **CMake 3.11** is installed, such as
 **LLVM Clang 6** ~~or **GCC/G++ 8**~~ developer tools.
 
+System support to **Boost** Library version `>= 1.58`
+and **Eigen3** Library are required. **OpenCL** version `>= 1.2`, and
+**OpenMP** version `>= 5` is optional.
+
 > It may compile and run smoothly on older versions. These tools mentioned above
 > compose the tool chain used to develop and to test so far, **ArchLinux** and
 **Fedora 28**. **GCC build currently broken. Use CLang instead.**
-
-System support to **OpenCL** version `>= 1.2`, **Boost** Library version `>= 1.58`
-and **Eigen3** Library are required.
-
-> So far, you should install it manually. In a near
-> future, **CMake** will install it locally if it was not previously installed
-> in the system.
 
 **clDES** embedded libraries so far:
 
@@ -63,6 +61,9 @@ and **Eigen3** Library are required.
 
 ### Build project
 
+**clDES** is a template library, which means you only need to copy it to
+a directory on your compiler search path. However, you may want to compile
+it to run its benchmarks and tests.
 After checking if all requirements are satisfied, compile the project:
 
 ```bash
@@ -72,7 +73,25 @@ $ export CLDES_INCLUDE_PATH=<clDES_root>/include/
 $ cd  <clDES_root>
 $ mkdir build; cd build
 $ cmake ..
-$ make
+$ make -j4
+```
+
+#### Optional features
+
+To enable *OpenMP* or *OpenCL*, it is necessary to set the corresponding flags:
+
+*OpenMP*:
+```bash
+# [...]
+$ cmake -DCLDES_OPENMP_ENABLED=true ..
+$ make -j4
+```
+
+*OpenCL*:
+```base
+# [...]
+$ cmake _DCLDES_OPENCL_ENABLED=true ..
+$ make -j4
 ```
 
 ### Dev build
@@ -87,7 +106,7 @@ $ export CLDES_INCLUDE_PATH=<clDES_root>/include/
 $ cd  <clDES_root>
 $ mkdir build; cd build
 $ cmake -DCMAKE_BUILD_TYPE=Debug ..
-$ make
+$ make -j4
 ```
 
 ## Running tests

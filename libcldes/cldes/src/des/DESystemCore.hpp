@@ -90,10 +90,10 @@ DESystem<NEvents, StorageIndex>::AccessiblePart() const noexcept
 {
     // Executes a BFS on graph_
     auto accessible_states = Bfs_();
-
     return *accessible_states;
 }
 
+// TODO: All searches using one single vector
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
 DESystem<NEvents, StorageIndex>::CoaccessiblePart() const noexcept
@@ -107,7 +107,6 @@ DESystem<NEvents, StorageIndex>::CoaccessiblePart() const noexcept
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
                     n_marked };
     x.reserve(this->marked_states_.size());
-
     {
         auto pos = 0ul;
         for (auto state : this->marked_states_) {
@@ -115,31 +114,25 @@ DESystem<NEvents, StorageIndex>::CoaccessiblePart() const noexcept
             ++pos;
         }
     }
-
     StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
-                    n_marked };
+                    static_cast<StorageIndexSigned>(n_marked) };
     auto n_accessed_states = 0l;
     for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
         y = invgraph * x;
-
         if (n_accessed_states == y.nonZeros()) {
             break;
         } else {
             n_accessed_states = y.nonZeros();
         }
-
         x = y;
     }
-
     y.pruned();
-
     StatesSet coaccessible_states;
     for (StorageIndexSigned s = 0; s < y.outerSize(); ++s) {
-        for (ColIteratorConst e(y, s); e; ++e) {
+        for (BitIteratorConst e(y, s); e; ++e) {
             coaccessible_states.emplace(e.row());
         }
     }
-
     return coaccessible_states;
 }
 
@@ -152,43 +145,42 @@ DESystem<NEvents, StorageIndex>::TrimStates() const noexcept
     for (StorageIndex s : accpartstl) {
         accpart.insert(s);
     }
-
     GraphHostData ident{ static_cast<Eigen::Index>(this->states_number_),
                          static_cast<Eigen::Index>(this->states_number_) };
     ident.setIdentity();
-    StatesVector const searchgraph{ (graph_ + ident).template cast<bool>() };
-
     // auto const n_marked = this->marked_states_.size();
-
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     x.reserve(this->marked_states_.size());
     std::vector<BitTriplet> xtriplet;
-
-    {
-        for (StorageIndex state : this->marked_states_) {
-            xtriplet.push_back(BitTriplet(state, 0, true));
-        }
+// #ifndef CLDES_OPENMP_ENABLED
+    StatesVector const searchgraph{ (graph_ + ident).template cast<bool>() };
+// #else
+//     BitRowGraphHostData const searchgraph{
+//         (graph_ + ident).template cast<bool>()
+//     };
+// #endif
+    for (StorageIndex state : this->marked_states_) {
+        xtriplet.push_back(BitTriplet(state, 0, true));
     }
     x.setFromTriplets(xtriplet.begin(),
                       xtriplet.end(),
                       [](bool const&, bool const&) { return true; });
-
     StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < this->states_number_; ++i) {
+// #ifdef CLDES_OPENMP_ENABLED
+//         y = searchgraph.transpose() * x;
+// #else
         y = searchgraph * x;
-
+// #endif
         if (n_accessed_states == y.nonZeros()) {
             break;
         } else {
             n_accessed_states = y.nonZeros();
         }
-
         x = y;
     }
-
     y.pruned();
-
     StatesSet trimstates;
     for (auto s = 0l; s < y.outerSize(); ++s) {
         for (ColIteratorConst e(y, s); e; ++e) {
@@ -197,7 +189,6 @@ DESystem<NEvents, StorageIndex>::TrimStates() const noexcept
             }
         }
     }
-
     return trimstates;
 }
 
@@ -206,20 +197,16 @@ DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>&
 DESystem<NEvents, StorageIndex>::Trim() noexcept
 {
     auto trimstates = this->TrimStates();
-
     if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
         return *this;
     }
-
     // States map: old state pos -> new state pos
     std::vector<StorageIndexSigned> statesmap(this->states_number_, -1);
-
     // Copy graph and resize it
     auto const old_graph = graph_;
     this->states_number_ = trimstates.size();
     graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
                   static_cast<StorageIndexSigned>(this->states_number_));
-
     if (this->states_events_.size() > 0) {
         this->states_events_.erase(this->states_events_.begin() +
                                      this->states_number_,
@@ -228,12 +215,9 @@ DESystem<NEvents, StorageIndex>::Trim() noexcept
                                          this->states_number_,
                                        this->inv_states_events_.end());
     }
-
     this->events_.reset();
-
     // Calculate the sparsity pattern
     auto sparcitypattern = this->events_.count() * this->states_number_;
-
     // Fill statesmap
     {
         auto d = 0ul;
@@ -242,10 +226,8 @@ DESystem<NEvents, StorageIndex>::Trim() noexcept
             ++d;
         }
     }
-
     std::vector<Triplet> triplet;
     triplet.reserve(sparcitypattern);
-
     // Build new graph_ slice by slice
     {
         auto row_id = 0ul;
@@ -257,7 +239,6 @@ DESystem<NEvents, StorageIndex>::Trim() noexcept
             for (RowIteratorGraph e(old_graph, s); e; ++e) {
                 if (statesmap[e.col()] != -1) {
                     auto const col_id = statesmap[e.col()];
-
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
                     this->events_ |= e.value();
                     if (this->states_events_.size() > 0) {
@@ -269,11 +250,9 @@ DESystem<NEvents, StorageIndex>::Trim() noexcept
             ++row_id;
         }
     }
-
     // Remove aditional space
     graph_.setFromTriplets(triplet.begin(), triplet.end());
     graph_.makeCompressed();
-
     // Calculate new marked states
     auto const old_marked = this->marked_states_;
     this->marked_states_.clear();
@@ -282,7 +261,6 @@ DESystem<NEvents, StorageIndex>::Trim() noexcept
             this->marked_states_.emplace(statesmap[s]);
         }
     }
-
     return *this;
 }
 
@@ -425,7 +403,6 @@ DESystem<NEvents, StorageIndex>::Bfs_(
         // vector on the matrix
         states_map.push_back(state);
     }
-
     return BfsCalc_(host_x, aBfsVisit, &states_map);
 }
 
@@ -444,7 +421,6 @@ DESystem<NEvents, StorageIndex>::Bfs_(
      * to set X on host first.
      */
     host_x.coeffRef(aInitialNode, 0) = true;
-
     return BfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
@@ -455,6 +431,7 @@ DESystem<NEvents, StorageIndex>::Bfs_() const noexcept
     return Bfs_(this->init_state_, nullptr);
 }
 
+// TODO: Use a single vector, instead of a bit mtr
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
 DESystem<NEvents, StorageIndex>::BfsCalc_(
@@ -487,14 +464,12 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
         } else {
             n_accessed_states = y.nonZeros();
         }
-
         aHostX = y;
     }
-
     /// Add results to a std::set vector
     if (aBfsVisit) {
         for (auto s = 0l; s < y.rows(); ++s) {
-            for (ColIteratorConst e(y, s); e; ++e) {
+            for (BitIteratorConst e(y, s); e; ++e) {
                 aBfsVisit((*aStatesMap)[e.col()], e.row());
             }
         }
@@ -505,8 +480,8 @@ DESystem<NEvents, StorageIndex>::BfsCalc_(
     std::shared_ptr<StatesSet> accessed_states{
         new StatesSet[n_initial_nodes], std::default_delete<StatesSet[]>()
     };
-    for (auto s = 0l; s < y.cols(); ++s) {
-        for (ColIteratorConst e(y, s); e; ++e) {
+    for (auto s = 0l; s < y.outerSize(); ++s) {
+        for (BitIteratorConst e(y, s); e; ++e) {
             accessed_states.get()[e.col()].emplace(e.row());
         }
     }

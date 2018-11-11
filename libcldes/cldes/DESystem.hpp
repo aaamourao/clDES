@@ -118,11 +118,13 @@ public:
      * * col index: to state
      */
     using BitGraphHostData = Eigen::SparseMatrix<bool, Eigen::ColMajor>;
+    using BitRowGraphHostData = Eigen::SparseMatrix<bool, Eigen::RowMajor>;
 
     /*! \brief Adjacency matrix of bit implementing searching nodes
      * \details Structure used for traversing the graph using a linear algebra
      * approach
      */
+    using StatesDenseVector = Eigen::Matrix<bool, Eigen::Dynamic, 1>;
     using StatesVector = Eigen::SparseMatrix<bool, Eigen::ColMajor>;
 
     /*! \brief Set of Events implemented as a Hash Table for searching
@@ -146,6 +148,9 @@ public:
      * \details Used to iterate over the bfs result
      */
     using ColIteratorConst = Eigen::InnerIterator<StatesVector const>;
+    using DenseColIteratorConst = Eigen::InnerIterator<StatesDenseVector const>;
+    using BitRowIteratorConst = Eigen::InnerIterator<BitRowGraphHostData const>;
+    using BitIteratorConst = Eigen::InnerIterator<BitGraphHostData const>;
 
     /*! \brief Graph const iterator
      * \details Used to iterate over the adjacency matrix

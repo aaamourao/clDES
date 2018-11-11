@@ -38,6 +38,10 @@
 #include <bitset>
 #include <limits>
 
+#ifdef CLDES_OPENMP_ENABLED
+#include <Eigen/Dense>
+#endif
+
 namespace cldes {
 
 // Host adjascency matrix base type which represents an array of bits

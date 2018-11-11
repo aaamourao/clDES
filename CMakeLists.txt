@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -fopenmp")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -30,6 +30,7 @@ find_package(Doxygen
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/doc")
 
+
 # { OpenCL, Boost, Eigen3, Doxygen } packages are required
 if(NOT ${CMAKE_BUILD_TYPE} MATCHES doc)
     include(ExternalProject)
@@ -37,6 +38,10 @@ if(NOT ${CMAKE_BUILD_TYPE} MATCHES doc)
     find_package(OpenCL 1.2 REQUIRED)
     find_package(Boost 1.58 REQUIRED)
     find_package(Eigen3 REQUIRED)
+    if(CLDES_OPENMP_ENABLED)
+        find_package(OpenMP REQUIRED)
+        add_compile_definitions(CLDES_OPENMP_ENABLED)
+    endif()
     include_directories(${EIGEN3_INCLUDE_DIR})
 
     # Vars for configuring outputs dir
