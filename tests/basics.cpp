@@ -69,7 +69,7 @@ main()
     auto graph = sys.GetGraph();
 
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    auto accessible_states = sys.AccessiblePart();
+    auto accessible_states = sys.accessiblePart();
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(t2 - t1).count();
 
@@ -78,7 +78,7 @@ main()
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    auto coaccessible_states = sys.CoaccessiblePart();
+    auto coaccessible_states = sys.coaccessiblePart();
     t2 = high_resolution_clock::now();
     duration = duration_cast<microseconds>(t2 - t1).count();
 
@@ -87,12 +87,12 @@ main()
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    auto trimstates = sys.TrimStates();
+    auto trimstates = sys.trimStates();
     t2 = high_resolution_clock::now();
     duration = duration_cast<microseconds>(t2 - t1).count();
 
-    ProcessResult(trimstates, "< Trim states", "0 1 2 >");
-    std::cout << "Trim time: " << duration << " microseconds" << std::endl;
+    ProcessResult(trimstates, "< trim states", "0 1 2 >");
+    std::cout << "trim time: " << duration << " microseconds" << std::endl;
 
     std::cout << "Creating new system" << std::endl;
 
@@ -112,7 +112,7 @@ main()
     //  PrintGraph(new_graph, "New Sys");
 
     t1 = high_resolution_clock::now();
-    auto new_accessible_states = new_sys.AccessiblePart();
+    auto new_accessible_states = new_sys.accessiblePart();
     t2 = high_resolution_clock::now();
     duration = duration_cast<microseconds>(t2 - t1).count();
 
@@ -121,7 +121,7 @@ main()
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    auto new_coaccessible_states = new_sys.CoaccessiblePart();
+    auto new_coaccessible_states = new_sys.coaccessiblePart();
     t2 = high_resolution_clock::now();
     duration = duration_cast<microseconds>(t2 - t1).count();
 
@@ -130,20 +130,20 @@ main()
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    auto new_trimstates = new_sys.TrimStates();
+    auto new_trimstates = new_sys.trimStates();
     t2 = high_resolution_clock::now();
     duration = duration_cast<microseconds>(t2 - t1).count();
 
-    ProcessResult(new_trimstates, "< Trim states", "0 2 >");
-    std::cout << "Trim States time: " << duration << " microseconds"
+    ProcessResult(new_trimstates, "< trim states", "0 2 >");
+    std::cout << "trim States time: " << duration << " microseconds"
               << std::endl;
 
     t1 = high_resolution_clock::now();
-    new_sys.Trim();
+    new_sys.trim();
     t2 = high_resolution_clock::now();
     duration = duration_cast<microseconds>(t2 - t1).count();
 
-    std::cout << "Trim time: " << duration << " microseconds" << std::endl;
+    std::cout << "trim time: " << duration << " microseconds" << std::endl;
 
     return 0;
 }

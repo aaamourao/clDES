@@ -76,15 +76,15 @@ DESystemCL<NEvents, StorageIndex>::GetGraph() const
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystemCL<NEvents, StorageIndex>::StatesSet
-DESystemCL<NEvents, StorageIndex>::AccessiblePart()
+DESystemCL<NEvents, StorageIndex>::accessiblePart()
 {
-    auto accessible_states = Bfs_();
+    auto accessible_states = bfs_();
     return *accessible_states;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystemCL<NEvents, StorageIndex>::StatesSet
-DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
+DESystemCL<NEvents, StorageIndex>::coaccessiblePart()
 {
     StorageIndexSigned const n_marked = this->marked_states_.size();
     StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
@@ -139,7 +139,7 @@ DESystemCL<NEvents, StorageIndex>::CoaccessiblePart()
 template<uint8_t NEvents, typename StorageIndex>
 template<class StatesType>
 std::shared_ptr<typename DESystemCL<NEvents, StorageIndex>::StatesSet>
-DESystemCL<NEvents, StorageIndex>::Bfs_(
+DESystemCL<NEvents, StorageIndex>::bfs_(
   StatesType const& aInitialNode,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit)
@@ -154,12 +154,12 @@ DESystemCL<NEvents, StorageIndex>::Bfs_(
     // to set X on host first.
     host_x.coeffRef(aInitialNode, 0) = 1;
 
-    return BfsCalc_(host_x, aBfsVisit, nullptr);
+    return bfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<typename DESystemCL<NEvents, StorageIndex>::StatesSet>
-DESystemCL<NEvents, StorageIndex>::BfsCalc_(
+DESystemCL<NEvents, StorageIndex>::bfsCalc_(
   StatesVector& aHostX,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit,
@@ -212,14 +212,14 @@ DESystemCL<NEvents, StorageIndex>::BfsCalc_(
 
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<typename DESystemCL<NEvents, StorageIndex>::StatesSet>
-DESystemCL<NEvents, StorageIndex>::Bfs_()
+DESystemCL<NEvents, StorageIndex>::bfs_()
 {
-    return Bfs_(this->init_state_, nullptr);
+    return bfs_(this->init_state_, nullptr);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystemCL<NEvents, StorageIndex>::ContainsTrans(StorageIndex const&,
+DESystemCL<NEvents, StorageIndex>::Containstrans(StorageIndex const&,
                                                  ScalarType const&) const
 {
     return false;
@@ -227,7 +227,7 @@ DESystemCL<NEvents, StorageIndex>::ContainsTrans(StorageIndex const&,
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystemCL<NEvents, StorageIndex>::StorageIndexSigned
-DESystemCL<NEvents, StorageIndex>::Trans(StorageIndex const&,
+DESystemCL<NEvents, StorageIndex>::trans(StorageIndex const&,
                                          ScalarType const&) const
 {
     return 0;
@@ -235,7 +235,7 @@ DESystemCL<NEvents, StorageIndex>::Trans(StorageIndex const&,
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystemCL<NEvents, StorageIndex>::ContainsInvTrans(StorageIndex const&,
+DESystemCL<NEvents, StorageIndex>::Containsinvtrans(StorageIndex const&,
                                                     ScalarType const&) const
 {
     return false;
@@ -243,7 +243,7 @@ DESystemCL<NEvents, StorageIndex>::ContainsInvTrans(StorageIndex const&,
 
 template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
-DESystemCL<NEvents, StorageIndex>::InvTrans(StorageIndex const&,
+DESystemCL<NEvents, StorageIndex>::invtrans(StorageIndex const&,
                                             ScalarType const&) const
 {
     StatesArray<StorageIndex> foo{};

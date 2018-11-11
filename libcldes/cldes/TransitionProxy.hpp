@@ -67,9 +67,9 @@ public:
      * Override operator "=" for tracking when the device graph from the
      * related DESystem object is outdated.
      *
-     * @param aTransitionValue graph_(lin_, col_) new value
+     * @param atransitionValue graph_(lin_, col_) new value
      */
-    TransitionProxy& operator=(ScalarType aTransitionValue);
+    TransitionProxy& operator=(ScalarType atransitionValue);
 
     /*! \brief Override cast to ScalarType
      *

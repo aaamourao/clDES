@@ -55,12 +55,12 @@ namespace cldes {
  *
  *  |    Operation         |       Method           |
  *  |:--------------------:|:----------------------:|
- *  | Accessible part      | AccessiblePart()       |
- *  | Coaccessible part    | CoaccessiblePart()     |
- *  | Get trim states      | TrimStates()           |
- *  | Trim                 | Trim()                 |
- *  | Transition           | Trans()                |
- *  | InvTransition        | InvTrans()             |
+ *  | Accessible part      | accessiblePart()       |
+ *  | Coaccessible part    | coaccessiblePart()     |
+ *  | Get trim states      | trimStates()           |
+ *  | trim                 | trim()                 |
+ *  | transition           | trans()                |
+ *  | invtransition        | invtrans()             |
  *
  *  Where S is the number of states, E the number of events and T the number
  *  of transitions (considering a events OR expression a single transition)
@@ -142,7 +142,7 @@ public:
      * \ details f(s, e) = s_out -> this vector stores = (s_out, (s, e))
      */
     using TrVector =
-      std::vector<std::pair<StorageIndex, InvArgTrans<StorageIndex>*>>;
+      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>*>>;
 
     /*! \brief Graph const iterator
      * \details Used to iterate over the bfs result
@@ -282,7 +282,7 @@ public:
      *
      * \return A set of the accessed states
      */
-    StatesSet AccessiblePart() const noexcept;
+    StatesSet accessiblePart() const noexcept;
 
     /*! \brief Returns state set containing the coaccessible part of automata
      * \details Inverts the bit graph by transposing it (does not store it
@@ -293,7 +293,7 @@ public:
      * \return A set containing the accessed states by the bfs (coacessible
      * states)
      */
-    StatesSet CoaccessiblePart() const noexcept;
+    StatesSet coaccessiblePart() const noexcept;
 
     /*! \brief Get states set which represent the trim states of the current
      * system
@@ -302,16 +302,16 @@ public:
      *
      * \return A set containing the trim states intergers.
      */
-    StatesSet TrimStates() const noexcept;
+    StatesSet trimStates() const noexcept;
 
-    /*! \brief Returns DES which is the Trim part of this
+    /*! \brief Returns DES which is the trim part of this
      * \details Cut the non-trim states from the current system.
      * TODO: Make it lazy. Maybe setting values by 0 and making the graph_
      * compressed again would be a good solution.
      *
      * \return Reference to this system
      */
-    DESystemBase& Trim() noexcept;
+    DESystemBase& trim() noexcept;
 
     /*! \brief Insert events
      * \details Set the member events_ with a set containing all events
@@ -323,7 +323,7 @@ public:
      * @param aEvents Set containing all the new events of the current system
      * \return void
      */
-    void InsertEvents(EventsSet const& aEvents) noexcept;
+    void insertEvents(EventsSet const& aEvents) noexcept;
 
     /*! \brief Check if transition exists
      * \details given a transition f(q, e) = qto, it
@@ -333,10 +333,10 @@ public:
      * @param aEvent Event
      * \return Returns true if DES transition exists, false otherwise
      */
-    bool containsTrans_impl(StorageIndex const& aQ,
+    bool containstrans_impl(StorageIndex const& aQ,
                             ScalarType const& aEvent) const noexcept;
 
-    /*! \brief Transition function
+    /*! \brief transition function
      * \details given a transition f(q, e) = qto, it
      * calculates if qto is different of empty.
      *
@@ -356,10 +356,10 @@ public:
      * @param aEvent Event
      * \return True if DES inverse transition exists, false otherwise
      */
-    bool containsInvTrans_impl(StorageIndex const& aQ,
+    bool containsinvtrans_impl(StorageIndex const& aQ,
                                ScalarType const& aEvent) const;
 
-    /*! \brief DES Inverse Transition function
+    /*! \brief DES Inverse transition function
      * \warning This method requires to run AllocateInvGraph previously. It
      * can be very expensive for large systems, because it implies in
      * transposing the adjacency matrix.
@@ -369,7 +369,7 @@ public:
      * \return DES states array containing the inverse transition.
      * It may be empty, if there is none.
      */
-    StatesArray<StorageIndex> invTrans_impl(StorageIndex const& aQ,
+    StatesArray<StorageIndex> invtrans_impl(StorageIndex const& aQ,
                                             ScalarType const& aEvent) const;
 
     /*! \brief Get events of all transitions of a specific state
@@ -415,14 +415,14 @@ protected:
      *
      * \return void
      */
-    void CacheGraph_() noexcept;
+    void cacheGraph_() noexcept;
 
     /*! \brief Method for updating the graph
      * \details Refresh the existent graph data on device memory.
      *
      * \return void
      */
-    void UpdateGraphCache_() noexcept;
+    void updateGraphCache_() noexcept;
 
     /*! \brief Setup BFS and return accessed states array
      * \details Executes a breadth-first search on the graph starting from N
@@ -435,12 +435,12 @@ protected:
      * was accessed or a bfs visit function was defined
      */
     template<class StatesType>
-    std::shared_ptr<StatesSet> Bfs_(
+    std::shared_ptr<StatesSet> bfs_(
       StatesType const& aInitialNodes,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit) const noexcept;
 
-    /*! \brief Overload Bfs_ for the special case of a single initial node
+    /*! \brief Overload bfs_ for the special case of a single initial node
      * \details Executes a breadth-first search on the graph starting from the
      * specified node The algorithm is based on SpGEMM.
      *
@@ -450,12 +450,12 @@ protected:
      * \return Return a set containing the accessed states, or nullptr if none
      * was accessed or a bfs visit function was defined
      */
-    std::shared_ptr<StatesSet> Bfs_(
+    std::shared_ptr<StatesSet> bfs_(
       StorageIndex const& aInitialNode,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit) const noexcept;
 
-    /*! \brief Overload Bfs_ for the special case of starting from the inital
+    /*! \brief Overload bfs_ for the special case of starting from the inital
      * state
      * \details Executes a breadth-first search on the graph starting from the
      * system's initial node The algorithm is based on SpGEMM.
@@ -463,7 +463,7 @@ protected:
      * \return Return a set containing the accessed states, or nullptr if none
      * was accessed or a bfs visit function was defined
      */
-    std::shared_ptr<StatesSet> Bfs_() const noexcept;
+    std::shared_ptr<StatesSet> bfs_() const noexcept;
 
     /*! \brief Calculates Bfs and returns accessed states array
      * \details Executes a breadth first search on the graph starting from one
@@ -475,7 +475,7 @@ protected:
      * @param aStatesMap Map each vector used to implement in a bfs when
      * multiple ones are execute togheter: it can be null
      */
-    std::shared_ptr<StatesSet> BfsCalc_(
+    std::shared_ptr<StatesSet> bfsCalc_(
       StatesVector& aHostX,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit,
@@ -504,7 +504,7 @@ private:
      * adjascency matrix. It is implemented as a CSR scheme.
      *  * Non zero element: events bit from <row index> to <col index> that
      * lead to starting node (row index) to the arriving node (col index).
-     * * e.g. M(2, 3) = 101; Transition from state 2 to state 3 with the
+     * * e.g. M(2, 3) = 101; transition from state 2 to state 3 with the
      * condition event 0 OR event 2.
      */
     GraphHostData graph_;

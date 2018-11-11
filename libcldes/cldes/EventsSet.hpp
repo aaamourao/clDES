@@ -46,7 +46,7 @@ namespace cldes {
  * overloading a single operator.
  *
  * However, it leads to an issue when deducing template parameters on
- * cldes::op::RemoveBadStates and static cldes::op::__TransitionVirtualInv
+ * cldes::op::RemoveBadStates and static cldes::op::__transitionVirtualInv
  *
  * Each bit represent a different event.
  * 0 -> does not contain event

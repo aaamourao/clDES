@@ -128,7 +128,7 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
                 auto event_it = q_events;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
-                        auto const fsqe = virtualsys.Trans(q, event);
+                        auto const fsqe = virtualsys.trans(q, event);
                         if (!rmtable.contains(fsqe)) {
                             if (!virtual_states_.contains(fsqe)) {
                                 f.push(fsqe);
@@ -143,7 +143,7 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
     }
     rmtable.clear();
     this->states_number_ = virtual_states_.size();
-    Trim();
+    trim();
     virtualsys.ClearInvertedGraph();
     return;
 }
@@ -181,7 +181,7 @@ op::SuperProxy<NEvents, StorageIndex>::operator DESystem() noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SuperProxy<NEvents, StorageIndex>::containsTrans_impl(
+op::SuperProxy<NEvents, StorageIndex>::containstrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const noexcept
 {
@@ -192,8 +192,8 @@ op::SuperProxy<NEvents, StorageIndex>::containsTrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsTrans(qy, aEvent);
+    auto const in_x = sys0_.Containstrans(qx, aEvent);
+    auto const in_y = sys1_.Containstrans(qy, aEvent);
 
     auto contains = false;
 
@@ -218,8 +218,8 @@ op::SuperProxy<NEvents, StorageIndex>::trans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsTrans(qy, aEvent);
+    auto const in_x = sys0_.Containstrans(qx, aEvent);
+    auto const in_y = sys1_.Containstrans(qy, aEvent);
 
     if (!((in_x && in_y) || (in_x && only_in_plant_.test(aEvent)) ||
           (in_y && only_in_spec_.test(aEvent)))) {
@@ -227,22 +227,22 @@ op::SuperProxy<NEvents, StorageIndex>::trans_impl(
     }
 
     if (in_x && in_y) {
-        auto const q0 = sys0_.Trans(qx, aEvent);
-        auto const q1 = sys1_.Trans(qy, aEvent);
+        auto const q0 = sys0_.trans(qx, aEvent);
+        auto const q1 = sys1_.trans(qy, aEvent);
 
         return q1 * n_states_sys0_ + q0;
     } else if (in_x) {
-        auto const q0 = sys0_.Trans(qx, aEvent);
+        auto const q0 = sys0_.trans(qx, aEvent);
         return qy * n_states_sys0_ + q0;
     } else { // in_y
-        auto const q1 = sys1_.Trans(qy, aEvent);
+        auto const q1 = sys1_.trans(qy, aEvent);
         return q1 * n_states_sys0_ + qx;
     }
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SuperProxy<NEvents, StorageIndex>::containsInvTrans_impl(
+op::SuperProxy<NEvents, StorageIndex>::containsinvtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -253,8 +253,8 @@ op::SuperProxy<NEvents, StorageIndex>::containsInvTrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
+    auto const in_x = sys0_.Containsinvtrans(qx, aEvent);
+    auto const in_y = sys1_.Containsinvtrans(qy, aEvent);
 
     auto contains = false;
 
@@ -268,7 +268,7 @@ op::SuperProxy<NEvents, StorageIndex>::containsInvTrans_impl(
 
 template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
-op::SuperProxy<NEvents, StorageIndex>::invTrans_impl(
+op::SuperProxy<NEvents, StorageIndex>::invtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -281,8 +281,8 @@ op::SuperProxy<NEvents, StorageIndex>::invTrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
+    auto const in_x = sys0_.Containsinvtrans(qx, aEvent);
+    auto const in_y = sys1_.Containsinvtrans(qy, aEvent);
 
     if (!((in_x && in_y) || (in_x && only_in_plant_.test(aEvent)) ||
           (in_y && only_in_spec_.test(aEvent)))) {
@@ -290,8 +290,8 @@ op::SuperProxy<NEvents, StorageIndex>::invTrans_impl(
     }
 
     if (in_x && in_y) {
-        auto const inv_trans_0 = sys0_.InvTrans(qx, aEvent);
-        auto const inv_trans_1 = sys1_.InvTrans(qy, aEvent);
+        auto const inv_trans_0 = sys0_.invtrans(qx, aEvent);
+        auto const inv_trans_1 = sys1_.invtrans(qy, aEvent);
 
         inv_transitions.reserve(inv_trans_0.size() + inv_trans_1.size());
 
@@ -302,7 +302,7 @@ op::SuperProxy<NEvents, StorageIndex>::invTrans_impl(
             }
         }
     } else if (in_x) {
-        auto const inv_trans_0 = sys0_.InvTrans(qx, aEvent);
+        auto const inv_trans_0 = sys0_.invtrans(qx, aEvent);
 
         inv_transitions.reserve(inv_trans_0.size());
 
@@ -311,7 +311,7 @@ op::SuperProxy<NEvents, StorageIndex>::invTrans_impl(
             inv_transitions.push_back(q_from);
         }
     } else { // in_y
-        auto const inv_trans_1 = sys1_.InvTrans(qy, aEvent);
+        auto const inv_trans_1 = sys1_.invtrans(qy, aEvent);
 
         inv_transitions.reserve(inv_trans_1.size());
 
@@ -371,7 +371,7 @@ op::SuperProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SuperProxy<NEvents, StorageIndex>::Trim() noexcept
+op::SuperProxy<NEvents, StorageIndex>::trim() noexcept
 {
     StatesTableHost<StorageIndex> trimmed_virtual_states;
     for (auto mstate : this->marked_states_) {
@@ -386,7 +386,7 @@ op::SuperProxy<NEvents, StorageIndex>::Trim() noexcept
             auto event_it = q_events;
             while (event_it.any()) {
                 if (event_it.test(0)) {
-                    auto const fsqelist = this->InvTrans(q, event);
+                    auto const fsqelist = this->invtrans(q, event);
                     for (auto fsqe : fsqelist) {
                         if (virtual_states_.contains(fsqe)) {
                             if (!trimmed_virtual_states.contains(fsqe)) {

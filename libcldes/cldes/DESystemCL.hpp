@@ -126,21 +126,21 @@ public:
      * starting from its initial state. It returns a set containing all nodes
      * which are accessible from the initial state.
      */
-    StatesSet AccessiblePart();
+    StatesSet accessiblePart();
 
     /*! \brief Returns state set containing the coaccessible part of automata
      *
      * Executes a Breadth First Search in the graph, until it reaches a marked
      * state.
      */
-    StatesSet CoaccessiblePart();
+    StatesSet coaccessiblePart();
 
     /*! \brief Returns true if DES transition exists
      *
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsTrans(StorageIndex const& aQ,
+    bool Containstrans(StorageIndex const& aQ,
                        ScalarType const& aEvent) const override;
 
     /*! \brief Returns DES transition: q_to = f(q, e)
@@ -148,7 +148,7 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    StorageIndexSigned Trans(StorageIndex const& aQ,
+    StorageIndexSigned trans(StorageIndex const& aQ,
                              ScalarType const& aEvent) const override;
 
     /*! \brief Returns true if DES inverse transition exists
@@ -156,7 +156,7 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    bool ContainsInvTrans(StorageIndex const& aQ,
+    bool Containsinvtrans(StorageIndex const& aQ,
                           ScalarType const& aEvent) const override;
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
@@ -164,7 +164,7 @@ public:
      * @param aQfrom State
      * @param aEvent Event
      */
-    StatesArray<StorageIndex> InvTrans(StorageIndex const& aQfrom,
+    StatesArray<StorageIndex> invtrans(StorageIndex const& aQfrom,
                                        ScalarType const& aEvent) const override;
 
     /*! \brief Returns EventsSet relative to state q
@@ -202,7 +202,7 @@ private:
 
     /*! \brief Graph data on device memory
      *
-     * Transposed graph_ data, but on device memory (usually a GPU). It is a
+     * transposed graph_ data, but on device memory (usually a GPU). It is a
      * dev_cache_enabled_ is false. It cannot be const, since it may change as
      * dev_cache_enabled_ changes.
      *
@@ -222,7 +222,7 @@ private:
      * @param aInitialNodes Set of nodes where the searches will start
      */
     template<class StatesType>
-    std::shared_ptr<StatesSet> Bfs_(
+    std::shared_ptr<StatesSet> bfs_(
       StatesType const& aInitialNodes,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit);
@@ -234,7 +234,7 @@ private:
      *
      * @param aInitialNode Where the search will start
      */
-    std::shared_ptr<StatesSet> BfsCalc_(
+    std::shared_ptr<StatesSet> bfsCalc_(
       StatesVector& aHostX,
       std::function<void(StorageIndex const&, StorageIndex const&)> const&
         aBfsVisit,
@@ -244,7 +244,7 @@ private:
      *
      * Executes a breadth first search on the graph starting from init_state_.
      */
-    std::shared_ptr<StatesSet> Bfs_();
+    std::shared_ptr<StatesSet> bfs_();
 };
 
 } // namespace cldes

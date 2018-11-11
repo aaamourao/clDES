@@ -103,7 +103,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SyncSysProxy<NEvents, StorageIndex>::containsTrans_impl(
+op::SyncSysProxy<NEvents, StorageIndex>::containstrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const noexcept
 {
@@ -114,8 +114,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::containsTrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsTrans(qy, aEvent);
+    auto const in_x = sys0_.Containstrans(qx, aEvent);
+    auto const in_y = sys1_.Containstrans(qy, aEvent);
 
     auto contains = false;
 
@@ -140,8 +140,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::trans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsTrans(qy, aEvent);
+    auto const in_x = sys0_.Containstrans(qx, aEvent);
+    auto const in_y = sys1_.Containstrans(qy, aEvent);
 
     if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
           (in_y && only_in_1_.test(aEvent)))) {
@@ -149,22 +149,22 @@ op::SyncSysProxy<NEvents, StorageIndex>::trans_impl(
     }
 
     if (in_x && in_y) {
-        auto const q0 = sys0_.Trans(qx, aEvent);
-        auto const q1 = sys1_.Trans(qy, aEvent);
+        auto const q0 = sys0_.trans(qx, aEvent);
+        auto const q1 = sys1_.trans(qy, aEvent);
 
         return q1 * n_states_sys0_ + q0;
     } else if (in_x) {
-        auto const q0 = sys0_.Trans(qx, aEvent);
+        auto const q0 = sys0_.trans(qx, aEvent);
         return qy * n_states_sys0_ + q0;
     } else { // in_y
-        auto const q1 = sys1_.Trans(qy, aEvent);
+        auto const q1 = sys1_.trans(qy, aEvent);
         return q1 * n_states_sys0_ + qx;
     }
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-op::SyncSysProxy<NEvents, StorageIndex>::containsInvTrans_impl(
+op::SyncSysProxy<NEvents, StorageIndex>::containsinvtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -175,8 +175,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::containsInvTrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
+    auto const in_x = sys0_.Containsinvtrans(qx, aEvent);
+    auto const in_y = sys1_.Containsinvtrans(qy, aEvent);
 
     auto contains = false;
 
@@ -190,7 +190,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::containsInvTrans_impl(
 
 template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
-op::SyncSysProxy<NEvents, StorageIndex>::invTrans_impl(
+op::SyncSysProxy<NEvents, StorageIndex>::invtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -203,8 +203,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::invTrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.ContainsInvTrans(qx, aEvent);
-    auto const in_y = sys1_.ContainsInvTrans(qy, aEvent);
+    auto const in_x = sys0_.Containsinvtrans(qx, aEvent);
+    auto const in_y = sys1_.Containsinvtrans(qy, aEvent);
 
     if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
           (in_y && only_in_1_.test(aEvent)))) {
@@ -212,8 +212,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::invTrans_impl(
     }
 
     if (in_x && in_y) {
-        auto const inv_trans_0 = sys0_.InvTrans(qx, aEvent);
-        auto const inv_trans_1 = sys1_.InvTrans(qy, aEvent);
+        auto const inv_trans_0 = sys0_.invtrans(qx, aEvent);
+        auto const inv_trans_1 = sys1_.invtrans(qy, aEvent);
 
         inv_transitions.reserve(inv_trans_0.size() + inv_trans_1.size());
 
@@ -224,7 +224,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::invTrans_impl(
             }
         }
     } else if (in_x) {
-        auto const inv_trans_0 = sys0_.InvTrans(qx, aEvent);
+        auto const inv_trans_0 = sys0_.invtrans(qx, aEvent);
 
         inv_transitions.reserve(inv_trans_0.size());
 
@@ -233,7 +233,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::invTrans_impl(
             inv_transitions.push_back(q_from);
         }
     } else { // in_y
-        auto const inv_trans_1 = sys1_.InvTrans(qy, aEvent);
+        auto const inv_trans_1 = sys1_.invtrans(qy, aEvent);
 
         inv_transitions.reserve(inv_trans_1.size());
 

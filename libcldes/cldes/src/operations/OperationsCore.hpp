@@ -62,7 +62,7 @@ SynchronizeEmptyStage2(
         auto event_it = aVirtualSys.GetStateEvents(qfrom);
         while (event_it != 0) {
             if (event_it.test(0)) {
-                auto const qto = aVirtualSys.Trans(qfrom, event);
+                auto const qto = aVirtualSys.trans(qfrom, event);
 
                 aVirtualSys.triplet_.push_back(Triplet<NEvents>(
                   qfrom, qto, EventsSet<NEvents>{ 1ul << event }));
@@ -153,7 +153,7 @@ SynchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 template<uint8_t NEvents, typename StorageIndex>
 void
 RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
-                TransMap<StorageIndex>& aC,
+                transMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
                 StatesTableHost<StorageIndex>& aRmTable) noexcept
@@ -174,7 +174,7 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
         while (q_events.any()) {
             if (q_events.test(0)) {
                 StatesArray<StorageIndex> const finv =
-                  aVirtualSys.InvTrans(x, event);
+                  aVirtualSys.invtrans(x, event);
 
                 for (StorageIndex s : finv) {
                     if (!aRmTable.contains(s)) {
@@ -219,7 +219,7 @@ RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
         while (q_events.any()) {
             if (q_events.test(0)) {
                 StatesArray<StorageIndex> const finv =
-                  aVirtualSys.InvTrans(x, event);
+                  aVirtualSys.invtrans(x, event);
 
                 for (StorageIndex s : finv) {
                     if (!aRmTable.contains(s)) {
@@ -266,7 +266,7 @@ SupervisorSynth(
     }
 
     // Supervisor states
-    TransMap<StorageIndex> c;
+    transMap<StorageIndex> c;
     StatesTableHost<StorageIndex> rmtable;
 
     // f is a stack of states accessed in a dfs
@@ -294,13 +294,13 @@ SupervisorSynth(
                 RemoveBadStates<NEvents, StorageIndex>(
                   virtualsys, c, q, non_contr_bit, rmtable);
             } else {
-                c[q] = new InvArgTrans<StorageIndex>();
+                c[q] = new InvArgtrans<StorageIndex>();
 
                 cldes::ScalarType event = 0;
                 auto event_it = q_events;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
-                        auto const fsqe = virtualsys.Trans(q, event);
+                        auto const fsqe = virtualsys.trans(q, event);
 
                         if (!rmtable.contains(fsqe)) {
                             if (!c.contains(fsqe)) {
@@ -332,11 +332,11 @@ SupervisorSynth(
     // Finish synching without removed states
     // SynchronizeStage2(virtualsys);
 
-    // Transform virtual sys in a real sys by forcing conversion
+    // transform virtual sys in a real sys by forcing conversion
     auto sys = std::move(DESystem<NEvents, StorageIndex>(virtualsys));
 
     // Remove non-accessible and non-coaccessible states
-    sys.Trim();
+    sys.trim();
 
     // bye
     return sys;

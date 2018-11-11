@@ -255,11 +255,11 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    bool constexpr ContainsTrans(StorageIndex const& aQ,
+    bool constexpr Containstrans(StorageIndex const& aQ,
                                  ScalarType const& aEvent) const noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-        return sys.containsTrans_impl(aQ, aEvent);
+        return sys.containstrans_impl(aQ, aEvent);
     }
 
     /*! \brief Returns DES transition: q_to = f(q, e)
@@ -267,7 +267,7 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    StorageIndexSigned constexpr Trans(StorageIndex const& aQ,
+    StorageIndexSigned constexpr trans(StorageIndex const& aQ,
                                        ScalarType const& aEvent) const noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
@@ -279,11 +279,11 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    bool constexpr ContainsInvTrans(StorageIndex const& aQ,
+    bool constexpr Containsinvtrans(StorageIndex const& aQ,
                                     ScalarType const& aEvent) const noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-        return sys.containsInvTrans_impl(aQ, aEvent);
+        return sys.containsinvtrans_impl(aQ, aEvent);
     }
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
@@ -291,12 +291,12 @@ public:
      * @param aQfrom State
      * @param aEvent Event
      */
-    StatesArray<StorageIndex> constexpr InvTrans(StorageIndex const& aQfrom,
+    StatesArray<StorageIndex> constexpr invtrans(StorageIndex const& aQfrom,
                                                  ScalarType const& aEvent) const
       noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-        return sys.invTrans_impl(aQfrom, aEvent);
+        return sys.invtrans_impl(aQfrom, aEvent);
     }
 
     /*! \brief Returns EventsSet relative to state q

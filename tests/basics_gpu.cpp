@@ -66,11 +66,11 @@ main()
 
     cldes::DESystemCL<3> sys_gpu{ sys };
 
-    auto accessible_states = sys_gpu.AccessiblePart();
+    auto accessible_states = sys_gpu.accessiblePart();
 
     ProcessResult(accessible_states, "< Accessible part", "0 1 2 3 >");
 
-    auto coaccessible_states = sys_gpu.CoaccessiblePart();
+    auto coaccessible_states = sys_gpu.coaccessiblePart();
 
     ProcessResult(coaccessible_states, "< Coaccessible part", "0 1 2 >");
     std::cout << "Creating new system" << std::endl;
@@ -89,11 +89,11 @@ main()
 
     cldes::DESystemCL<3> new_sys_gpu{ new_sys };
 
-    auto new_accessible_states = new_sys_gpu.AccessiblePart();
+    auto new_accessible_states = new_sys_gpu.accessiblePart();
 
     ProcessResult(new_accessible_states, "< Accessible part", "0 1 2 >");
 
-    auto new_coaccessible_states = new_sys_gpu.CoaccessiblePart();
+    auto new_coaccessible_states = new_sys_gpu.coaccessiblePart();
 
     ProcessResult(new_coaccessible_states, "< Coaccessible part", "0 2 3 >");
 

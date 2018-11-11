@@ -216,14 +216,14 @@ main()
               << spec.GetGraph().nonZeros() << std::endl
               << std::endl;
 
-    std::cout << "{plant, spec}.Trim()" << std::endl;
+    std::cout << "{plant, spec}.trim()" << std::endl;
     t1 = high_resolution_clock::now();
-    plant.Trim();
-    spec.Trim();
+    plant.trim();
+    spec.trim();
     t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
-    std::cout << "Trim time spent: " << duration << " microseconds"
+    std::cout << "trim time spent: " << duration << " microseconds"
               << std::endl;
 
     std::cout << std::endl

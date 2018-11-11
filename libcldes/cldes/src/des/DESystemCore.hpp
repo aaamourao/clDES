@@ -72,7 +72,7 @@ DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
 
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
-        this->CacheGraph_();
+        this->cacheGraph_();
     }
 }
 
@@ -86,17 +86,17 @@ DESystem<NEvents, StorageIndex>::operator()(StorageIndex const& aQfrom,
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
-DESystem<NEvents, StorageIndex>::AccessiblePart() const noexcept
+DESystem<NEvents, StorageIndex>::accessiblePart() const noexcept
 {
     // Executes a BFS on graph_
-    auto accessible_states = Bfs_();
+    auto accessible_states = bfs_();
     return *accessible_states;
 }
 
 // TODO: All searches using one single vector
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
-DESystem<NEvents, StorageIndex>::CoaccessiblePart() const noexcept
+DESystem<NEvents, StorageIndex>::coaccessiblePart() const noexcept
 {
     GraphHostData searchgraph{ this->states_number_, this->states_number_ };
     searchgraph.setIdentity();
@@ -138,9 +138,9 @@ DESystem<NEvents, StorageIndex>::CoaccessiblePart() const noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
-DESystem<NEvents, StorageIndex>::TrimStates() const noexcept
+DESystem<NEvents, StorageIndex>::trimStates() const noexcept
 {
-    auto accpartstl = AccessiblePart();
+    auto accpartstl = accessiblePart();
     spp::sparse_hash_set<StorageIndex> accpart;
     for (StorageIndex s : accpartstl) {
         accpart.insert(s);
@@ -194,9 +194,9 @@ DESystem<NEvents, StorageIndex>::TrimStates() const noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>&
-DESystem<NEvents, StorageIndex>::Trim() noexcept
+DESystem<NEvents, StorageIndex>::trim() noexcept
 {
-    auto trimstates = this->TrimStates();
+    auto trimstates = this->trimStates();
     if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
         return *this;
     }
@@ -266,14 +266,14 @@ DESystem<NEvents, StorageIndex>::Trim() noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::InsertEvents(EventsSet const& aEvents) noexcept
+DESystem<NEvents, StorageIndex>::insertEvents(EventsSet const& aEvents) noexcept
 {
     this->events_ = EventsSet(aEvents);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystem<NEvents, StorageIndex>::containsTrans_impl(
+DESystem<NEvents, StorageIndex>::containstrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const noexcept
 {
@@ -305,7 +305,7 @@ DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystem<NEvents, StorageIndex>::containsInvTrans_impl(
+DESystem<NEvents, StorageIndex>::containsinvtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -314,7 +314,7 @@ DESystem<NEvents, StorageIndex>::containsInvTrans_impl(
 
 template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
-DESystem<NEvents, StorageIndex>::invTrans_impl(StorageIndex const& aQ,
+DESystem<NEvents, StorageIndex>::invtrans_impl(StorageIndex const& aQ,
                                                ScalarType const& aEvent) const
 {
     StatesArray<StorageIndex> inv_trans;
@@ -365,14 +365,14 @@ DESystem<NEvents, StorageIndex>::clearInvertedGraph_impl() const noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::CacheGraph_() noexcept
+DESystem<NEvents, StorageIndex>::cacheGraph_() noexcept
 {
     is_cache_outdated_ = false;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::UpdateGraphCache_() noexcept
+DESystem<NEvents, StorageIndex>::updateGraphCache_() noexcept
 {
     is_cache_outdated_ = false;
 }
@@ -380,7 +380,7 @@ DESystem<NEvents, StorageIndex>::UpdateGraphCache_() noexcept
 template<uint8_t NEvents, typename StorageIndex>
 template<class StatesType>
 std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::Bfs_(
+DESystem<NEvents, StorageIndex>::bfs_(
   StatesType const& aInitialNodes,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit) const noexcept
@@ -403,12 +403,12 @@ DESystem<NEvents, StorageIndex>::Bfs_(
         // vector on the matrix
         states_map.push_back(state);
     }
-    return BfsCalc_(host_x, aBfsVisit, &states_map);
+    return bfsCalc_(host_x, aBfsVisit, &states_map);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::Bfs_(
+DESystem<NEvents, StorageIndex>::bfs_(
   StorageIndex const& aInitialNode,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit) const noexcept
@@ -421,20 +421,20 @@ DESystem<NEvents, StorageIndex>::Bfs_(
      * to set X on host first.
      */
     host_x.coeffRef(aInitialNode, 0) = true;
-    return BfsCalc_(host_x, aBfsVisit, nullptr);
+    return bfsCalc_(host_x, aBfsVisit, nullptr);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::Bfs_() const noexcept
+DESystem<NEvents, StorageIndex>::bfs_() const noexcept
 {
-    return Bfs_(this->init_state_, nullptr);
+    return bfs_(this->init_state_, nullptr);
 }
 
 // TODO: Use a single vector, instead of a bit mtr
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::BfsCalc_(
+DESystem<NEvents, StorageIndex>::bfsCalc_(
   StatesVector& aHostX,
   std::function<void(StorageIndex const&, StorageIndex const&)> const&
     aBfsVisit,

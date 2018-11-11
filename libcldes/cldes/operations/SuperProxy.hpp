@@ -83,7 +83,7 @@ public:
      * f(s, e) = s_out -> (s_out, (s, e)) is the inverted transition.
      */
     using TrVector =
-      std::vector<std::pair<StorageIndex, InvArgTrans<StorageIndex>*>>;
+      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>*>>;
 
     /*! \brief Alias to the the related DESystem template
      * \details alias Alias to implicit speciallization to concrete system.
@@ -161,7 +161,7 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    bool containsTrans_impl(StorageIndex const& aQ,
+    bool containstrans_impl(StorageIndex const& aQ,
                             ScalarType const& aEvent) const noexcept;
 
     /*! \brief Returns DES transition: q_to = f(q, e)
@@ -177,7 +177,7 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    bool containsInvTrans_impl(StorageIndex const& aQ,
+    bool containsinvtrans_impl(StorageIndex const& aQ,
                                ScalarType const& aEvent) const;
 
     /*! \brief Returns DES inverse transition
@@ -186,10 +186,10 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    StatesArray<StorageIndex> invTrans_impl(StorageIndex const& aQ,
+    StatesArray<StorageIndex> invtrans_impl(StorageIndex const& aQ,
                                             ScalarType const& aEvent) const;
 
-    void Trim() noexcept;
+    void trim() noexcept;
 
     /*! \brief Get events that a state contains
      * \warning On large binery trees, it can be very expensive.

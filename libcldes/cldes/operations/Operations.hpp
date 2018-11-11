@@ -88,7 +88,7 @@ SyncSysProxy<NEvents, StorageIndex> constexpr SynchronizeStage1(
 }
 
 /*! \brief Final stage of the lazy parallel composition evaluation
- * \details Transform a virtual proxy in a concrete system. It is implicited
+ * \details transform a virtual proxy in a concrete system. It is implicited
  * called when virtual proxy to the parallel composition operation that
  * has no value calculated is converted to a concrete system.
  *
@@ -103,7 +103,7 @@ void
 SynchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex> const&& aVirtualSys) noexcept;
 
-/*! \brief Transform a virtual system in a real system: optmized to supervisor
+/*! \brief transform a virtual system in a real system: optmized to supervisor
  * synthesis
  *
  * Calculate transitions and other parameters of a virtual system which
@@ -136,7 +136,7 @@ SynchronizeStage2(
 template<uint8_t NEvents, typename StorageIndex>
 void
 RemoveBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
-                TransMap<StorageIndex>& aC,
+                transMap<StorageIndex>& aC,
                 StorageIndex const& aQ,
                 EventsSet<NEvents> const& aNonContrBit,
                 StatesTableHost<StorageIndex>& aRmTable) noexcept;

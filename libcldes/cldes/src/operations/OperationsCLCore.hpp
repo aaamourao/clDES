@@ -67,11 +67,11 @@ op::Synchronize(DESystemCL<NEvents>& aSys0, DESystemCL<NEvents>& aSys1)
                         NULL);
 
     if (aSys0.is_cache_outdated_) {
-        aSys0.UpdateGraphCache_();
+        aSys0.updateGraphCache_();
     }
 
     if (aSys1.is_cache_outdated_) {
-        aSys1.UpdateGraphCache_();
+        aSys1.updateGraphCache_();
     }
 
     auto initstate_sync =
@@ -174,11 +174,11 @@ op::SynchronizeStage2(op::StatesTable const* aTable,
 {
     /*
     if (aSys0.is_cache_outdated_) {
-        aSys0.UpdateGraphCache_();
+        aSys0.updateGraphCache_();
     }
 
     if (aSys1.is_cache_outdated_) {
-        aSys1.UpdateGraphCache_();
+        aSys1.updateGraphCache_();
     }
 
     auto initstate_sync =

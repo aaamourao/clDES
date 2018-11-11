@@ -50,7 +50,7 @@ class DESystemCL;
  * f^-1 args are (s_to, e)
  */
 template<typename StorageIndex>
-using InvArgTrans = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
+using InvArgtrans = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
 
 /*! \brief Hash map containing transitions
  *
@@ -58,7 +58,7 @@ using InvArgTrans = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
  * {key = s_from, value= vec(s_from, e))
  */
 template<typename StorageIndex>
-using TransMap = spp::sparse_hash_map<StorageIndex, InvArgTrans<StorageIndex>*>;
+using transMap = spp::sparse_hash_map<StorageIndex, InvArgtrans<StorageIndex>*>;
 
 /*
  * Forward declarion of DESystemBase's friends class TransitionProxy. A
