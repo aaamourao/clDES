@@ -1,11 +1,11 @@
 # clDES
 
-## Introduction
-
 Efficient algorithms for **Discrete-Event Systems**/deterministic
 finite state automatons
 operations targeting heterogeneous platforms.
 A **Supervisor Synthesizer** algorithm is also available.
+
+![clDES](doc/logo_cl_cropped.png)
 
 ## Implementation
 
@@ -29,7 +29,7 @@ Trim | `cldes::DESystemBase<NEvents, StorageIndex>::trim()`
 Synchronization: parallel composition | `cldes::op::synchronize<NEvents, StorageIndex>()`
 Observer Property Checker | `cldes::DESystem<NEvents, StorageIndex>::containsObsProp()`
 Controller Synthesis | `cldes::op::supC<NEvents, StorageIndex>()`
-Projection | `cldes::op::projection<NEvents, StorageIndex>()`
+Projection | `cldes::op::proj<NEvents, StorageIndex>()`
 
 ## Compiling
 
@@ -42,7 +42,7 @@ It is necessary to make sure that **CMake 3.11** is installed, such as
 
 System support to **Boost** Library version `>= 1.58`
 and **Eigen3** Library are required. **OpenCL** version `>= 1.2`, and
-**OpenMP** version `>= 5` is optional.
+**OpenMP** version `>= 5` are optional.
 
 > It may compile and run smoothly on older versions. These tools mentioned above
 > compose the tool chain used to develop and to test so far, **ArchLinux** and
