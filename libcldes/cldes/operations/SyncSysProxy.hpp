@@ -137,7 +137,7 @@ public:
      */
     bool constexpr static isVirtual_impl() noexcept { return true; }
 
-    /*! \brief Clone method for polymorphic copy
+    /*! \brief clone method for polymorphic copy
      * \details Method for cloning on a polymorphic way.
      *
      * \return shared pointer to base.

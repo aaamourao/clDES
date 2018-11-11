@@ -45,7 +45,7 @@ synchronizeEmptyStage2(
       aVirtualSys.events_.count() * aVirtualSys.states_number_;
 
     // Reserve space for transitions
-    aVirtualSys.ResizeStatesEvents(aVirtualSys.states_number_);
+    aVirtualSys.resizeStatesEvents(aVirtualSys.states_number_);
     aVirtualSys.triplet_.reserve(sparcitypattern);
     aVirtualSys.bittriplet_.reserve(sparcitypattern +
                                     aVirtualSys.states_number_);
@@ -54,12 +54,12 @@ synchronizeEmptyStage2(
     for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_; ++qfrom) {
         aVirtualSys.bittriplet_.push_back(BitTriplet(qfrom, qfrom, true));
 
-        aVirtualSys.SetStateEvents(qfrom, aVirtualSys.GetStateEvents(qfrom));
-        aVirtualSys.SetInvStateEvents(qfrom,
-                                      aVirtualSys.GetInvStateEvents(qfrom));
+        aVirtualSys.setStateEvents(qfrom, aVirtualSys.getStateEvents(qfrom));
+        aVirtualSys.setInvStateEvents(qfrom,
+                                      aVirtualSys.getInvStateEvents(qfrom));
 
         auto event = 0u;
-        auto event_it = aVirtualSys.GetStateEvents(qfrom);
+        auto event_it = aVirtualSys.getStateEvents(qfrom);
         while (event_it != 0) {
             if (event_it.test(0)) {
                 auto const qto = aVirtualSys.trans(qfrom, event);
@@ -86,7 +86,7 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
     SparseStatesMap<StorageIndex> statesmap;
 
-    aVirtualSys.SetStatesNumber(aVirtualSys.virtual_states_.size());
+    aVirtualSys.setStatesNumber(aVirtualSys.virtual_states_.size());
 
     // Reserve space for transitions
     aVirtualSys.bittriplet_.reserve(aVirtualSys.states_number_);
@@ -108,11 +108,11 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
     aVirtualSys.virtual_states_.clear();
 
     // Remap marked states
-    for (StorageIndex s0 : aVirtualSys.sys0_.GetMarkedStates()) {
-        for (StorageIndex s1 : aVirtualSys.sys1_.GetMarkedStates()) {
+    for (StorageIndex s0 : aVirtualSys.sys0_.getMarkedStates()) {
+        for (StorageIndex s1 : aVirtualSys.sys1_.getMarkedStates()) {
             StorageIndex const key = s1 * aVirtualSys.n_states_sys0_ + s0;
             if (statesmap.contains(key)) {
-                aVirtualSys.InsertMarkedState(statesmap[key]);
+                aVirtualSys.insertMarkedState(statesmap[key]);
             }
         }
     }
@@ -166,7 +166,7 @@ removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
         auto const x = f.top();
         f.pop();
 
-        auto q_events = aVirtualSys.GetInvStateEvents(x);
+        auto q_events = aVirtualSys.getInvStateEvents(x);
 
         q_events &= aNonContrBit;
 
@@ -211,7 +211,7 @@ removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
         auto const x = f.top();
         f.pop();
 
-        auto q_events = aVirtualSys.GetInvStateEvents(x);
+        auto q_events = aVirtualSys.getInvStateEvents(x);
 
         q_events &= aNonContrBit;
 
@@ -257,9 +257,9 @@ supC(
     // Evaluate which non contr event is in system and convert it to a
     // bitarray
     for (cldes::ScalarType event : aNonContr) {
-        if (aP.GetEvents().test(event)) {
+        if (aP.getEvents().test(event)) {
             p_non_contr_bit.set(event);
-            if (virtualsys.GetEvents().test(event)) {
+            if (virtualsys.getEvents().test(event)) {
                 non_contr_bit.set(event);
             }
         }
@@ -273,10 +273,10 @@ supC(
     StatesStack<StorageIndex> f;
 
     // Initialize f and ftable with the initial state
-    f.push(virtualsys.GetInitialState());
+    f.push(virtualsys.getInitialState());
 
     // Allocate inverted graph, since we are search for inverse transitions
-    virtualsys.AllocateInvertedGraph();
+    virtualsys.allocateInvertedGraph();
 
     while (!f.empty()) {
         auto const q = f.top();
@@ -284,9 +284,9 @@ supC(
 
         if (!rmtable.contains(q) && !c.contains(q)) {
             auto const qx = q % virtualsys.n_states_sys0_;
-            auto const q_events = virtualsys.GetStateEvents(q);
+            auto const q_events = virtualsys.getStateEvents(q);
 
-            auto const in_ncqx = p_non_contr_bit & aP.GetStateEvents(qx);
+            auto const in_ncqx = p_non_contr_bit & aP.getStateEvents(qx);
             auto const in_ncqx_and_q = in_ncqx & q_events;
 
             if (in_ncqx_and_q != in_ncqx) {
@@ -318,7 +318,7 @@ supC(
 
     rmtable.clear();
 
-    virtualsys.ClearInvertedGraph();
+    virtualsys.clearInvertedGraph();
 
     // Swap new system states and sort it
     virtualsys.virtual_states_.reserve(c.size());

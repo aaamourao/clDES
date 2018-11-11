@@ -91,10 +91,10 @@ main()
     }
 
     std::cout << std::endl
-              << "Number of states of plant: " << plant.Size() << std::endl;
+              << "Number of states of plant: " << plant.size() << std::endl;
     std::cout << "Number of transitions of the plant "
               << plant.getGraph().nonZeros() << std::endl;
-    std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
+    std::cout << "Number of states of the spec: " << spec.size() << std::endl;
     std::cout << "Number of transitions of the spec "
               << spec.getGraph().nonZeros() << std::endl
               << std::endl;
@@ -106,10 +106,10 @@ main()
     t2 = high_resolution_clock::now();
 
     std::cout << std::endl
-              << "Number of states of plant: " << plant.Size() << std::endl;
+              << "Number of states of plant: " << plant.size() << std::endl;
     std::cout << "Number of transitions of the plant "
               << plant.getGraph().nonZeros() << std::endl;
-    std::cout << "Number of states of the spec: " << spec.Size() << std::endl;
+    std::cout << "Number of states of the spec: " << spec.size() << std::endl;
     std::cout << "Number of transitions of the spec "
               << spec.getGraph().nonZeros() << std::endl
               << std::endl;
@@ -128,7 +128,7 @@ main()
     std::cout << "Supervisor synth time spent: " << duration << " microseconds"
               << std::endl;
 
-    std::cout << "Number of states of the supervisor: " << supervisor.Size()
+    std::cout << "Number of states of the supervisor: " << supervisor.size()
               << std::endl;
     // std::cout << "Number of transitions of the supervisor "
     //           << supervisor.getGraph().nonZeros() << std::endl;

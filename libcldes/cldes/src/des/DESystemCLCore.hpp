@@ -42,18 +42,18 @@ std::unique_ptr<backend::OclBackend>
 template<uint8_t NEvents, typename StorageIndex>
 DESystemCL<NEvents, StorageIndex>::DESystemCL(
   DESystem<NEvents, StorageIndex>& aSys)
-  : DESystemBase{ aSys.Size(), aSys.GetInitialState() }
+  : DESystemBase{ aSys.size(), aSys.getInitialState() }
 {
     GraphHostData ident{ this->states_number_, this->states_number_ };
     ident.setIdentity();
     ident += graph_;
     graph_ = ident.template cast<float>();
-    this->marked_states_ = aSys.GetMarkedStates();
+    this->marked_states_ = aSys.getMarkedStates();
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 std::shared_ptr<DESystemBase<NEvents, StorageIndex>>
-DESystemCL<NEvents, StorageIndex>::Clone() const
+DESystemCL<NEvents, StorageIndex>::clone() const
 {
     std::shared_ptr<DESystemBase> this_ptr =
       std::make_shared<DESystemCL>(*this);
@@ -62,7 +62,7 @@ DESystemCL<NEvents, StorageIndex>::Clone() const
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystemCL<NEvents, StorageIndex>::IsVirtual() const
+DESystemCL<NEvents, StorageIndex>::isVirtual() const
 {
     return false;
 }
@@ -219,7 +219,7 @@ DESystemCL<NEvents, StorageIndex>::bfs_()
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystemCL<NEvents, StorageIndex>::Containstrans(StorageIndex const&,
+DESystemCL<NEvents, StorageIndex>::containstrans(StorageIndex const&,
                                                  ScalarType const&) const
 {
     return false;
@@ -235,7 +235,7 @@ DESystemCL<NEvents, StorageIndex>::trans(StorageIndex const&,
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-DESystemCL<NEvents, StorageIndex>::Containsinvtrans(StorageIndex const&,
+DESystemCL<NEvents, StorageIndex>::containsinvtrans(StorageIndex const&,
                                                     ScalarType const&) const
 {
     return false;
@@ -252,7 +252,7 @@ DESystemCL<NEvents, StorageIndex>::invtrans(StorageIndex const&,
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-DESystemCL<NEvents, StorageIndex>::GetStateEvents(StorageIndex const&) const
+DESystemCL<NEvents, StorageIndex>::getStateEvents(StorageIndex const&) const
 {
     EventsSet<NEvents> foo;
     return foo;
@@ -260,7 +260,7 @@ DESystemCL<NEvents, StorageIndex>::GetStateEvents(StorageIndex const&) const
 
 template<uint8_t NEvents, typename StorageIndex>
 EventsSet<NEvents>
-DESystemCL<NEvents, StorageIndex>::GetInvStateEvents(StorageIndex const&) const
+DESystemCL<NEvents, StorageIndex>::getInvStateEvents(StorageIndex const&) const
 {
     EventsSet<NEvents> foo;
     return foo;
@@ -268,14 +268,14 @@ DESystemCL<NEvents, StorageIndex>::GetInvStateEvents(StorageIndex const&) const
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystemCL<NEvents, StorageIndex>::AllocateInvertedGraph() const
+DESystemCL<NEvents, StorageIndex>::allocateInvertedGraph() const
 {
     return;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystemCL<NEvents, StorageIndex>::ClearInvertedGraph() const
+DESystemCL<NEvents, StorageIndex>::clearInvertedGraph() const
 {
     return;
 }

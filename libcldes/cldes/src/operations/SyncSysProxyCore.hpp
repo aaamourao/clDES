@@ -43,26 +43,26 @@ op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
   : cldes::DESystemBase<
       NEvents,
       StorageIndex,
-      op::SyncSysProxy<NEvents, StorageIndex>>{ aSys0.GetStatesNumber() *
-                                                  aSys1.GetStatesNumber(),
-                                                aSys1.GetInitialState() *
-                                                    aSys0.GetStatesNumber() +
-                                                  aSys0.GetInitialState() }
+      op::SyncSysProxy<NEvents, StorageIndex>>{ aSys0.getStatesNumber() *
+                                                  aSys1.getStatesNumber(),
+                                                aSys1.getInitialState() *
+                                                    aSys0.getStatesNumber() +
+                                                  aSys0.getInitialState() }
   , sys0_{ aSys0 }
   , sys1_{ aSys1 }
 {
-    n_states_sys0_ = aSys0.GetStatesNumber();
+    n_states_sys0_ = aSys0.getStatesNumber();
 
-    auto const in_both = aSys0.GetEvents() & aSys1.GetEvents();
+    auto const in_both = aSys0.getEvents() & aSys1.getEvents();
 
-    only_in_0_ = aSys0.GetEvents() ^ in_both;
-    only_in_1_ = aSys1.GetEvents() ^ in_both;
+    only_in_0_ = aSys0.getEvents() ^ in_both;
+    only_in_1_ = aSys1.getEvents() ^ in_both;
 
     // Initialize events_ from base class
-    this->events_ = aSys0.GetEvents() | aSys1.GetEvents();
+    this->events_ = aSys0.getEvents() | aSys1.getEvents();
 
-    for (auto q0 : aSys0.GetMarkedStates()) {
-        for (auto q1 : aSys1.GetMarkedStates()) {
+    for (auto q0 : aSys0.getMarkedStates()) {
+        for (auto q1 : aSys1.getMarkedStates()) {
             this->marked_states_.emplace(q1 * n_states_sys0_ + q0);
         }
     }
@@ -114,8 +114,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::containstrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.Containstrans(qx, aEvent);
-    auto const in_y = sys1_.Containstrans(qy, aEvent);
+    auto const in_x = sys0_.containstrans(qx, aEvent);
+    auto const in_y = sys1_.containstrans(qy, aEvent);
 
     auto contains = false;
 
@@ -140,8 +140,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::trans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.Containstrans(qx, aEvent);
-    auto const in_y = sys1_.Containstrans(qy, aEvent);
+    auto const in_x = sys0_.containstrans(qx, aEvent);
+    auto const in_y = sys1_.containstrans(qy, aEvent);
 
     if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
           (in_y && only_in_1_.test(aEvent)))) {
@@ -175,8 +175,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::containsinvtrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.Containsinvtrans(qx, aEvent);
-    auto const in_y = sys1_.Containsinvtrans(qy, aEvent);
+    auto const in_x = sys0_.containsinvtrans(qx, aEvent);
+    auto const in_y = sys1_.containsinvtrans(qy, aEvent);
 
     auto contains = false;
 
@@ -203,8 +203,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::invtrans_impl(
     auto const qx = aQ % n_states_sys0_;
     auto const qy = aQ / n_states_sys0_;
 
-    auto const in_x = sys0_.Containsinvtrans(qx, aEvent);
-    auto const in_y = sys1_.Containsinvtrans(qy, aEvent);
+    auto const in_x = sys0_.containsinvtrans(qx, aEvent);
+    auto const in_y = sys1_.containsinvtrans(qy, aEvent);
 
     if (!((in_x && in_y) || (in_x && only_in_0_.test(aEvent)) ||
           (in_y && only_in_1_.test(aEvent)))) {
@@ -251,8 +251,8 @@ EventsSet<NEvents>
 op::SyncSysProxy<NEvents, StorageIndex>::getStateEvents_impl(
   StorageIndex const& aQ) const noexcept
 {
-    auto const state_event_0 = sys0_.GetStateEvents(aQ % n_states_sys0_);
-    auto const state_event_1 = sys1_.GetStateEvents(aQ / n_states_sys0_);
+    auto const state_event_0 = sys0_.getStateEvents(aQ % n_states_sys0_);
+    auto const state_event_1 = sys1_.getStateEvents(aQ / n_states_sys0_);
     auto const state_event = (state_event_0 & state_event_1) |
                              (state_event_0 & only_in_0_) |
                              (state_event_1 & only_in_1_);
@@ -265,8 +265,8 @@ EventsSet<NEvents>
 op::SyncSysProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
   StorageIndex const& aQ) const
 {
-    auto const state_event_0 = sys0_.GetInvStateEvents(aQ % n_states_sys0_);
-    auto const state_event_1 = sys1_.GetInvStateEvents(aQ / n_states_sys0_);
+    auto const state_event_0 = sys0_.getInvStateEvents(aQ % n_states_sys0_);
+    auto const state_event_1 = sys1_.getInvStateEvents(aQ / n_states_sys0_);
     auto const state_event = (state_event_0 & state_event_1) |
                              (state_event_0 & only_in_0_) |
                              (state_event_1 & only_in_1_);
@@ -278,15 +278,15 @@ template<uint8_t NEvents, typename StorageIndex>
 void
 op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const noexcept
 {
-    sys0_.AllocateInvertedGraph();
-    sys1_.AllocateInvertedGraph();
+    sys0_.allocateInvertedGraph();
+    sys1_.allocateInvertedGraph();
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 void
 op::SyncSysProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const noexcept
 {
-    sys0_.ClearInvertedGraph();
-    sys1_.ClearInvertedGraph();
+    sys0_.clearInvertedGraph();
+    sys1_.clearInvertedGraph();
 }
 }

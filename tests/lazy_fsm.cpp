@@ -183,7 +183,7 @@ main()
               << std::endl;
 
     std::cout << std::endl;
-    std::cout << "Number of states of the supervisor: " << supervisor.Size()
+    std::cout << "Number of states of the supervisor: " << supervisor.size()
               << std::endl;
     std::cout << "Number of transitions of the supervisor "
               << supervisor.getGraph().nonZeros() << std::endl;

@@ -57,7 +57,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::DESystemBase()
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetEvents(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setEvents(
   EventsSet<NEvents> const& aEvents) noexcept
 {
     events_ = aEvents;
@@ -65,7 +65,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetEvents(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesNumber(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setStatesNumber(
   StorageIndex const& aStNum) noexcept
 {
     states_number_ = aStNum;
@@ -73,7 +73,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesNumber(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInitialState(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setInitialState(
   StorageIndex const& aInitState) noexcept
 {
     init_state_ = aInitState;
@@ -81,7 +81,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInitialState(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::InsertMarkedState(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::insertMarkedState(
   StorageIndex const& aSt) noexcept
 {
     marked_states_.emplace(aSt);
@@ -89,7 +89,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::InsertMarkedState(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetMarkedStates(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setMarkedStates(
   StatesSet const& aStSet) noexcept
 {
     marked_states_ = aStSet;
@@ -97,16 +97,16 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetMarkedStates(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::ResizeStatesEvents(
-  StorageIndex const& aSize) noexcept
+DESystemBase<NEvents, StorageIndex, RealDESystem>::resizeStatesEvents(
+  StorageIndex const& asize) noexcept
 {
-    states_events_.resize(aSize);
-    inv_states_events_.resize(aSize);
+    states_events_.resize(asize);
+    inv_states_events_.resize(asize);
 }
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesEvents(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setStatesEvents(
   StatesEventsTable const& aEvents) noexcept
 {
     states_events_ = aEvents;
@@ -114,7 +114,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStatesEvents(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInvStatesEvents(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setInvStatesEvents(
   StatesEventsTable const& aEvents) noexcept
 {
     inv_states_events_ = aEvents;
@@ -122,7 +122,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInvStatesEvents(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStateEvents(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setStateEvents(
   StorageIndex const& aQ,
   EventsSet<NEvents> const& aEvent) noexcept
 {
@@ -131,7 +131,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::SetStateEvents(
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::SetInvStateEvents(
+DESystemBase<NEvents, StorageIndex, RealDESystem>::setInvStateEvents(
   StorageIndex const& aQ,
   EventsSet<NEvents> const& aEvent) noexcept
 {

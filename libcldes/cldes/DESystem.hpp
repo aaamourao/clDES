@@ -216,7 +216,7 @@ public:
      */
     DESystem<NEvents, StorageIndex>& operator=(DESystem const&) = default;
 
-    /*! \brief Clone method for polymorphic copy
+    /*! \brief clone method for polymorphic copy
      *  \return Shared pointer to this object
      */
     std::shared_ptr<DESystemBase> constexpr clone_impl() const noexcept

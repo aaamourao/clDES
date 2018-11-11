@@ -105,15 +105,15 @@ public:
 
     DESystemCL<NEvents, StorageIndex>& operator=(DESystemCL const&) = default;
 
-    /*! \brief Clone method for polymorphic copy
+    /*! \brief clone method for polymorphic copy
      *  \return Shared pointer to this object
      */
-    std::shared_ptr<DESystemBase> Clone() const override;
+    std::shared_ptr<DESystemBase> clone() const override;
 
     /*! \brief Check if this system is a proxy
      * \details DESystemCL is always a real sys
      */
-    bool IsVirtual() const override;
+    bool isVirtual() const override;
 
     /*! \brief Graph getter
      *
@@ -142,7 +142,7 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    bool Containstrans(StorageIndex const& aQ,
+    bool containstrans(StorageIndex const& aQ,
                        ScalarType const& aEvent) const override;
 
     /*! \brief Returns DES transition: q_to = f(q, e)
@@ -158,7 +158,7 @@ public:
      * @param aQ State
      * @param aEvent Event
      */
-    bool Containsinvtrans(StorageIndex const& aQ,
+    bool containsinvtrans(StorageIndex const& aQ,
                           ScalarType const& aEvent) const override;
 
     /*! \brief Returns DES inverse transition: q = f^-1(q_to, e)
@@ -173,23 +173,23 @@ public:
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> GetStateEvents(StorageIndex const& aQ) const override;
+    EventsSet<NEvents> getStateEvents(StorageIndex const& aQ) const override;
 
     /*! \brief Returns EventsSet relative to state inv q
      *
      * @param aQ A state on the sys
      */
-    EventsSet<NEvents> GetInvStateEvents(StorageIndex const& aQ) const override;
+    EventsSet<NEvents> getInvStateEvents(StorageIndex const& aQ) const override;
 
     /*! \brief Invert graph
      *
      */
-    void AllocateInvertedGraph() const override;
+    void allocateInvertedGraph() const override;
 
     /*! \brief Free inverted graph
      *
      */
-    void ClearInvertedGraph() const override;
+    void clearInvertedGraph() const override;
 
 protected:
     /*! \brief Default constructor disabled
