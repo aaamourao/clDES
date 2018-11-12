@@ -398,6 +398,22 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
 //     return supervisor;
 // }
 
+// template<uint8_t NEvents, typename StorageIndex, class SysT>
+// SysT&
+// proj(SysT const& aSys, EventsSet const& aAlphabet) noexcept
+// {
+//     for (StorageIndex q = 0; q < graph_.rows(); ++q) {
+//         for (RowIteratorGraph d(graph_, q); d; ++d) {
+//             d.valueRef() &= aAlphabet;
+//         }
+//         if (this->states_events_.size() > 0) {
+//             this->states_events_[q] &= aAlphabet;
+//             this->inv_states_events_[q] &= aAlphabet;
+//         }
+//     }
+//     return *this;
+// }
+
 } // namespace op
 } // namespace cldes
 

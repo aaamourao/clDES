@@ -504,9 +504,10 @@ DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
-cldes::DESystem<NEvents, StorageIndex>::checkObsProp_impl(EventsSet const&) const
-  noexcept
+cldes::DESystem<NEvents, StorageIndex>::checkObsProp_impl(
+  EventsSet const&) const noexcept
 {
+    DESystem v;
     return false;
 }
 }
