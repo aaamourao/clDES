@@ -290,7 +290,7 @@ DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
         return -1;
     }
 
-    for (RowIteratorGraph qiter(graph_, aQ); qiter; ++qiter) {
+    for (RowIterator qiter(graph_, aQ); qiter; ++qiter) {
         if (qiter.value().test(aEvent)) {
             return qiter.col();
         }
@@ -489,14 +489,17 @@ template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>&
 DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
 {
-    for (StorageIndex q = 0; q < this->size(); ++q) {
+    for (StorageIndex q = 0; q < graph_.rows(); ++q) {
         for (RowIteratorGraph d(graph_, q); d; ++d) {
-            d &= aAlphabet;
+            d.valueRef() &= aAlphabet;
         }
-        this->states_events_[q] &= aAlphabet;
-        this->inv_states_events_[q] &= aAlphabet;
+        if (this->states_events_.size() > 0) {
+            this->states_events_[q] &= aAlphabet;
+            this->inv_states_events_[q] &= aAlphabet;
+        }
     }
     graph_.prune(EventsSet{ 0 });
-    return trim();
+    trim();
+    return *this;
 }
 }

@@ -160,7 +160,7 @@ public:
     /*! \brief Graph iterator
      * \details Used to iterate over the adjacency matrix
      */
-    using RowIteratorGraph = Eigen::InnerIterator<GraphHostData>;
+    using RowIteratorGraph = typename GraphHostData::InnerIterator;
 
     /*! \brief Triplet type
      * \details 3-tuples (qfrom, qto, event) for filling adjacency matrix

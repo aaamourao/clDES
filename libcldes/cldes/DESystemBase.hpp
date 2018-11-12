@@ -366,7 +366,7 @@ public:
      */
     RealDESystem constexpr& proj(EventsSet<NEvents> const& aAlphabet) noexcept
     {
-        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        RealDESystem& sys = static_cast<RealDESystem&>(*this);
         return sys.proj_impl(aAlphabet);
     }
 
@@ -374,8 +374,7 @@ public:
      *
      * @param aLang Set of events
      */
-    RealDESystem constexpr& invproj(EventsSet<NEvents> const&) const
-      noexcept
+    RealDESystem constexpr& invproj(EventsSet<NEvents> const&) const noexcept
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
         return sys;
