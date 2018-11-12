@@ -413,10 +413,7 @@ public:
      *
      * @param aLang Language
      */
-    bool constexpr checkObsProp_imp(EventsSet const&) const noexcept
-    {
-        return false;
-    }
+    bool constexpr checkObsProp_impl(EventsSet const& aAlphabet) const noexcept;
 
     /*! \brief Projection operation
      *

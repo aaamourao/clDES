@@ -219,7 +219,7 @@ public:
      *
      * @param aLang Language
      */
-    bool constexpr checkObsProp_imp(EventsSet<NEvents> const&) const noexcept
+    bool constexpr checkObsProp_impl(EventsSet<NEvents> const&) const noexcept
     {
         return false;
     }

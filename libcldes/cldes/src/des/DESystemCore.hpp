@@ -499,7 +499,14 @@ DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
         }
     }
     graph_.prune(EventsSet{ 0 });
-    trim();
     return *this;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+bool
+cldes::DESystem<NEvents, StorageIndex>::checkObsProp_impl(EventsSet const&) const
+  noexcept
+{
+    return false;
 }
 }
