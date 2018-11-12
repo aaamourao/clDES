@@ -95,46 +95,4 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::setMarkedStates(
     marked_states_ = aStSet;
 }
 
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::resizeStatesEvents(
-  StorageIndex const& asize) noexcept
-{
-    states_events_.resize(asize);
-    inv_states_events_.resize(asize);
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::setStatesEvents(
-  StatesEventsTable const& aEvents) noexcept
-{
-    states_events_ = aEvents;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::setInvStatesEvents(
-  StatesEventsTable const& aEvents) noexcept
-{
-    inv_states_events_ = aEvents;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::setStateEvents(
-  StorageIndex const& aQ,
-  EventsSet<NEvents> const& aEvent) noexcept
-{
-    states_events_[aQ] = aEvent;
-}
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-void
-DESystemBase<NEvents, StorageIndex, RealDESystem>::setInvStateEvents(
-  StorageIndex const& aQ,
-  EventsSet<NEvents> const& aEvent) noexcept
-{
-    inv_states_events_[aQ] = aEvent;
-}
 }

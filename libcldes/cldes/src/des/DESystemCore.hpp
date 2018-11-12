@@ -66,10 +66,6 @@ DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
     // Change graphs storage type to CSR
     graph_.makeCompressed();
 
-    // Reserve memory to make insertions efficient
-    this->states_events_ = StatesEventsTable(aStatesNumber);
-    this->inv_states_events_ = StatesEventsTable(aStatesNumber);
-
     // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
         this->cacheGraph_();
@@ -207,14 +203,6 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
     this->states_number_ = trimstates.size();
     graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
                   static_cast<StorageIndexSigned>(this->states_number_));
-    if (this->states_events_.size() > 0) {
-        this->states_events_.erase(this->states_events_.begin() +
-                                     this->states_number_,
-                                   this->states_events_.end());
-        this->inv_states_events_.erase(this->inv_states_events_.begin() +
-                                         this->states_number_,
-                                       this->inv_states_events_.end());
-    }
     this->events_.reset();
     // Calculate the sparsity pattern
     auto sparcitypattern = this->events_.count() * this->states_number_;
@@ -232,19 +220,11 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
     {
         auto row_id = 0ul;
         for (StorageIndex s : trimstates) {
-            if (this->states_events_.size() > 0) {
-                this->states_events_[row_id].reset();
-                this->inv_states_events_[row_id].reset();
-            }
             for (RowIterator e(old_graph, s); e; ++e) {
                 if (statesmap[e.col()] != -1) {
                     auto const col_id = statesmap[e.col()];
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
                     this->events_ |= e.value();
-                    if (this->states_events_.size() > 0) {
-                        this->states_events_[row_id] |= e.value();
-                        this->inv_states_events_[col_id] |= e.value();
-                    }
                 }
             }
             ++row_id;
@@ -277,7 +257,12 @@ DESystem<NEvents, StorageIndex>::containstrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const noexcept
 {
-    return this->states_events_[aQ].test(aEvent);
+    for (RowIteratorGraph d(graph_, aQ); d; ++d) {
+        if (d.value().test(aEvent)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -286,11 +271,7 @@ DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
                                             ScalarType const& aEvent) const
   noexcept
 {
-    if (!this->states_events_[aQ].test(aEvent)) {
-        return -1;
-    }
-
-    for (RowIterator qiter(graph_, aQ); qiter; ++qiter) {
+    for (RowIteratorGraph qiter(graph_, aQ); qiter; ++qiter) {
         if (qiter.value().test(aEvent)) {
             return qiter.col();
         }
@@ -306,7 +287,12 @@ DESystem<NEvents, StorageIndex>::containsinvtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
-    return this->inv_states_events_[aQ].test(aEvent);
+    for (RowIteratorGraph d(*inv_graph_, aQ); d; ++d) {
+        if (d.value().test(aEvent)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -316,34 +302,13 @@ DESystem<NEvents, StorageIndex>::invtrans_impl(StorageIndex const& aQ,
 {
     StatesArray<StorageIndex> inv_trans;
 
-    if (!this->inv_states_events_[aQ].test(aEvent)) {
-        return inv_trans;
-    }
-
-    for (RowIterator qiter(*inv_graph_, aQ); qiter; ++qiter) {
+    for (RowIteratorGraph qiter(*inv_graph_, aQ); qiter; ++qiter) {
         if (qiter.value().test(aEvent)) {
             inv_trans.push_back(qiter.col());
         }
     }
 
-    // It will never reach here, but the warning is bothering me
     return inv_trans;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-DESystem<NEvents, StorageIndex>::getStateEvents_impl(
-  StorageIndex const& aQ) const noexcept
-{
-    return this->states_events_[aQ];
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-DESystem<NEvents, StorageIndex>::getInvStateEvents_impl(
-  StorageIndex const& aQ) const
-{
-    return this->inv_states_events_[aQ];
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -492,10 +457,6 @@ DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
     for (StorageIndex q = 0; q < graph_.rows(); ++q) {
         for (RowIteratorGraph d(graph_, q); d; ++d) {
             d.valueRef() &= aAlphabet;
-        }
-        if (this->states_events_.size() > 0) {
-            this->states_events_[q] &= aAlphabet;
-            this->inv_states_events_[q] &= aAlphabet;
         }
     }
     graph_.prune(EventsSet{ 0 });

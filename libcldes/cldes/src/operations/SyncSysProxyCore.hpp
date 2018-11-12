@@ -84,8 +84,6 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
     sys_ptr->states_number_ = std::move(this->states_number_);
     sys_ptr->init_state_ = std::move(this->init_state_);
     sys_ptr->marked_states_ = std::move(this->marked_states_);
-    sys_ptr->states_events_ = std::move(this->states_events_);
-    sys_ptr->inv_states_events_ = std::move(this->inv_states_events_);
     sys_ptr->events_ = std::move(this->events_);
 
     // Resize adj matrices
@@ -244,34 +242,6 @@ op::SyncSysProxy<NEvents, StorageIndex>::invtrans_impl(
     }
 
     return inv_transitions;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-op::SyncSysProxy<NEvents, StorageIndex>::getStateEvents_impl(
-  StorageIndex const& aQ) const noexcept
-{
-    auto const state_event_0 = sys0_.getStateEvents(aQ % n_states_sys0_);
-    auto const state_event_1 = sys1_.getStateEvents(aQ / n_states_sys0_);
-    auto const state_event = (state_event_0 & state_event_1) |
-                             (state_event_0 & only_in_0_) |
-                             (state_event_1 & only_in_1_);
-
-    return state_event;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-op::SyncSysProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
-  StorageIndex const& aQ) const
-{
-    auto const state_event_0 = sys0_.getInvStateEvents(aQ % n_states_sys0_);
-    auto const state_event_1 = sys1_.getInvStateEvents(aQ / n_states_sys0_);
-    auto const state_event = (state_event_0 & state_event_1) |
-                             (state_event_0 & only_in_0_) |
-                             (state_event_1 & only_in_1_);
-
-    return state_event;
 }
 
 template<uint8_t NEvents, typename StorageIndex>

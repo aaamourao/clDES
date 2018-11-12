@@ -115,20 +115,26 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
         f.pop();
         if (!rmtable.contains(q) && !virtual_states_.contains(q)) {
             auto const qx = q % virtualsys.n_states_sys0_;
-            auto const q_events = virtualsys.getStateEvents(q);
-            auto const in_ncqx = p_non_contr_bit & aP.getStateEvents(qx);
-            auto const in_ncqx_and_q = in_ncqx & q_events;
-            if (in_ncqx_and_q != in_ncqx) {
+            bool badstate = false;
+            for (ScalarType event = 0; event < NEvents; ++event) {
+                if (p_non_contr_bit.test(event) && aP.trans(qx, event) != -1 &&
+                    virtualsys.trans(q, event) == -1) {
+                    badstate = true;
+                    break;
+                }
+            }
+            if (badstate) {
                 // TODO: Fix template implicit instantiation
                 removeBadStates<NEvents, StorageIndex>(
                   virtualsys, virtual_states_, q, non_contr_bit, rmtable);
             } else {
                 virtual_states_.insert(q);
                 cldes::ScalarType event = 0;
-                auto event_it = q_events;
+                EventsSet<NEvents> event_it;
+                event_it.set();
                 while (event_it.any()) {
-                    if (event_it.test(0)) {
-                        auto const fsqe = virtualsys.trans(q, event);
+                    auto const fsqe = virtualsys.trans(q, event);
+                    if (fsqe != -1 && event_it.test(0)) {
                         if (!rmtable.contains(fsqe)) {
                             if (!virtual_states_.contains(fsqe)) {
                                 f.push(fsqe);
@@ -143,8 +149,8 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
     }
     rmtable.clear();
     this->states_number_ = virtual_states_.size();
-    trim();
     virtualsys.clearInvertedGraph();
+    //trim();
     return;
 }
 
@@ -160,8 +166,6 @@ op::SuperProxy<NEvents, StorageIndex>::operator DESystem() noexcept
     sys_ptr->states_number_ = std::move(this->states_number_);
     sys_ptr->init_state_ = std::move(this->init_state_);
     sys_ptr->marked_states_ = std::move(this->marked_states_);
-    sys_ptr->states_events_ = std::move(this->states_events_);
-    sys_ptr->inv_states_events_ = std::move(this->inv_states_events_);
     sys_ptr->events_ = std::move(this->events_);
 
     // Resize adj matrices
@@ -325,34 +329,6 @@ op::SuperProxy<NEvents, StorageIndex>::invtrans_impl(
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-op::SuperProxy<NEvents, StorageIndex>::getStateEvents_impl(
-  StorageIndex const& aQ) const noexcept
-{
-    auto const state_event_0 = sys0_.getStateEvents(aQ % n_states_sys0_);
-    auto const state_event_1 = sys1_.getStateEvents(aQ / n_states_sys0_);
-    auto const state_event = (state_event_0 & state_event_1) |
-                             (state_event_0 & only_in_plant_) |
-                             (state_event_1 & only_in_spec_);
-
-    return state_event;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-op::SuperProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
-  StorageIndex const& aQ) const
-{
-    auto const state_event_0 = sys0_.getInvStateEvents(aQ % n_states_sys0_);
-    auto const state_event_1 = sys1_.getInvStateEvents(aQ / n_states_sys0_);
-    auto const state_event = (state_event_0 & state_event_1) |
-                             (state_event_0 & only_in_plant_) |
-                             (state_event_1 & only_in_spec_);
-
-    return state_event;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
 void
 op::SuperProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
   noexcept
@@ -381,12 +357,12 @@ op::SuperProxy<NEvents, StorageIndex>::trim() noexcept
             auto const q = f.top();
             f.pop();
             trimmed_virtual_states.insert(q);
-            auto const q_events = this->getInvStateEvents(q);
             cldes::ScalarType event = 0;
-            auto event_it = q_events;
+            EventsSet<NEvents> event_it;
+            event_it.set();
             while (event_it.any()) {
-                if (event_it.test(0)) {
-                    auto const fsqelist = this->invtrans(q, event);
+                auto const fsqelist = this->invtrans(q, event);
+                if (event_it.test(0) && !fsqelist.empty()) {
                     for (auto fsqe : fsqelist) {
                         if (virtual_states_.contains(fsqe)) {
                             if (!trimmed_virtual_states.contains(fsqe)) {

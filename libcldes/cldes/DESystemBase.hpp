@@ -171,65 +171,6 @@ public:
      */
     void setMarkedStates(StatesSet const& aStSet) noexcept;
 
-    /*! \brief Resize state_events
-     * \details Necessary to run it when inserting or remove
-     * events.
-     * \warning It is used by many operations. Let them do it for you.
-     * You can corrupt a system by executing it.
-     *
-     * \param asize New state_events_ size
-     * \return void
-     */
-    void resizeStatesEvents(StorageIndex const& asize) noexcept;
-
-    /*! \brief Force statesevents to assume value
-     * \details Necessary to run it when inserting or remove
-     * events.
-     * \warning It is used by many operations. Let them do it for you.
-     * You can corrupt a system by executing it.
-     *
-     * \param aEvents Events set vector
-     * \return void
-     */
-    void setStatesEvents(StatesEventsTable const& aEvents) noexcept;
-
-    /*! \brief Set inv_state_events
-     * \details It is used by many operations. Set the inverse events
-     * of each states contains.
-     * \warning It is used by many operations. Let them do it for you
-     * You can corrupt a system by executing it.
-     *
-     * \param aEvents Events set vector
-     * \return void
-     */
-    void setInvStatesEvents(StatesEventsTable const& aEvents) noexcept;
-
-    /*! \brief Set state_events of a specific state
-     * \details It is used by many operations. Set the events of
-     * a state contains.
-     * \warning It is used by many operations. Let them do it for you
-     * You can corrupt a system by executing it.
-     *
-     * \param aQ State represented by an unsigned integer type
-     * \param aEvent A event represented by a 8 bit unsigned integer
-     * \return void
-     */
-    void setStateEvents(StorageIndex const& aQ,
-                        EventsSet<NEvents> const& aEvent) noexcept;
-
-    /*! \brief Set inv_state_events of a specific state
-     * \details It is used by many operations. Set the events of
-     * a state contains.
-     * \warning It is used by many operations. Let them do it for you
-     * You can corrupt a system by executing it.
-     *
-     * \param aQ State represented by an unsigned integer type
-     * \param aEvent A event represented by a 8 bit unsigned integer
-     * \return void
-     */
-    void setInvStateEvents(StorageIndex const& aQ,
-                           EventsSet<NEvents> const& aEvent) noexcept;
-
     /*! \brief Is it real?
      *
      * \return Boolean with the answer. It is true or false, not 42.
@@ -297,28 +238,6 @@ public:
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
         return sys.invtrans_impl(aQfrom, aEvent);
-    }
-
-    /*! \brief Returns EventsSet relative to state q
-     *
-     * @param aQ A state on the sys
-     */
-    EventsSet<NEvents> constexpr getStateEvents(StorageIndex const& aQ) const
-      noexcept
-    {
-        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-        return sys.getStateEvents_impl(aQ);
-    }
-
-    /*! \brief Returns EventsSet relative to state inv q
-     *
-     * @param aQ A state on the sys
-     */
-    EventsSet<NEvents> constexpr getInvStateEvents(StorageIndex const& aQ) const
-      noexcept
-    {
-        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
-        return sys.getInvStateEvents_impl(aQ);
     }
 
     /*! \brief Invert graph
@@ -406,17 +325,6 @@ protected:
      * cut, and some marked states may be deleted.
      */
     StatesSet marked_states_;
-
-    /*! \brief Vector containing a events hash table per state
-     */
-    StatesEventsTable states_events_;
-
-    /*! \brief Vector containing a events hash table per state
-     *
-     * It represents the transitions of the inverted graph for the supervisor
-     * synthesis.
-     */
-    StatesEventsTable inv_states_events_;
 
 private:
     /*! \brief Derived class is a friend

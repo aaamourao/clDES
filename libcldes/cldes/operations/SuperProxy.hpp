@@ -191,22 +191,6 @@ public:
 
     void trim() noexcept;
 
-    /*! \brief Get events that a state contains
-     * \warning On large binery trees, it can be very expensive.
-     *
-     * @param aQ A state on the sys
-     * \return Bit set with events of state events
-     */
-    EventsSet<NEvents> getStateEvents_impl(StorageIndex const& aQ) const
-      noexcept;
-
-    /*! \brief Get inverse events that a state contains
-     *
-     * @param aQ A state on the sys
-     * \return Bit set with events index set to true
-     */
-    EventsSet<NEvents> getInvStateEvents_impl(StorageIndex const& aQ) const;
-
     /*! \brief Invert graph
      * \details This is used on some operations... it can be very inneficient
      * for very large graphs
