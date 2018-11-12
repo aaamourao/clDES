@@ -236,7 +236,7 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
                 this->states_events_[row_id].reset();
                 this->inv_states_events_[row_id].reset();
             }
-            for (RowIteratorGraph e(old_graph, s); e; ++e) {
+            for (RowIterator e(old_graph, s); e; ++e) {
                 if (statesmap[e.col()] != -1) {
                     auto const col_id = statesmap[e.col()];
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
@@ -286,14 +286,11 @@ DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
                                             ScalarType const& aEvent) const
   noexcept
 {
-    using RowIterator = Eigen::InnerIterator<
-      DESystem<NEvents, StorageIndex>::GraphHostData const>;
-
     if (!this->states_events_[aQ].test(aEvent)) {
         return -1;
     }
 
-    for (RowIterator qiter(graph_, aQ); qiter; ++qiter) {
+    for (RowIteratorGraph qiter(graph_, aQ); qiter; ++qiter) {
         if (qiter.value().test(aEvent)) {
             return qiter.col();
         }
@@ -493,7 +490,9 @@ cldes::DESystem<NEvents, StorageIndex>&
 DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
 {
     for (StorageIndex q = 0; q < this->size(); ++q) {
-        graph_(q, q_next) &= aAlphabet;
+        for (RowIteratorGraph d(graph_, q); d; ++d) {
+            d &= aAlphabet;
+        }
         this->states_events_[q] &= aAlphabet;
         this->inv_states_events_[q] &= aAlphabet;
     }
