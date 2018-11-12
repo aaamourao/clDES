@@ -1,5 +1,8 @@
 # clDES
 
+**Freezed branch**: It proves that *states_events_* spends a small percentage of
+the total memory and makes the operations more efficient.
+
 Efficient algorithms for **Discrete-Event Systems**/deterministic
 finite state automatons
 operations targeting heterogeneous platforms.
