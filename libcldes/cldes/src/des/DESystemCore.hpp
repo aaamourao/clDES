@@ -152,13 +152,13 @@ DESystem<NEvents, StorageIndex>::trimStates() const noexcept
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     x.reserve(this->marked_states_.size());
     std::vector<BitTriplet> xtriplet;
-// #ifndef CLDES_OPENMP_ENABLED
+    // #ifndef CLDES_OPENMP_ENABLED
     StatesVector const searchgraph{ (graph_ + ident).template cast<bool>() };
-// #else
-//     BitRowGraphHostData const searchgraph{
-//         (graph_ + ident).template cast<bool>()
-//     };
-// #endif
+    // #else
+    //     BitRowGraphHostData const searchgraph{
+    //         (graph_ + ident).template cast<bool>()
+    //     };
+    // #endif
     for (StorageIndex state : this->marked_states_) {
         xtriplet.push_back(BitTriplet(state, 0, true));
     }
@@ -168,11 +168,11 @@ DESystem<NEvents, StorageIndex>::trimStates() const noexcept
     StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     auto n_accessed_states = 0l;
     for (auto i = 0ul; i < this->states_number_; ++i) {
-// #ifdef CLDES_OPENMP_ENABLED
-//         y = searchgraph.transpose() * x;
-// #else
+        // #ifdef CLDES_OPENMP_ENABLED
+        //         y = searchgraph.transpose() * x;
+        // #else
         y = searchgraph * x;
-// #endif
+        // #endif
         if (n_accessed_states == y.nonZeros()) {
             break;
         } else {
@@ -466,7 +466,7 @@ DESystem<NEvents, StorageIndex>::bfsCalc_(
         }
         aHostX = y;
     }
-    /// Add results to a std::set vector
+    // Add results to a std::set vector
     if (aBfsVisit) {
         for (auto s = 0l; s < y.rows(); ++s) {
             for (BitIteratorConst e(y, s); e; ++e) {
@@ -486,5 +486,25 @@ DESystem<NEvents, StorageIndex>::bfsCalc_(
         }
     }
     return accessed_states;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+cldes::DESystem<NEvents, StorageIndex>&
+DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
+{
+    for (StorageIndex q = 0; q < this->size(); ++q) {
+        cldes::ScalarType event = 0;
+        auto event_it = (this->states_events_[q] & aAlphabet) ^ aAlphabet;
+        while (event_it.any()) {
+            EventsSet q_next = trans_impl(q, event);
+            graph_(q, q_next).set(event, false);
+            this->states_events_[q].set(event, false);
+            this->inv_states_events_[q_next].set(event, false);
+            ++event;
+            event_it >>= 1;
+        }
+    }
+    graph_.prune(EventsSet{ 0 });
+    return trim();
 }
 }

@@ -409,6 +409,30 @@ public:
      */
     void clearInvertedGraph_impl() const noexcept;
 
+    /*! \brief Observer property checker
+     *
+     * @param aLang Language
+     */
+    bool constexpr checkObsProp_imp(EventsSet const&) const noexcept
+    {
+        return false;
+    }
+
+    /*! \brief Projection operation
+     *
+     * @param aAlphanet Events set which the system will be projected.
+     */
+    DESystem& proj_impl(EventsSet const& aAlphabet) noexcept;
+
+    /*! \brief Inverse projection operation
+     *
+     * @param aLang Set of events
+     */
+    DESystem constexpr& invproj_impl(EventsSet const&) const noexcept
+    {
+        return *this;
+    }
+
 protected:
     /*! \brief Method for caching the graph
      * \details Copy the graph after transposing it to the device memory.

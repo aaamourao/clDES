@@ -191,6 +191,33 @@ public:
      */
     void clearInvertedGraph() const override;
 
+    /*! \brief Observer property checker
+     *
+     * @param aLang Language
+     */
+    bool constexpr checkObsProp_imp(EventsSet aLang) const noexcept
+    {
+        return false;
+    }
+
+    /*! \brief Projection operation
+     *
+     * @param aAlphanet Events set which the system will be projected.
+     */
+    DESystemCL& constexpr proj_impl(EventsSet aAlphabet) const noexcept
+    {
+        return *this;
+    }
+
+    /*! \brief Inverse projection operation
+     *
+     * @param aLang Set of events
+     */
+    DESystemCL& constexpr invproj_impl(EventsSet aAlphabet) const noexcept
+    {
+        return *this;
+    }
+
 protected:
     /*! \brief Default constructor disabled
      *

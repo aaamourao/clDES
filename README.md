@@ -26,10 +26,12 @@ Automaton operation | Implementation
 Accessible part | `cldes::DESystem<NEvents, StorageIndex>::accessiblePart()`
 Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::coaccessiblePart()`
 Trim | `cldes::DESystemBase<NEvents, StorageIndex>::trim()`
-Synchronization: parallel composition | `cldes::op::synchronize<NEvents, StorageIndex>()`
 Observer Property Checker | `cldes::DESystem<NEvents, StorageIndex>::checkObsProp()`
+Observer Property Search | `cldes::DESystem<NEvents, StorageIndex>::searchObsProp()`
+Projection | `cldes::DESystem<NEvents, StorageIndex>::proj<NEvents, StorageIndex>()`
+Inverse Projection | `cldes::op<NEvents, StorageIndex>::invproj<NEvents, StorageIndex>()`
+Synchronization: parallel composition | `cldes::op::synchronize<NEvents, StorageIndex>()`
 Monolithic Supervisor Synthesis | `cldes::op::supC<NEvents, StorageIndex>()`
-Projection | `cldes::op::proj<NEvents, StorageIndex>()`
 
 ## Compiling
 
@@ -90,7 +92,7 @@ $ make -j4
 *OpenCL*:
 ```base
 # [...]
-$ cmake _DCLDES_OPENCL_ENABLED=true ..
+$ cmake -DCLDES_OPENCL_ENABLED=true ..
 $ make -j4
 ```
 

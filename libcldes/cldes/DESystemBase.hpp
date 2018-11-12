@@ -182,7 +182,7 @@ public:
      */
     void resizeStatesEvents(StorageIndex const& asize) noexcept;
 
-    /*! \brief Resize state_events
+    /*! \brief Force statesevents to assume value
      * \details Necessary to run it when inserting or remove
      * events.
      * \warning It is used by many operations. Let them do it for you.
@@ -337,6 +337,48 @@ public:
     {
         RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
         return sys.clearInvertedGraph_impl();
+    }
+
+    /*! \brief Observer property checker
+     *
+     * @param aLang Language
+     */
+    bool constexpr checkObsProp(EventsSet<NEvents> const& aAlphabet) const
+      noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.checkObsProp_impl(aAlphabet);
+    }
+
+    /*! \brief Search observer property
+     *
+     * @param aLang Language
+     */
+    bool constexpr searchObsProp(EventsSet<NEvents> const&) const noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys;
+    }
+
+    /*! \brief Projection operation
+     *
+     * @param aAlphanet Events set which the system will be projected.
+     */
+    RealDESystem constexpr& proj(EventsSet<NEvents> const& aAlphabet) noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys.proj_impl(aAlphabet);
+    }
+
+    /*! \brief Inverse projection operation
+     *
+     * @param aLang Set of events
+     */
+    RealDESystem constexpr& invproj(EventsSet<NEvents> const&) const
+      noexcept
+    {
+        RealDESystem const& sys = static_cast<RealDESystem const&>(*this);
+        return sys;
     }
 
 protected:

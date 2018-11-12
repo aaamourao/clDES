@@ -221,12 +221,39 @@ public:
      */
     void clearInvertedGraph_impl() const noexcept;
 
+    /*! \brief Observer property checker
+     *
+     * @param aLang Language
+     */
+    bool constexpr checkObsProp_imp(EventsSet<NEvents> const&) const noexcept
+    {
+        return false;
+    }
+
+    /*! \brief Projection operation
+     *
+     * @param aAlphanet Events set which the system will be projected.
+     */
+    SuperProxy constexpr& proj_impl(EventsSet<NEvents> const&) noexcept
+    {
+        return *this;
+    }
+
+    /*! \brief Inverse projection operation
+     *
+     * @param aLang Set of events
+     */
+    SuperProxy constexpr& invproj_impl(EventsSet<NEvents> const&) const noexcept
+    {
+        return *this;
+    }
+
 protected:
     /*! \brief Monolithic supervisor synthesis
      */
     friend DESystem supC<>(DESystemBase const& aP,
-                                      DESystemBase const& aE,
-                                      EventsTableHost const& aNonContr) noexcept;
+                           DESystemBase const& aE,
+                           EventsTableHost const& aNonContr) noexcept;
 
     /*! \brief Disabled default constructor
      * \details There is no use for the default constructor.

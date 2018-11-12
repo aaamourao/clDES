@@ -240,12 +240,11 @@ removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
 
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-supC(
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aP,
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aE,
-  EventsTableHost const& aNonContr) noexcept
+supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aP,
+     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aE,
+     EventsTableHost const& aNonContr) noexcept
 {
     // Define new systems params: Stage1 is not necessary
     SyncSysProxy<NEvents, StorageIndex> virtualsys{ aP, aE };
