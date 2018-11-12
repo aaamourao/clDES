@@ -1064,6 +1064,7 @@ private:
     // T can be std::pair<const K, V>, but sometime we need to cast to a mutable type
     // ------------------------------------------------------------------------------
     typedef typename spp_::cvt<T>::type                    mutable_value_type;
+    typedef mutable_value_type &                           mutable_reference;
     typedef mutable_value_type *                           mutable_pointer;
     typedef const mutable_value_type *                     const_mutable_pointer;
 
@@ -1138,8 +1139,7 @@ private:
         if (retval == NULL)
         {
             // the allocator is supposed to throw an exception if the allocation fails.
-            fprintf(stderr, "sparsehash FATAL ERROR: failed to allocate %d groups\n", num_alloc);
-            exit(1);
+            throw_exception(std::bad_alloc());
         }
         return retval;
     }
@@ -1225,7 +1225,7 @@ public:
     {
         _set_num_items(0);
         _set_num_alloc(0);
-         assert(_group == 0); if (_group) exit(1);
+         assert(_group == 0); 
     }
 
     sparsegroup(const sparsegroup& x, allocator_type& a) :
@@ -1243,7 +1243,7 @@ public:
         }
     }
 
-    ~sparsegroup() { assert(_group == 0); if (_group) exit(1); }
+    ~sparsegroup() { assert(_group == 0); }
 
     void destruct(allocator_type& a) { _free_group(a, _num_alloc()); }
 
@@ -1332,9 +1332,9 @@ private:
     void _init_val(mutable_value_type *p, reference val)
     {
 #if !defined(SPP_NO_CXX11_RVALUE_REFERENCES)
-        ::new (p) value_type(std::move(val));
+        ::new (p) value_type(std::move((mutable_reference)val));
 #else
-        ::new (p) value_type(val);
+        ::new (p) value_type((mutable_reference)val);
 #endif
     }
 
@@ -1348,7 +1348,7 @@ private:
     void _set_val(value_type *p, reference val)
     {
 #if !defined(SPP_NO_CXX11_RVALUE_REFERENCES)
-        *(mutable_pointer)p = std::move(val);
+        *(mutable_pointer)p = std::move((mutable_reference)val);
 #else
         using std::swap;
         swap(*(mutable_pointer)p, *(mutable_pointer)&val);
@@ -1381,7 +1381,7 @@ private:
         }
 
         for (uint32_t i = num_items; i > offset; --i)
-            memcpy(_group + i, _group + i-1, sizeof(*_group));
+            memcpy(static_cast<void *>(_group + i), _group + i-1, sizeof(*_group));
 
         _init_val((mutable_pointer)(_group + offset), val);
     }
@@ -1485,7 +1485,7 @@ private:
         _group[offset].~value_type();
 
         for (size_type i = offset; i < num_items - 1; ++i)
-            memcpy(_group + i, _group + i + 1, sizeof(*_group));
+            memcpy(static_cast<void *>(_group + i), _group + i + 1, sizeof(*_group));
 
         if (_sizing(num_items - 1) != num_alloc)
         {
@@ -1689,9 +1689,7 @@ private:
         // allocator (spp::spp_allocator).
         pointer realloc_or_die(pointer /*ptr*/, size_type /*n*/)
         {
-            fprintf(stderr, "realloc_or_die is only supported for "
-                    "spp::spp_allocator\n");
-            exit(1);
+            throw_exception(std::runtime_error("realloc_or_die is only supported for spp::spp_allocator\n"));
             return NULL;
         }
     };
@@ -1715,9 +1713,8 @@ private:
             pointer retval = this->reallocate(ptr, n);
             if (retval == NULL) 
             {
-                fprintf(stderr, "sparsehash: FATAL ERROR: failed to reallocate "
-                        "%lu elements for ptr %p", static_cast<unsigned long>(n), ptr);
-                exit(1);
+                // the allocator is supposed to throw an exception if the allocation fails.
+                throw_exception(std::bad_alloc());
             }
             return retval;
         }
@@ -1742,9 +1739,8 @@ private:
             pointer retval = this->reallocate(ptr, n);
             if (retval == NULL) 
             {
-                fprintf(stderr, "sparsehash: FATAL ERROR: failed to reallocate "
-                        "%lu elements for ptr %p", static_cast<unsigned long>(n), ptr);
-                exit(1);
+                // the allocator is supposed to throw an exception if the allocation fails.
+                throw_exception(std::bad_alloc());
             }
             return retval;
         }
@@ -2087,7 +2083,7 @@ public:
             if (sz)
             {
                 _alloc_group_array(sz, first, last);
-                memcpy(first, _first_group, sizeof(*first) * (std::min)(sz, old_sz));
+                memcpy(static_cast<void *>(first), _first_group, sizeof(*first) * (std::min)(sz, old_sz));
             }
 
             if (sz < old_sz)
@@ -3233,7 +3229,7 @@ public:
     std::pair<iterator, bool> insert(P &&obj)
     {
         _resize_delta(1);                      // adding an object, grow if need be
-        value_type val(std::forward<value_type>(obj));
+        value_type val(std::forward<P>(obj));
         return _insert_noresize(val);
     }
 #endif
@@ -3249,8 +3245,13 @@ public:
 
     // DefaultValue is a functor that takes a key and returns a value_type
     // representing the default value to be inserted if none is found.
+#if !defined(SPP_NO_CXX11_VARIADIC_TEMPLATES)
+    template <class DefaultValue, class KT>
+    value_type& find_or_insert(KT&& key)
+#else
     template <class DefaultValue>
     value_type& find_or_insert(const key_type& key)
+#endif
     {
         size_type num_probes = 0;              // how many times we've probed
         const size_type bucket_count_minus_one = bucket_count() - 1;
@@ -3266,17 +3267,20 @@ public:
             if (!grp_pos.test_strict())
             {
                 // not found
+#if !defined(SPP_NO_CXX11_VARIADIC_TEMPLATES)
+                auto&& def(default_value(std::forward<KT>(key)));
+#else
+                value_type def(default_value(key));
+#endif                
                 if (_resize_delta(1))
                 {
                     // needed to rehash to make room
                     // Since we resized, we can't use pos, so recalculate where to insert.
-                    value_type def(default_value(key));
                     return *(_insert_noresize(def).first);
                 }
                 else
                 {
                     // no need to rehash, insert right here
-                    value_type def(default_value(key));
                     return _insert_at(def, erased ? erased_pos : bucknum, erased);
                 }
             }
@@ -3579,10 +3583,18 @@ private:
     // For operator[].
     struct DefaultValue
     {
+#if !defined(SPP_NO_CXX11_VARIADIC_TEMPLATES)
+        template <class KT>
+        inline value_type operator()(KT&& key)  const
+        {
+            return { std::forward<KT>(key), T() };
+        }
+#else
         inline value_type operator()(const Key& key)  const
         {
             return std::make_pair(key, T());
         }
+#endif
     };
 
     // The actual data
@@ -3787,10 +3799,18 @@ public:
     const_iterator find(const key_type& key) const     { return rep.find(key); }
     bool contains(const key_type& key) const           { return rep.find(key) != rep.end(); }
 
+#if !defined(SPP_NO_CXX11_VARIADIC_TEMPLATES)
+    template <class KT>
+    mapped_type& operator[](KT&& key)
+    {
+        return rep.template find_or_insert<DefaultValue>(std::forward<KT>(key)).second;
+    }
+#else
     mapped_type& operator[](const key_type& key)
     {
         return rep.template find_or_insert<DefaultValue>(key).second;
     }
+#endif
 
     size_type count(const key_type& key) const         { return rep.count(key); }
 
