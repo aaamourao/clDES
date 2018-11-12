@@ -493,16 +493,9 @@ cldes::DESystem<NEvents, StorageIndex>&
 DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
 {
     for (StorageIndex q = 0; q < this->size(); ++q) {
-        cldes::ScalarType event = 0;
-        auto event_it = (this->states_events_[q] & aAlphabet) ^ aAlphabet;
-        while (event_it.any()) {
-            EventsSet q_next = trans_impl(q, event);
-            graph_(q, q_next).set(event, false);
-            this->states_events_[q].set(event, false);
-            this->inv_states_events_[q_next].set(event, false);
-            ++event;
-            event_it >>= 1;
-        }
+        graph_(q, q_next) &= aAlphabet;
+        this->states_events_[q] &= aAlphabet;
+        this->inv_states_events_[q] &= aAlphabet;
     }
     graph_.prune(EventsSet{ 0 });
     return trim();
