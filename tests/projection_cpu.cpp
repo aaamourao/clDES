@@ -94,6 +94,8 @@ main()
     auto t1 = high_resolution_clock::now();
     supervisor.proj(alpha);
     auto t2 = high_resolution_clock::now();
+    supervisor.trim();
+
     auto duration = duration_cast<microseconds>(t2 - t1).count();
     std::cout << "Projection time spent: " << duration << " microseconds"
               << std::endl;
