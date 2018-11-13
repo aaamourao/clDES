@@ -266,6 +266,12 @@ private:
                            DESystemBase const& aE,
                            EventsTableHost const& aNonContr) noexcept;
 
+    friend inline transMap<StorageIndex> computeSupCStates_<>(
+      SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+      EventsSet<NEvents> const&& aNonContrBit,
+      EventsSet<NEvents> const&& aPNonContrBit,
+      DESystemBase const& aP) noexcept;
+
     /*! \brief Reference to the left operand
      */
     DESystemBase const& sys0_;

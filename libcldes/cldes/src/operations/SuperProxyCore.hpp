@@ -120,7 +120,7 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
             auto const in_ncqx_and_q = in_ncqx & q_events;
             if (in_ncqx_and_q != in_ncqx) {
                 // TODO: Fix template implicit instantiation
-                removeBadStates<NEvents, StorageIndex>(
+                removeBadStates_<NEvents, StorageIndex>(
                   virtualsys, virtual_states_, q, non_contr_bit, rmtable);
             } else {
                 virtual_states_.insert(q);

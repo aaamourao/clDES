@@ -40,24 +40,18 @@ void
 synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
-    // Estimated sparcity pattern: Calculate on the same loop than statesmap
     StorageIndex const sparcitypattern =
       aVirtualSys.events_.count() * aVirtualSys.states_number_;
-
-    // Reserve space for transitions
     aVirtualSys.resizeStatesEvents(aVirtualSys.states_number_);
     aVirtualSys.triplet_.reserve(sparcitypattern);
     aVirtualSys.bittriplet_.reserve(sparcitypattern +
                                     aVirtualSys.states_number_);
-
-    // Calculate transitions
     for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_; ++qfrom) {
         aVirtualSys.bittriplet_.push_back(BitTriplet(qfrom, qfrom, true));
 
         aVirtualSys.setStateEvents(qfrom, aVirtualSys.getStateEvents(qfrom));
         aVirtualSys.setInvStateEvents(qfrom,
                                       aVirtualSys.getInvStateEvents(qfrom));
-
         auto event = 0u;
         auto event_it = aVirtualSys.getStateEvents(qfrom);
         while (event_it != 0) {
@@ -76,7 +70,6 @@ synchronizeEmptyStage2(
             event_it >>= 1;
         }
     }
-
     return;
 }
 
@@ -85,17 +78,10 @@ void
 synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
     SparseStatesMap<StorageIndex> statesmap;
-
     aVirtualSys.setStatesNumber(aVirtualSys.virtual_states_.size());
-
-    // Reserve space for transitions
     aVirtualSys.bittriplet_.reserve(aVirtualSys.states_number_);
-
-    // Estimated sparcity pattern: Calculate on the same loop than statesmap
     StorageIndex const sparcitypattern =
       aVirtualSys.events_.count() * aVirtualSys.states_number_;
-
-    // Map states to its new index
     // TODO: It SHOULD be returned in the future in a pair
     StorageIndex cst = 0;
     for (StorageIndex s : aVirtualSys.virtual_states_) {
@@ -103,11 +89,7 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
         aVirtualSys.bittriplet_.push_back(BitTriplet(cst, cst, true));
         ++cst;
     }
-
-    // virtual_states_ is not necessary anymore and it can be a large vector
     aVirtualSys.virtual_states_.clear();
-
-    // Remap marked states
     for (StorageIndex s0 : aVirtualSys.sys0_.getMarkedStates()) {
         for (StorageIndex s1 : aVirtualSys.sys1_.getMarkedStates()) {
             StorageIndex const key = s1 * aVirtualSys.n_states_sys0_ + s0;
@@ -116,26 +98,19 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
             }
         }
     }
-
-    // Reserve space for transitions
     aVirtualSys.triplet_.reserve(sparcitypattern);
     aVirtualSys.bittriplet_.reserve(sparcitypattern +
                                     aVirtualSys.states_number_);
-
-    // Calculate transitions
     while (!aVirtualSys.transtriplet_.empty()) {
         auto q_trans = aVirtualSys.transtriplet_.back();
         auto const q = q_trans.first;
-
         while (!q_trans.second->empty()) {
             auto const qto_e = q_trans.second->back();
             auto const qto = qto_e.first;
-
             if (statesmap.contains(qto)) {
                 auto const event = qto_e.second;
                 auto const qto_mapped = statesmap[qto];
                 auto const q_mapped = statesmap[q];
-
                 aVirtualSys.triplet_.push_back(Triplet<NEvents>(
                   q_mapped, qto_mapped, EventsSet<NEvents>{ 1ul << event }));
                 aVirtualSys.bittriplet_.push_back(
@@ -146,42 +121,35 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
         delete q_trans.second;
         aVirtualSys.transtriplet_.pop_back();
     }
-
     return;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-void
-removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
-                transMap<StorageIndex>& aC,
-                StorageIndex const& aQ,
-                EventsSet<NEvents> const& aNonContrBit,
-                StatesTableHost<StorageIndex>& aRmTable) noexcept
+template<uint8_t NEvents, typename StorageIndex, class StTabT>
+inline void
+removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+                 StTabT& aC,
+                 StorageIndex const& aQ,
+                 EventsSet<NEvents> const& aNonContrBit,
+                 StatesTableHost<StorageIndex>& aRmTable) noexcept
 {
     StatesStack<StorageIndex> f;
     f.push(aQ);
     aRmTable.insert(aQ);
-
     while (!f.empty()) {
         auto const x = f.top();
         f.pop();
-
         auto q_events = aVirtualSys.getInvStateEvents(x);
-
         q_events &= aNonContrBit;
-
         cldes::ScalarType event = 0;
         while (q_events.any()) {
             if (q_events.test(0)) {
                 StatesArray<StorageIndex> const finv =
                   aVirtualSys.invtrans(x, event);
-
                 for (StorageIndex s : finv) {
                     if (!aRmTable.contains(s)) {
                         f.push(s);
                         aRmTable.insert(s);
                         if (aC.contains(s)) {
-                            delete aC[s];
                             aC.erase(s);
                         }
                     }
@@ -194,38 +162,33 @@ removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
     return;
 }
 
-// TODO: Maybe an union would avoid overloading removeBadStates?
 template<uint8_t NEvents, typename StorageIndex>
-void
-removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
-                StatesTableHost<StorageIndex>& aC,
-                StorageIndex const& aQ,
-                EventsSet<NEvents> const& aNonContrBit,
-                StatesTableHost<StorageIndex>& aRmTable) noexcept
+inline void
+removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+                 transMap<StorageIndex>& aC,
+                 StorageIndex const& aQ,
+                 EventsSet<NEvents> const& aNonContrBit,
+                 StatesTableHost<StorageIndex>& aRmTable) noexcept
 {
     StatesStack<StorageIndex> f;
     f.push(aQ);
     aRmTable.insert(aQ);
-
     while (!f.empty()) {
         auto const x = f.top();
         f.pop();
-
         auto q_events = aVirtualSys.getInvStateEvents(x);
-
         q_events &= aNonContrBit;
-
         cldes::ScalarType event = 0;
         while (q_events.any()) {
             if (q_events.test(0)) {
                 StatesArray<StorageIndex> const finv =
                   aVirtualSys.invtrans(x, event);
-
                 for (StorageIndex s : finv) {
                     if (!aRmTable.contains(s)) {
                         f.push(s);
                         aRmTable.insert(s);
                         if (aC.contains(s)) {
+                            delete aC[s];
                             aC.erase(s);
                         }
                     }
@@ -246,15 +209,10 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
        aE,
      EventsTableHost const& aNonContr) noexcept
 {
-    // Define new systems params: Stage1 is not necessary
     SyncSysProxy<NEvents, StorageIndex> virtualsys{ aP, aE };
-
-    // non_contr in a bitarray structure
     EventsSet<NEvents> non_contr_bit;
     EventsSet<NEvents> p_non_contr_bit;
 
-    // Evaluate which non contr event is in system and convert it to a
-    // bitarray
     for (cldes::ScalarType event : aNonContr) {
         if (aP.getEvents().test(event)) {
             p_non_contr_bit.set(event);
@@ -264,43 +222,53 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
         }
     }
 
-    // Supervisor states
+    transMap<StorageIndex>&& c = computeSupCStates_(
+      virtualsys, std::move(non_contr_bit), std::move(p_non_contr_bit), aP);
+    virtualsys.virtual_states_.reserve(c.size());
+    virtualsys.transtriplet_.reserve(c.size());
+    for (auto tr : c) {
+        virtualsys.virtual_states_.push_back(tr.first);
+        virtualsys.transtriplet_.push_back(tr);
+    }
+    c.clear();
+
+    auto sys = std::move(DESystem<NEvents, StorageIndex>(virtualsys));
+    sys.trim();
+
+    return sys;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+inline transMap<StorageIndex>
+computeSupCStates_(
+  SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+  EventsSet<NEvents> const&& aNonContrBit,
+  EventsSet<NEvents> const&& aPNonContrBit,
+  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+    aP) noexcept
+{
     transMap<StorageIndex> c;
     StatesTableHost<StorageIndex> rmtable;
-
-    // f is a stack of states accessed in a dfs
     StatesStack<StorageIndex> f;
-
-    // Initialize f and ftable with the initial state
-    f.push(virtualsys.getInitialState());
-
-    // Allocate inverted graph, since we are search for inverse transitions
-    virtualsys.allocateInvertedGraph();
-
+    f.push(aVirtualSys.getInitialState());
+    aVirtualSys.allocateInvertedGraph();
     while (!f.empty()) {
         auto const q = f.top();
         f.pop();
-
         if (!rmtable.contains(q) && !c.contains(q)) {
-            auto const qx = q % virtualsys.n_states_sys0_;
-            auto const q_events = virtualsys.getStateEvents(q);
-
-            auto const in_ncqx = p_non_contr_bit & aP.getStateEvents(qx);
-            auto const in_ncqx_and_q = in_ncqx & q_events;
-
-            if (in_ncqx_and_q != in_ncqx) {
-                // TODO: Fix template implicit instantiation
-                removeBadStates<NEvents, StorageIndex>(
-                  virtualsys, c, q, non_contr_bit, rmtable);
+            auto const q_events = aVirtualSys.getStateEvents(q);
+            auto const in_ncqx =
+              aPNonContrBit & aP.getStateEvents(q % aVirtualSys.n_states_sys0_);
+            if ((in_ncqx & q_events) != in_ncqx) {
+                removeBadStates_<NEvents, StorageIndex>(
+                  aVirtualSys, c, q, aNonContrBit, rmtable);
             } else {
                 c[q] = new InvArgtrans<StorageIndex>();
-
                 cldes::ScalarType event = 0;
                 auto event_it = q_events;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
-                        auto const fsqe = virtualsys.trans(q, event);
-
+                        auto const fsqe = aVirtualSys.trans(q, event);
                         if (!rmtable.contains(fsqe)) {
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
@@ -314,31 +282,8 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
             }
         }
     }
-
-    rmtable.clear();
-
-    virtualsys.clearInvertedGraph();
-
-    // Swap new system states and sort it
-    virtualsys.virtual_states_.reserve(c.size());
-    virtualsys.transtriplet_.reserve(c.size());
-    for (auto tr : c) {
-        virtualsys.virtual_states_.push_back(tr.first);
-        virtualsys.transtriplet_.push_back(tr);
-    }
-    c.clear();
-
-    // Finish synching without removed states
-    // synchronizeStage2(virtualsys);
-
-    // transform virtual sys in a real sys by forcing conversion
-    auto sys = std::move(DESystem<NEvents, StorageIndex>(virtualsys));
-
-    // Remove non-accessible and non-coaccessible states
-    sys.trim();
-
-    // bye
-    return sys;
+    aVirtualSys.clearInvertedGraph();
+    return c;
 }
 
 // template<uint8_t NEvents, typename StorageIndex>

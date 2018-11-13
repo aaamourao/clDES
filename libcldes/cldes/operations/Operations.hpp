@@ -92,9 +92,6 @@ SyncSysProxy<NEvents, StorageIndex> constexpr synchronizeStage1(
  * called when virtual proxy to the parallel composition operation that
  * has no value calculated is converted to a concrete system.
  *
- * TODO: Cache lazy calculated transitions when the user visit transitions and
- * use it on synchronize stage 2
- *
  * @param[out] aVirtualSys Reference to the system which will be transformed.
  * \return void
  */
@@ -133,13 +130,13 @@ synchronizeStage2(
  * @param aRmTable A hash table containing all the removed states so far
  * \return void
  */
-template<uint8_t NEvents, typename StorageIndex>
-void
-removeBadStates(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
-                transMap<StorageIndex>& aC,
-                StorageIndex const& aQ,
-                EventsSet<NEvents> const& aNonContrBit,
-                StatesTableHost<StorageIndex>& aRmTable) noexcept;
+template<uint8_t NEvents, typename StorageIndex, class StTabT>
+inline void
+removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+                 StTabT& aC,
+                 StorageIndex const& aQ,
+                 EventsSet<NEvents> const& aNonContrBit,
+                 StatesTableHost<StorageIndex>& aRmTable) noexcept;
 
 /*! \brief Computes the monolithic supervisor of a plant and a spec
  *

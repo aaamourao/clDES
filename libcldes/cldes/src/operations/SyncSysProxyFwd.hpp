@@ -44,18 +44,26 @@ void
 synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
+template<uint8_t NEvents, typename StorageIndex>
+inline transMap<StorageIndex>
+computeSupCStates_(
+  SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+  EventsSet<NEvents> const&& aNonContrBit,
+  EventsSet<NEvents> const&& aPNonContrBit,
+  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+    aP) noexcept;
+
 // Alias to events hash map
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
 // Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
-supC(
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aP,
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aE,
-  EventsTableHost const& aNonContr) noexcept;
+supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aP,
+     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aE,
+     EventsTableHost const& aNonContr) noexcept;
 
 template<uint8_t NEvents, typename StorageIndex>
 class SuperProxy;
