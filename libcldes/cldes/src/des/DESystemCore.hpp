@@ -93,7 +93,6 @@ DESystem<NEvents, StorageIndex>::accessiblePart() const noexcept
     return *accessible_states;
 }
 
-// TODO: All searches using one single vector
 template<uint8_t NEvents, typename StorageIndex>
 typename DESystem<NEvents, StorageIndex>::StatesSet
 DESystem<NEvents, StorageIndex>::coaccessiblePart() const noexcept
@@ -103,37 +102,13 @@ DESystem<NEvents, StorageIndex>::coaccessiblePart() const noexcept
     searchgraph += graph_;
     StatesVector const invgraph{ searchgraph.template cast<bool>() };
 
-    StorageIndexSigned const n_marked = this->marked_states_.size();
-    StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_),
-                    n_marked };
+    StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     x.reserve(this->marked_states_.size());
-    {
-        auto pos = 0ul;
-        for (auto state : this->marked_states_) {
-            x.coeffRef(state, pos) = true;
-            ++pos;
-        }
+    for (auto state : this->marked_states_) {
+        x.coeffRef(state, 0) = true;
     }
-    StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
-                    static_cast<StorageIndexSigned>(n_marked) };
-    auto n_accessed_states = 0l;
-    for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
-        y = invgraph * x;
-        if (n_accessed_states == y.nonZeros()) {
-            break;
-        } else {
-            n_accessed_states = y.nonZeros();
-        }
-        x = y;
-    }
-    y.pruned();
-    StatesSet coaccessible_states;
-    for (StorageIndexSigned s = 0; s < y.outerSize(); ++s) {
-        for (BitIteratorConst e(y, s); e; ++e) {
-            coaccessible_states.emplace(e.row());
-        }
-    }
-    return coaccessible_states;
+
+    return *procStVec_(bfsCalc_(std::move(x), std::move(invgraph)));
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -148,48 +123,27 @@ DESystem<NEvents, StorageIndex>::trimStates() const noexcept
     GraphHostData ident{ static_cast<Eigen::Index>(this->states_number_),
                          static_cast<Eigen::Index>(this->states_number_) };
     ident.setIdentity();
-    // auto const n_marked = this->marked_states_.size();
+    StatesVector const searchgraph{ (graph_ + ident).template cast<bool>() };
+
     StatesVector x{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
     x.reserve(this->marked_states_.size());
     std::vector<BitTriplet> xtriplet;
-    // #ifndef CLDES_OPENMP_ENABLED
-    StatesVector const searchgraph{ (graph_ + ident).template cast<bool>() };
-    // #else
-    //     BitRowGraphHostData const searchgraph{
-    //         (graph_ + ident).template cast<bool>()
-    //     };
-    // #endif
     for (StorageIndex state : this->marked_states_) {
         xtriplet.push_back(BitTriplet(state, 0, true));
     }
     x.setFromTriplets(xtriplet.begin(),
                       xtriplet.end(),
                       [](bool const&, bool const&) { return true; });
-    StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_), 1 };
-    auto n_accessed_states = 0l;
-    for (auto i = 0ul; i < this->states_number_; ++i) {
-        // #ifdef CLDES_OPENMP_ENABLED
-        //         y = searchgraph.transpose() * x;
-        // #else
-        y = searchgraph * x;
-        // #endif
-        if (n_accessed_states == y.nonZeros()) {
-            break;
-        } else {
-            n_accessed_states = y.nonZeros();
-        }
-        x = y;
-    }
-    y.pruned();
-    StatesSet trimstates;
-    for (auto s = 0l; s < y.outerSize(); ++s) {
-        for (ColIteratorConst e(y, s); e; ++e) {
-            if (accpart.find(e.row()) != accpart.end()) {
-                trimstates.emplace(e.row());
-            }
-        }
-    }
-    return trimstates;
+
+    // StatesVector y = bfsCalc_(x, searchgraph);
+    return procStVec_(bfsCalc_(std::move(x), std::move(searchgraph)),
+                      [atable = std::move(accpart)](
+                        StorageIndex const&, StorageIndex const& qto) -> bool {
+                          if (atable.find(qto) != atable.end()) {
+                              return true;
+                          }
+                          return false;
+                      });
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -217,13 +171,15 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
     }
     this->events_.reset();
     // Calculate the sparsity pattern
-    auto sparcitypattern = this->events_.count() * this->states_number_;
+    // auto sparcitypattern = this->events_.count() * this->states_number_;
+    unsigned long sparcitypattern = 0;
     // Fill statesmap
     {
         auto d = 0ul;
         for (StorageIndex s : trimstates) {
             statesmap[s] = d;
             ++d;
+            sparcitypattern += old_graph.innerVector(s).nonZeros();
         }
     }
     std::vector<Triplet> triplet;
@@ -265,19 +221,18 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
 }
 
 template<uint8_t NEvents, typename StorageIndex>
+inline void
+DESystem<NEvents, StorageIndex>::cropGraph_() noexcept
+{
+    if (true == true) {
+    }
+}
+
+template<uint8_t NEvents, typename StorageIndex>
 void
 DESystem<NEvents, StorageIndex>::insertEvents(EventsSet const& aEvents) noexcept
 {
     this->events_ = EventsSet(aEvents);
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-bool
-DESystem<NEvents, StorageIndex>::containstrans_impl(
-  StorageIndex const& aQ,
-  ScalarType const& aEvent) const noexcept
-{
-    return this->states_events_[aQ].test(aEvent);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -301,15 +256,6 @@ DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-bool
-DESystem<NEvents, StorageIndex>::containsinvtrans_impl(
-  StorageIndex const& aQ,
-  ScalarType const& aEvent) const
-{
-    return this->inv_states_events_[aQ].test(aEvent);
-}
-
-template<uint8_t NEvents, typename StorageIndex>
 StatesArray<StorageIndex>
 DESystem<NEvents, StorageIndex>::invtrans_impl(StorageIndex const& aQ,
                                                ScalarType const& aEvent) const
@@ -328,22 +274,6 @@ DESystem<NEvents, StorageIndex>::invtrans_impl(StorageIndex const& aQ,
 
     // It will never reach here, but the warning is bothering me
     return inv_trans;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-DESystem<NEvents, StorageIndex>::getStateEvents_impl(
-  StorageIndex const& aQ) const noexcept
-{
-    return this->states_events_[aQ];
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-DESystem<NEvents, StorageIndex>::getInvStateEvents_impl(
-  StorageIndex const& aQ) const
-{
-    return this->inv_states_events_[aQ];
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -376,23 +306,14 @@ DESystem<NEvents, StorageIndex>::updateGraphCache_() noexcept
 
 template<uint8_t NEvents, typename StorageIndex>
 template<class StatesType>
-std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::bfs_(
-  StatesType const& aInitialNodes,
-  std::function<void(StorageIndex const&, StorageIndex const&)> const&
-    aBfsVisit) const noexcept
+inline std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
+DESystem<NEvents, StorageIndex>::bfs_(StatesType const&& aInitialNodes) const
+  noexcept
 {
-    /*
-     * BFS on a Linear Algebra approach:
-     *     Y = G^T * X
-     */
     // There is no need of search if a marked state is coaccessible
     StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
                          static_cast<StorageIndexSigned>(
                            aInitialNodes.size()) };
-
-    // GPUs does not allow dynamic memory allocation. So, we have
-    // to set X on host first.
     std::vector<StorageIndex> states_map;
     for (auto state : aInitialNodes) {
         host_x.coeffRef(state, states_map.size()) = true;
@@ -400,44 +321,6 @@ DESystem<NEvents, StorageIndex>::bfs_(
         // vector on the matrix
         states_map.push_back(state);
     }
-    return bfsCalc_(host_x, aBfsVisit, &states_map);
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::bfs_(
-  StorageIndex const& aInitialNode,
-  std::function<void(StorageIndex const&, StorageIndex const&)> const&
-    aBfsVisit) const noexcept
-{
-    StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
-                         1 };
-
-    /*!
-     * GPUs does not allow dynamic memory allocation. So, we have
-     * to set X on host first.
-     */
-    host_x.coeffRef(aInitialNode, 0) = true;
-    return bfsCalc_(host_x, aBfsVisit, nullptr);
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::bfs_() const noexcept
-{
-    return bfs_(this->init_state_, nullptr);
-}
-
-// TODO: Use a single vector, instead of a bit mtr
-template<uint8_t NEvents, typename StorageIndex>
-std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
-DESystem<NEvents, StorageIndex>::bfsCalc_(
-  StatesVector& aHostX,
-  std::function<void(StorageIndex const&, StorageIndex const&)> const&
-    aBfsVisit,
-  std::vector<StorageIndex> const* const aStatesMap) const noexcept
-{
-    auto n_initial_nodes = aHostX.cols();
     GraphHostData searchgraph{ static_cast<long>(this->states_number_),
                                static_cast<long>(this->states_number_) };
     searchgraph.setIdentity();
@@ -445,17 +328,42 @@ DESystem<NEvents, StorageIndex>::bfsCalc_(
     StatesVector const invgraph{
         searchgraph.template cast<bool>().transpose()
     };
+    return procStVec_(bfsCalc_(std::move(host_x), std::move(invgraph)));
+}
 
+template<uint8_t NEvents, typename StorageIndex>
+inline std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
+DESystem<NEvents, StorageIndex>::bfs_() const noexcept
+{
+    StatesVector host_x{ static_cast<StorageIndexSigned>(this->states_number_),
+                         1 };
+    host_x.coeffRef(this->init_state_, 0) = true;
+    GraphHostData searchgraph{ static_cast<long>(this->states_number_),
+                               static_cast<long>(this->states_number_) };
+    searchgraph.setIdentity();
+    searchgraph += graph_;
+    StatesVector const invgraph{
+        searchgraph.template cast<bool>().transpose()
+    };
+    return procStVec_(bfsCalc_(std::move(host_x), std::move(invgraph)));
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+template<class GraphT>
+inline typename DESystem<NEvents, StorageIndex>::StatesVector
+DESystem<NEvents, StorageIndex>::bfsCalc_(StatesVector&& aHostX,
+                                          GraphT const&& aSearchGraph) const
+  noexcept
+{
     /*!
      * BFS on a Linear Algebra approach:
      *     \f$Y = G^T * X\f$
      */
     StatesVector y{ static_cast<StorageIndexSigned>(this->states_number_),
-                    static_cast<StorageIndexSigned>(n_initial_nodes) };
+                    static_cast<StorageIndexSigned>(aHostX.cols()) };
     auto n_accessed_states = 0l;
     for (StorageIndex i = 0ul; i < this->states_number_; ++i) {
-        y = invgraph * aHostX;
-
+        y = aSearchGraph * aHostX;
         if (n_accessed_states == y.nonZeros()) {
             break;
         } else {
@@ -463,26 +371,55 @@ DESystem<NEvents, StorageIndex>::bfsCalc_(
         }
         aHostX = y;
     }
-    // Add results to a std::set vector
-    if (aBfsVisit) {
-        for (auto s = 0l; s < y.rows(); ++s) {
-            for (BitIteratorConst e(y, s); e; ++e) {
-                aBfsVisit((*aStatesMap)[e.col()], e.row());
-            }
-        }
-        return nullptr;
-    }
+    y.pruned();
+    return y;
+}
 
+template<uint8_t NEvents, typename StorageIndex>
+inline std::shared_ptr<typename DESystem<NEvents, StorageIndex>::StatesSet>
+DESystem<NEvents, StorageIndex>::procStVec_(StatesVector const&& aY) const
+  noexcept
+{
     // Unfortunatelly, only C++17 allows shared_ptr to arrays
     std::shared_ptr<StatesSet> accessed_states{
-        new StatesSet[n_initial_nodes], std::default_delete<StatesSet[]>()
+        new StatesSet[aY.cols()], std::default_delete<StatesSet[]>()
     };
-    for (auto s = 0l; s < y.outerSize(); ++s) {
-        for (BitIteratorConst e(y, s); e; ++e) {
+    for (auto s = 0l; s < aY.outerSize(); ++s) {
+        for (BitIteratorConst e(aY, s); e; ++e) {
             accessed_states.get()[e.col()].emplace(e.row());
         }
     }
     return accessed_states;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+template<typename FuncT>
+inline typename DESystem<NEvents, StorageIndex>::StatesSet
+DESystem<NEvents, StorageIndex>::procStVec_(
+  StatesVector const&& aY,
+  FuncT const&& aF,
+  std::shared_ptr<std::vector<StorageIndex> const> const& aStatesMap) const
+  noexcept
+{
+    StatesSet processedstates{};
+    if (aStatesMap) {
+        for (auto s = 0l; s < aY.outerSize(); ++s) {
+            for (BitIteratorConst e(aY, s); e; ++e) {
+                if (aF((*aStatesMap)[e.col()], e.row())) {
+                    processedstates.emplace(e.row());
+                }
+            }
+        }
+    } else {
+        for (auto s = 0l; s < aY.outerSize(); ++s) {
+            for (BitIteratorConst e(aY, s); e; ++e) {
+                if (aF(e.col(), e.row())) {
+                    processedstates.emplace(e.row());
+                }
+            }
+        }
+    }
+    return processedstates;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -507,7 +444,6 @@ bool
 cldes::DESystem<NEvents, StorageIndex>::checkObsProp_impl(
   EventsSet const&) const noexcept
 {
-    DESystem v;
     return false;
 }
 }

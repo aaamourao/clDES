@@ -44,6 +44,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::DESystemBase(
 {
     states_number_ = aStatesNumber;
     init_state_ = aInitState;
+    trans_number_ = 0;
 }
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
@@ -51,6 +52,7 @@ DESystemBase<NEvents, StorageIndex, RealDESystem>::DESystemBase()
 {
     states_number_ = 0;
     init_state_ = 0;
+    trans_number_ = 0;
     events_ = EventsSet<NEvents>{};
     marked_states_ = StatesSet{};
 }

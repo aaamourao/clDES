@@ -333,8 +333,11 @@ public:
      * @param aEvent Event
      * \return Returns true if DES transition exists, false otherwise
      */
-    bool containstrans_impl(StorageIndex const& aQ,
-                            ScalarType const& aEvent) const noexcept;
+    bool constexpr containstrans_impl(StorageIndex const& aQ,
+                                      ScalarType const& aEvent) const noexcept
+    {
+        return this->states_events_[aQ].test(aEvent);
+    }
 
     /*! \brief transition function
      * \details given a transition f(q, e) = qto, it
@@ -356,8 +359,11 @@ public:
      * @param aEvent Event
      * \return True if DES inverse transition exists, false otherwise
      */
-    bool containsinvtrans_impl(StorageIndex const& aQ,
-                               ScalarType const& aEvent) const;
+    bool constexpr containsinvtrans_impl(StorageIndex const& aQ,
+                                         ScalarType const& aEvent) const
+    {
+        return this->inv_states_events_[aQ].test(aEvent);
+    }
 
     /*! \brief DES Inverse transition function
      * \warning This method requires to run AllocateInvGraph previously. It
@@ -379,7 +385,11 @@ public:
      * @param aQ A state on the sys
      * \return Returns EventsSet relative to state q
      */
-    EventsSet getStateEvents_impl(StorageIndex const& aQ) const noexcept;
+    EventsSet constexpr getStateEvents_impl(StorageIndex const& aQ) const
+      noexcept
+    {
+        return this->states_events_[aQ];
+    }
 
     /*! \brief Get events of all transitions that lead to a specific state
      * \details Since this is information is stored on a vector on concrete
@@ -388,7 +398,10 @@ public:
      * @param aQ A state on the sys
      * \return Returns EventsSet relative to inverse transitions of the state q
      */
-    EventsSet getInvStateEvents_impl(StorageIndex const& aQ) const;
+    EventsSet constexpr getInvStateEvents_impl(StorageIndex const& aQ) const
+    {
+        return this->inv_states_events_[aQ];
+    }
 
     /*! \brief Invert graph
      * \details This is used in the monolithic supervisor synthesis. It needs
@@ -456,25 +469,8 @@ protected:
      * was accessed or a bfs visit function was defined
      */
     template<class StatesType>
-    std::shared_ptr<StatesSet> bfs_(
-      StatesType const& aInitialNodes,
-      std::function<void(StorageIndex const&, StorageIndex const&)> const&
-        aBfsVisit) const noexcept;
-
-    /*! \brief Overload bfs_ for the special case of a single initial node
-     * \details Executes a breadth-first search on the graph starting from the
-     * specified node The algorithm is based on SpGEMM.
-     *
-     * @param aInitialNode Node where the search will start
-     * @param aBfsVisit Function to execute on every accessed state: it can be
-     * null
-     * \return Return a set containing the accessed states, or nullptr if none
-     * was accessed or a bfs visit function was defined
-     */
-    std::shared_ptr<StatesSet> bfs_(
-      StorageIndex const& aInitialNode,
-      std::function<void(StorageIndex const&, StorageIndex const&)> const&
-        aBfsVisit) const noexcept;
+    inline std::shared_ptr<StatesSet> bfs_(
+      StatesType const&& aInitialNodes) const noexcept;
 
     /*! \brief Overload bfs_ for the special case of starting from the inital
      * state
@@ -484,23 +480,43 @@ protected:
      * \return Return a set containing the accessed states, or nullptr if none
      * was accessed or a bfs visit function was defined
      */
-    std::shared_ptr<StatesSet> bfs_() const noexcept;
+    inline std::shared_ptr<StatesSet> bfs_() const noexcept;
 
     /*! \brief Calculates Bfs and returns accessed states array
      * \details Executes a breadth first search on the graph starting from one
      * single node. The algorithm is based on SpGEMM.
      *
      * @param aHostX Bit vector with initial nodes as nonzeros rows.
+     * @param aSearchGraph graph where the search are going to be executed
+     */
+    template<class GraphT>
+    inline StatesVector bfsCalc_(StatesVector&& aHostX,
+                                 GraphT const&& aSearchGraph) const noexcept;
+
+    /* \brief Process result of vectorial operations
+     *
      * @param aBfsVisit Function to execute on every accessed state: it can be
      * null
      * @param aStatesMap Map each vector used to implement in a bfs when
      * multiple ones are execute togheter: it can be null
      */
-    std::shared_ptr<StatesSet> bfsCalc_(
-      StatesVector& aHostX,
-      std::function<void(StorageIndex const&, StorageIndex const&)> const&
-        aBfsVisit,
-      std::vector<StorageIndex> const* const aStatesMap) const noexcept;
+    inline std::shared_ptr<StatesSet> procStVec_(StatesVector const&& y) const
+      noexcept;
+
+    /* \brief Overload
+     *
+     */
+    template<typename FuncT = std::function<bool(StorageIndex const&,
+                                                 StorageIndex const&) const>>
+    inline StatesSet procStVec_(
+      StatesVector const&& y,
+      FuncT const&& aF,
+      std::shared_ptr<std::vector<StorageIndex> const> const& aStatesMap =
+        nullptr) const noexcept;
+
+    /*! \brief Remove vertices from graph_
+     */
+    inline void cropGraph_() noexcept;
 
 private:
     friend class TransitionProxy<NEvents, StorageIndex>;

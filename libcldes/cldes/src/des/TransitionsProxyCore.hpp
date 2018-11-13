@@ -39,6 +39,10 @@ cldes::TransitionProxy<NEvents, StorageIndex>::operator=(
     // Create a unsigned long long representing the event
     EventsSet<NEvents> const event_ull{ 1ul << aEventPos };
 
+    if (!sys_ptr_.states_events_[lin_].any()) {
+        ++sys_ptr_.trans_number_;
+    }
+
     // Add transition to the state events hash table
     sys_ptr_.states_events_[lin_] |= event_ull;
 

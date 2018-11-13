@@ -382,10 +382,12 @@ public:
 
 protected:
     /*! \brief Current system's states number
-     *
-     *
      */
     StorageIndex states_number_;
+
+    /*! \brief Number of transitions
+     */
+    StorageIndex trans_number_;
 
     /*! \brief Current system's initial state
      *
