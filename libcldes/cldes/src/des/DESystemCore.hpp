@@ -58,19 +58,13 @@ DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
     inv_graph_ = nullptr;
 
     this->marked_states_ = aMarkedStates;
-
-    // Resize graphs and do not preserve elements
     graph_ = GraphHostData{ static_cast<StorageIndexSigned>(aStatesNumber),
                             static_cast<StorageIndexSigned>(aStatesNumber) };
-
     // Change graphs storage type to CSR
     graph_.makeCompressed();
 
-    // Reserve memory to make insertions efficient
     this->states_events_ = StatesEventsTable(aStatesNumber);
     this->inv_states_events_ = StatesEventsTable(aStatesNumber);
-
-    // If device cache is enabled, cache it
     if (dev_cache_enabled_) {
         this->cacheGraph_();
     }
@@ -247,14 +241,11 @@ DESystem<NEvents, StorageIndex>::trans_impl(StorageIndex const& aQ,
     if (!this->states_events_[aQ].test(aEvent)) {
         return -1;
     }
-
     for (RowIterator qiter(graph_, aQ); qiter; ++qiter) {
         if (qiter.value().test(aEvent)) {
             return qiter.col();
         }
     }
-
-    // It will never reach here, but the warning is bothering me
     return -1;
 }
 
@@ -264,18 +255,14 @@ DESystem<NEvents, StorageIndex>::invtrans_impl(StorageIndex const& aQ,
                                                ScalarType const& aEvent) const
 {
     StatesArray<StorageIndex> inv_trans;
-
     if (!this->inv_states_events_[aQ].test(aEvent)) {
         return inv_trans;
     }
-
     for (RowIterator qiter(*inv_graph_, aQ); qiter; ++qiter) {
         if (qiter.value().test(aEvent)) {
             inv_trans.push_back(qiter.col());
         }
     }
-
-    // It will never reach here, but the warning is bothering me
     return inv_trans;
 }
 
