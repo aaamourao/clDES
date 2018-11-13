@@ -134,8 +134,6 @@ DESystem<NEvents, StorageIndex>::trimStates() const noexcept
     x.setFromTriplets(xtriplet.begin(),
                       xtriplet.end(),
                       [](bool const&, bool const&) { return true; });
-
-    // StatesVector y = bfsCalc_(x, searchgraph);
     return procStVec_(bfsCalc_(std::move(x), std::move(searchgraph)),
                       [atable = std::move(accpart)](
                         StorageIndex const&, StorageIndex const& qto) -> bool {
@@ -154,10 +152,8 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
     if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
         return *this;
     }
-    // States map: old state pos -> new state pos
-    std::vector<StorageIndexSigned> statesmap(this->states_number_, -1);
-    // Copy graph and resize it
     auto const old_graph = graph_;
+    std::vector<StorageIndexSigned> statesmap(this->states_number_, -1);
     this->states_number_ = trimstates.size();
     graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
                   static_cast<StorageIndexSigned>(this->states_number_));
@@ -170,10 +166,7 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
                                        this->inv_states_events_.end());
     }
     this->events_.reset();
-    // Calculate the sparsity pattern
-    // auto sparcitypattern = this->events_.count() * this->states_number_;
     unsigned long sparcitypattern = 0;
-    // Fill statesmap
     {
         auto d = 0ul;
         for (StorageIndex s : trimstates) {
@@ -182,19 +175,47 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
             sparcitypattern += old_graph.innerVector(s).nonZeros();
         }
     }
+    cropGraph_(
+      sparcitypattern, std::move(old_graph), std::move(trimstates), statesmap);
+    cropMarkedStates_(std::move(statesmap));
+    return *this;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+inline void
+DESystem<NEvents, StorageIndex>::cropMarkedStates_(
+  std::vector<StorageIndexSigned> const&& aStatesMap) noexcept
+{
+    auto const old_marked = this->marked_states_;
+    this->marked_states_.clear();
+    for (StorageIndex s : old_marked) {
+        if (aStatesMap[s] != -1) {
+            this->marked_states_.emplace(aStatesMap[s]);
+        }
+    }
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+inline void
+DESystem<NEvents, StorageIndex>::cropGraph_(
+  unsigned long const& aSparcityPattern,
+  GraphHostData const&& aOldGraph,
+  StatesSet const&& aTrimStates,
+  std::vector<StorageIndexSigned> const& aStatesMap) noexcept
+{
     std::vector<Triplet> triplet;
-    triplet.reserve(sparcitypattern);
+    triplet.reserve(aSparcityPattern);
     // Build new graph_ slice by slice
     {
         auto row_id = 0ul;
-        for (StorageIndex s : trimstates) {
+        for (StorageIndex s : aTrimStates) {
             if (this->states_events_.size() > 0) {
                 this->states_events_[row_id].reset();
                 this->inv_states_events_[row_id].reset();
             }
-            for (RowIterator e(old_graph, s); e; ++e) {
-                if (statesmap[e.col()] != -1) {
-                    auto const col_id = statesmap[e.col()];
+            for (RowIterator e(aOldGraph, s); e; ++e) {
+                if (aStatesMap[e.col()] != -1) {
+                    auto const col_id = aStatesMap[e.col()];
                     triplet.push_back(Triplet(row_id, col_id, e.value()));
                     this->events_ |= e.value();
                     if (this->states_events_.size() > 0) {
@@ -206,26 +227,8 @@ DESystem<NEvents, StorageIndex>::trim() noexcept
             ++row_id;
         }
     }
-    // Remove aditional space
     graph_.setFromTriplets(triplet.begin(), triplet.end());
     graph_.makeCompressed();
-    // Calculate new marked states
-    auto const old_marked = this->marked_states_;
-    this->marked_states_.clear();
-    for (StorageIndex s : old_marked) {
-        if (statesmap[s] != -1) {
-            this->marked_states_.emplace(statesmap[s]);
-        }
-    }
-    return *this;
-}
-
-template<uint8_t NEvents, typename StorageIndex>
-inline void
-DESystem<NEvents, StorageIndex>::cropGraph_() noexcept
-{
-    if (true == true) {
-    }
 }
 
 template<uint8_t NEvents, typename StorageIndex>

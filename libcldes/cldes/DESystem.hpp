@@ -516,7 +516,16 @@ protected:
 
     /*! \brief Remove vertices from graph_
      */
-    inline void cropGraph_() noexcept;
+    inline void cropGraph_(
+      unsigned long const& aSparcityaPattern,
+      GraphHostData const&& aOldGraph,
+      StatesSet const&& aTrimStates,
+      std::vector<StorageIndexSigned> const& aStatesMap) noexcept;
+
+    /*! \brief Remove marked states that are blocking
+     */
+    inline void cropMarkedStates_(
+      std::vector<StorageIndexSigned> const&& aStatesMap) noexcept;
 
 private:
     friend class TransitionProxy<NEvents, StorageIndex>;
