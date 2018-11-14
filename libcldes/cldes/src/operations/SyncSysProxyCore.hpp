@@ -52,13 +52,10 @@ op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
   , sys1_{ aSys1 }
 {
     n_states_sys0_ = aSys0.getStatesNumber();
-
     auto const in_both = aSys0.getEvents() & aSys1.getEvents();
 
     only_in_0_ = aSys0.getEvents() ^ in_both;
     only_in_1_ = aSys1.getEvents() ^ in_both;
-
-    // Initialize events_ from base class
     this->events_ = aSys0.getEvents() | aSys1.getEvents();
 
     for (auto q0 : aSys0.getMarkedStates()) {
@@ -78,7 +75,6 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
         synchronizeStage2(*this);
     }
 
-    // Allocate memory for the real sys
     auto sys_ptr = std::make_shared<DESystem>(DESystem{});
 
     sys_ptr->states_number_ = std::move(this->states_number_);
@@ -88,14 +84,10 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
     sys_ptr->inv_states_events_ = std::move(this->inv_states_events_);
     sys_ptr->events_ = std::move(this->events_);
 
-    // Resize adj matrices
+    sys_ptr->trans_number_ = this->trans_number_;
     sys_ptr->graph_.resize(this->states_number_, this->states_number_);
-
-    // Move triplets to graph storage
     sys_ptr->graph_.setFromTriplets(triplet_.begin(), triplet_.end());
-
     triplet_.clear();
-
     sys_ptr->graph_.makeCompressed();
 
     return *sys_ptr;
@@ -276,7 +268,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const noexcept
+op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
+  noexcept
 {
     sys0_.allocateInvertedGraph();
     sys1_.allocateInvertedGraph();
@@ -284,7 +277,8 @@ op::SyncSysProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const noex
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-op::SyncSysProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const noexcept
+op::SyncSysProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const
+  noexcept
 {
     sys0_.clearInvertedGraph();
     sys1_.clearInvertedGraph();

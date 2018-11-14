@@ -48,6 +48,10 @@ synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
 template<uint8_t NEvents, typename StorageIndex>
+inline StorageIndex
+aproxSpacPat_(SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
+
+template<uint8_t NEvents, typename StorageIndex>
 DESystem<NEvents, StorageIndex>
 supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
        aP,

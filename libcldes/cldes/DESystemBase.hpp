@@ -387,7 +387,7 @@ protected:
 
     /*! \brief Number of transitions
      */
-    StorageIndex trans_number_;
+    long unsigned trans_number_;
 
     /*! \brief Current system's initial state
      *
@@ -427,6 +427,9 @@ private:
      * so only friend classes, aka derived classes, are allowed to call them.
      */
     friend RealDESystem;
+
+    friend StorageIndex op::aproxSpacPat_<>(
+      op::SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
 
     /*! \brief DESystem constructor
      * \details Create a system with the defined params.

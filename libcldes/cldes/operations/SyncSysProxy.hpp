@@ -277,6 +277,9 @@ private:
       unsigned long const& aSparcityPattern,
       SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
 
+    friend StorageIndex aproxSpacPat_<>(
+      SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
+
     /*! \brief Reference to the left operand
      */
     DESystemBase const& sys0_;

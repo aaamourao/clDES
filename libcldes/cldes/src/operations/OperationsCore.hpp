@@ -40,9 +40,9 @@ void
 synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
-    StorageIndex const sparcitypattern =
-      aVirtualSys.events_.count() * aVirtualSys.states_number_;
+    StorageIndex const sparcitypattern = aproxSpacPat_(aVirtualSys);
     aVirtualSys.resizeStatesEvents(aVirtualSys.states_number_);
+    aVirtualSys.trans_number_ = 0;
     aVirtualSys.triplet_.reserve(sparcitypattern);
     for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_; ++qfrom) {
         aVirtualSys.setStateEvents(qfrom, aVirtualSys.getStateEvents(qfrom));
@@ -55,6 +55,7 @@ synchronizeEmptyStage2(
                 auto const qto = aVirtualSys.trans(qfrom, event);
                 aVirtualSys.triplet_.push_back(Triplet<NEvents>(
                   qfrom, qto, EventsSet<NEvents>{ 1ul << event }));
+                ++aVirtualSys.trans_number_;
             }
             ++event;
             event_it >>= 1;
@@ -67,10 +68,9 @@ template<uint8_t NEvents, typename StorageIndex>
 void
 synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
+    StorageIndex const sparcitypattern = aproxSpacPat_(aVirtualSys);
     SparseStatesMap<StorageIndex> statesmap;
     aVirtualSys.setStatesNumber(aVirtualSys.virtual_states_.size());
-    StorageIndex const sparcitypattern =
-      aVirtualSys.events_.count() * aVirtualSys.states_number_;
 
     // TODO: It SHOULD be returned in the future in a pair
     StorageIndex cst = 0;
@@ -92,12 +92,23 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 }
 
 template<uint8_t NEvents, typename StorageIndex>
+inline StorageIndex
+aproxSpacPat_(SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept
+{
+    if (aV.trans_number_ > 0) {
+        return aV.trans_number_;
+    }
+    return (aV.events_.count() * aV.states_number_) / 3;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
 inline void
 processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 unsigned long const& aSparcityPattern,
                 SparseStatesMap<StorageIndex>&& aStatesMap) noexcept
 {
     aVirtualSys.triplet_.reserve(aSparcityPattern);
+    aVirtualSys.trans_number_ = 0;
     while (!aVirtualSys.transtriplet_.empty()) {
         auto q_trans = aVirtualSys.transtriplet_.back();
         auto const q = q_trans.first;
@@ -109,6 +120,7 @@ processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                   Triplet<NEvents>(aStatesMap[q],
                                    aStatesMap[qto],
                                    EventsSet<NEvents>{ 1ul << qto_e.second }));
+                ++aVirtualSys.trans_number_;
             }
             q_trans.second->pop_back();
         }
@@ -215,7 +227,6 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
             }
         }
     }
-
     transMap<StorageIndex>&& c = computeSupCStates_(
       virtualsys, std::move(non_contr_bit), std::move(p_non_contr_bit), aP);
     virtualsys.virtual_states_.reserve(c.size());
@@ -223,6 +234,7 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     for (auto tr : c) {
         virtualsys.virtual_states_.push_back(tr.first);
         virtualsys.transtriplet_.push_back(tr);
+        virtualsys.trans_number_ += (*tr.second).size() / 2;
     }
     c.clear();
 
