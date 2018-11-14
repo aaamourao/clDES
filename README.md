@@ -5,7 +5,9 @@ finite state automatons
 operations targeting heterogeneous platforms.
 A **Supervisor Synthesizer** algorithm is also available.
 
-![clDES](doc/logo_cl_cropped.png)
+<p align="center">
+<img src="https://raw.githubusercontent.com/madc0ww/clDES/master/doc/logo_cl_cropped.png">
+</p>
 
 ## Implementation
 
@@ -19,19 +21,26 @@ cores present in your hardware by enabling OpenMP on your compiler.
 > Only CPU operations are available now. The *OpenCL* code is being refactored.
 > ViennaCL is going to be replaced by VexCL + custom kernels implementation.
 
-### Available operations
+### Operations
 
-Automaton operation | Implementation
+Member Operations
+
+Operation | Implementation
 -------------------|----------------
 Accessible part | `cldes::DESystem<NEvents, StorageIndex>::accessiblePart()`
 Coaccessible part | `cldes::DESystem<NEvents, StorageIndex>::coaccessiblePart()`
 Trim | `cldes::DESystemBase<NEvents, StorageIndex>::trim()`
-Observer Property Checker | `cldes::DESystem<NEvents, StorageIndex>::checkObsProp()`
-Observer Property Search | `cldes::DESystem<NEvents, StorageIndex>::searchObsProp()`
-Projection | `cldes::DESystem<NEvents, StorageIndex>::proj<NEvents, StorageIndex>()`
-Inverse Projection | `cldes::op<NEvents, StorageIndex>::invproj<NEvents, StorageIndex>()`
-Synchronization: parallel composition | `cldes::op::synchronize<NEvents, StorageIndex>()`
-Monolithic Supervisor Synthesis | `cldes::op::supC<NEvents, StorageIndex>()`
+Verify Observer Property | `cldes::DESystem<NEvents, StorageIndex>::verifyObsProp()`
+
+Non-member Operations
+
+Operation | Implementation
+-------------------|----------------
+Projection | `cldes::op::proj<NEvents, StorageIndex>()`
+Inverse Projection | `cldes::op::invproj()`
+Synchronization: parallel composition | `cldes::op::synchronize()`
+Monolithic Supervisor Synthesis | `cldes::op::supC()`
+Observer Property Searcher | `cldes::op::searchObsProp()`
 
 ## Compiling
 
@@ -40,15 +49,11 @@ Follow the instructions bellow to build the project.
 ### Requirements
 
 It is necessary to make sure that **CMake 3.11** is installed, such as
-**LLVM Clang 6** ~~or **GCC/G++ 8**~~ developer tools.
+**LLVM Clang 6** or **GCC/G++ 8** developer tools.
 
 System support to **Boost** Library version `>= 1.58`
 and **Eigen3** Library are required. **OpenCL** version `>= 1.2`, and
 **OpenMP** version `>= 5` are optional.
-
-> It may compile and run smoothly on older versions. These tools mentioned above
-> compose the tool chain used to develop and to test so far, **ArchLinux** and
-**Fedora 28**. **GCC build currently broken. Use CLang instead.**
 
 **clDES** embedded libraries so far:
 
@@ -57,9 +62,9 @@ and **Eigen3** Library are required. **OpenCL** version `>= 1.2`, and
 * [Sparsepp](https://github.com/greg7mdp/sparsepp): The faster sparse hash
   sets/maps **C++14** implementation I know.
 
-> ~~It is always necessary to set `CLDES_INCLUDE_PATH` to run **clDES** applications
-> which execute operations that use custom *OpenCL* kernels, such as
-> `cldes::op::Syncronization()`~~. **Custom Kernels Currently disabled.**
+> It may compile and run smoothly on older versions. These tools mentioned above
+> compose the tool chain used to develop and to test so far, **ArchLinux** and
+**Fedora 28**.
 
 ### Build project
 
@@ -95,6 +100,10 @@ $ make -j4
 $ cmake -DCLDES_OPENCL_ENABLED=true ..
 $ make -j4
 ```
+
+> ~~It is always necessary to set `CLDES_INCLUDE_PATH` to run **clDES** applications
+> which execute operations that use custom *OpenCL* kernels, such as
+> `cldes::op::Syncronization()`~~. **Custom Kernels Currently disabled.**
 
 ### Dev build
 
