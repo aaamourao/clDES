@@ -71,13 +71,19 @@ public:
     /*! \brief Base alias
      * \details Alias to implicit speciallization of base class.
      */
-    using DESystemBase =
-      DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>;
+    using Base =
+      DESystemBase<NEvents, StorageIndex, SyncSysProxy<NEvents, StorageIndex>>;
+
+    /*! \brief Alias to the the related DESystem template
+     * \details alias Alias to implicit speciallization to concrete system.
+     */
+    using RealSys = DESystem<NEvents, StorageIndex>;
+    using BaseReal = DESystemBase<NEvents, StorageIndex, RealSys>;
 
     /*! \brief Vector of states type
      * \details Vector containing states represented by unsigned indexes.
      */
-    using StatesTable = typename DESystemBase::StatesTable;
+    using StatesTable = typename BaseReal::StatesTable;
 
     /*! \brief Vector of inverted transitions
      * \details Vector which stores transitions:
@@ -86,18 +92,13 @@ public:
     using TrVector =
       std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>*>>;
 
-    /*! \brief Alias to the the related DESystem template
-     * \details alias Alias to implicit speciallization to concrete system.
-     */
-    using DESystem = DESystem<NEvents, StorageIndex>;
-
     /*! \brief SyncSysProxy unique constructor
      * Create a binary tree that represents multiple operations.
      *
      * @param aSys0 Left operand DESystem reference
      * @param aSys1 Right operand DESystem reference
      */
-    SyncSysProxy(DESystemBase const& aSys0, DESystemBase const& aSys1);
+    SyncSysProxy(BaseReal const& aSys0, BaseReal const& aSys1);
 
     /*! \brief DESystem destructor
      * \details Override base destructor.
@@ -128,7 +129,7 @@ public:
     /*! \brief Overload conversion to DESystem
      * \details Convert the current virtual proxy to a concrete system.
      */
-    operator DESystem() noexcept;
+    operator RealSys() noexcept;
 
     /*! \brief Is it real?
      * \details Nooo!!!
@@ -142,13 +143,9 @@ public:
      *
      * \return shared pointer to base.
      */
-    std::shared_ptr<DESystemBase> constexpr clone_impl() const noexcept
+    std::shared_ptr<Base> constexpr clone_impl() const noexcept
     {
-        std::shared_ptr<
-          cldes::DESystemBase<NEvents,
-                              StorageIndex,
-                              SyncSysProxy<NEvents, StorageIndex>>>
-          this_ptr = std::make_shared<SuperProxy>(*this);
+        std::shared_ptr<Base> this_ptr = std::make_shared<SuperProxy>(*this);
         return this_ptr;
     }
 
@@ -262,31 +259,44 @@ protected:
     SyncSysProxy() = default;
 
 private:
-    friend DESystem supC<>(DESystemBase const& aP,
-                           DESystemBase const& aE,
-                           EventsTableHost const& aNonContr) noexcept;
+    friend RealSys supC<>(BaseReal const& aP,
+                          BaseReal const& aE,
+                          EventsTableHost const& aNonContr) noexcept;
 
+#ifdef __GNUC__
+    friend transMap<StorageIndex> computeSupCStates_<>(
+      SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+      EventsSet<NEvents> const&& aNonContrBit,
+      EventsSet<NEvents> const&& aPNonContrBit,
+      BaseReal const& aP) noexcept;
+
+    friend void processVirtSys_<>(
+      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+      unsigned long const& aSparcityPattern,
+      SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+#elif __clang__
     friend inline transMap<StorageIndex> computeSupCStates_<>(
       SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
       EventsSet<NEvents> const&& aNonContrBit,
       EventsSet<NEvents> const&& aPNonContrBit,
-      DESystemBase const& aP) noexcept;
+      BaseReal const& aP) noexcept;
 
     friend inline void processVirtSys_<>(
       SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
       unsigned long const& aSparcityPattern,
       SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+#endif
 
     friend StorageIndex aproxSpacPat_<>(
       SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
 
     /*! \brief Reference to the left operand
      */
-    DESystemBase const& sys0_;
+    BaseReal const& sys0_;
 
     /*! \brief Reference to right operand
      */
-    DESystemBase const& sys1_;
+    BaseReal const& sys1_;
 
     /*! \brief Cache number of states of Sys0
      *

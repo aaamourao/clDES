@@ -102,7 +102,11 @@ aproxSpacPat_(SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept
 }
 
 template<uint8_t NEvents, typename StorageIndex>
+#ifdef __GNUC__
+void
+#elif __clang__
 inline void
+#endif
 processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 unsigned long const& aSparcityPattern,
                 SparseStatesMap<StorageIndex>&& aStatesMap) noexcept
@@ -245,7 +249,11 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
 }
 
 template<uint8_t NEvents, typename StorageIndex>
+#ifdef __GNUC__
+transMap<StorageIndex>
+#elif __clang__
 inline transMap<StorageIndex>
+#endif
 computeSupCStates_(
   SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
   EventsSet<NEvents> const&& aNonContrBit,

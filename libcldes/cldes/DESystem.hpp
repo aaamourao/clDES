@@ -76,7 +76,7 @@ public:
     /*! \brief Base alias
      * \details Alias to base class with implicit template params
      */
-    using DESystemBase =
+    using Base =
       DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>;
 
     /*! \brief StorageIndex signed type
@@ -87,7 +87,7 @@ public:
     /*! \brief EventsSet
      *  \details Set containing 8bit intergets which represent events.
      */
-    using EventsSet = EventsSet<NEvents>;
+    using EventsSet_t = EventsSet<NEvents>;
 
     /*! \brief Adjacency matrix of bitarrays implementing a directed graph
      * \details The graph represents the DES automata:
@@ -97,18 +97,18 @@ public:
      * * row index: from state
      * * col index: to state
      */
-    using GraphHostData = Eigen::SparseMatrix<EventsSet, Eigen::RowMajor>;
+    using GraphHostData = Eigen::SparseMatrix<EventsSet_t, Eigen::RowMajor>;
 
     /*! \brief Set of states type
      *  \details Set containg unsigned interget types which represent states.
      */
-    using StatesSet = typename DESystemBase::StatesSet;
+    using StatesSet = typename Base::StatesSet;
 
     /*! \brief Table of transitions on a STL container
      *  \details Vector containing bitsets which represent the events that a
      *  state represented by the vector index contains.
      */
-    using StatesEventsTable = typename DESystemBase::StatesEventsTable;
+    using StatesEventsTable = typename Base::StatesEventsTable;
 
     /*! \brief Bit adjacency matrix implementing a directed graph
      * \details Sparse matrix implementing a graph with an adjacency matrix.
@@ -136,7 +136,7 @@ public:
     /*! \brief Vector of states type
      *  \details Vector of usigned interger type which represent states.
      */
-    using StatesTable = typename DESystemBase::StatesTable;
+    using StatesTable = typename Base::StatesTable;
 
     /*! \brief Vector of inverted transitions
      * \ details f(s, e) = s_out -> this vector stores = (s_out, (s, e))
@@ -166,7 +166,7 @@ public:
      * \details 3-tuples (qfrom, qto, event) for filling adjacency matrix
      * efficiently
      */
-    using Triplet = Triplet<NEvents>;
+    using Triplet_t = Triplet<NEvents>;
 
     /*! \brief Default default constructor
      *  \details Creates an empty system:
@@ -219,10 +219,9 @@ public:
     /*! \brief clone method for polymorphic copy
      *  \return Shared pointer to this object
      */
-    std::shared_ptr<DESystemBase> constexpr clone_impl() const noexcept
+    std::shared_ptr<Base> constexpr clone_impl() const noexcept
     {
-        std::shared_ptr<DESystemBase> this_ptr =
-          std::make_shared<DESystem>(*this);
+        std::shared_ptr<Base> this_ptr = std::make_shared<DESystem>(*this);
         return this_ptr;
     }
 
@@ -252,8 +251,8 @@ public:
      * \return A bitset where each set bit index is a event that lead to the
      * next state.
      */
-    EventsSet const constexpr operator()(StorageIndex const& aQfrom,
-                                         StorageIndex const& aQto) const
+    EventsSet_t const constexpr operator()(StorageIndex const& aQfrom,
+                                           StorageIndex const& aQto) const
       noexcept
     {
         return graph_.coeff(aQfrom, aQto);
@@ -311,7 +310,7 @@ public:
      *
      * \return Reference to this system
      */
-    DESystemBase& trim() noexcept;
+    Base& trim() noexcept;
 
     /*! \brief Insert events
      * \details Set the member events_ with a set containing all events
@@ -323,7 +322,7 @@ public:
      * @param aEvents Set containing all the new events of the current system
      * \return void
      */
-    void insertEvents(EventsSet const& aEvents) noexcept;
+    void insertEvents(EventsSet_t const& aEvents) noexcept;
 
     /*! \brief Check if transition exists
      * \details given a transition f(q, e) = qto, it
@@ -383,9 +382,9 @@ public:
      * systems, this operation is really cheap, O(1).
      *
      * @param aQ A state on the sys
-     * \return Returns EventsSet relative to state q
+     * \return Returns EventsSet_t relative to state q
      */
-    EventsSet constexpr getStateEvents_impl(StorageIndex const& aQ) const
+    EventsSet_t constexpr getStateEvents_impl(StorageIndex const& aQ) const
       noexcept
     {
         return this->states_events_[aQ];
@@ -396,9 +395,10 @@ public:
      * systems, this operation is really cheap, O(1).
      *
      * @param aQ A state on the sys
-     * \return Returns EventsSet relative to inverse transitions of the state q
+     * \return Returns EventsSet_t relative to inverse transitions of the state
+     * q
      */
-    EventsSet constexpr getInvStateEvents_impl(StorageIndex const& aQ) const
+    EventsSet_t constexpr getInvStateEvents_impl(StorageIndex const& aQ) const
     {
         return this->inv_states_events_[aQ];
     }
@@ -426,19 +426,19 @@ public:
      *
      * @param aLang Language
      */
-    bool checkObsProp_impl(EventsSet const& aAlphabet) const noexcept;
+    bool checkObsProp_impl(EventsSet_t const& aAlphabet) const noexcept;
 
     /*! \brief Projection operation
      *
      * @param aAlphanet Events set which the system will be projected.
      */
-    DESystem& proj_impl(EventsSet const& aAlphabet) noexcept;
+    DESystem& proj_impl(EventsSet_t const& aAlphabet) noexcept;
 
     /*! \brief Inverse projection operation
      *
      * @param aLang Set of events
      */
-    DESystem constexpr& invproj_impl(EventsSet const&) const noexcept
+    DESystem constexpr& invproj_impl(EventsSet_t const&) const noexcept
     {
         return *this;
     }

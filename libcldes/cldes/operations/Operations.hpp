@@ -153,44 +153,44 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
        aE,
      EventsTableHost const& aNonContr) noexcept;
 
-// /*! \brief Generate a expression tree of synchronize operations
-//  * \details Build a binary expression tree of parallel compositions
-//  * It is not necessary to keep a traditional vector representing
-//  * a binary tree, since each object keep track of its sons.
-//  * But we still need to keep track of them, since the SyncSysProxy uses
-//  * references, not copies. The tree is balanced like the following example:
-//  * e.g. to a vector of plants of size 5:
-//  *         P
-//  *        /\
-//  *       || p4
-//  *      / \
-//  *     /   \
-//  *    /     \
-//  *   ||     ||
-//  *  /  \    / \
-//  * p0  p1  p2 p3
-//  *
-//  * \param[in] aSystems Vector of systems to be mutually synchronized.
-//  * \return Binary tree pair: root and references
-//  */
+/*! \brief Generate a expression tree of synchronize operations
+ * \details Build a binary expression tree of parallel compositions
+ * It is not necessary to keep a traditional vector representing
+ * a binary tree, since each object keep track of its sons.
+ * But we still need to keep track of them, since the SyncSysProxy uses
+ * references, not copies. The tree is balanced like the following example:
+ * e.g. to a vector of plants of size 5:
+ *         P
+ *        /\
+ *       || p4
+ *      / \
+ *     /   \
+ *    /     \
+ *   ||     ||
+ *  /  \    / \
+ * p0  p1  p2 p3
+ *
+ * \param[in] aSystems Vector of systems to be mutually synchronized.
+ * \return Binary tree pair: root and references
+ */
 // template<uint8_t NEvents, typename StorageIndex>
 // BinExprTree<NEvents, StorageIndex>
 // GenBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems);
 //
-// /*! \brief Computes the monolithic supervisor of plants and specs
-//  * \details Build a binary expression tree of synchronizations and execute
-//  * the supervisor synthesis with the second level of the tree.
-//  * The root of the tree is the supervisor.
-//  * \warning Assumes that vectors has length >= 2
-//  * \note It balance the trees with a naive algorithm. The most
-//  * effiecient this structure is, the most scattered the events are
-//  * on the leafs: Not only the balance matters here.
-//  *
-//  * @param aPlants Vector containing plants systems const references
-//  * @param aSpecs Vector containing specs systems const references
-//  * @param aNonContr Hash table containing all non-controllable events indexes
-//  * \return The monolithic supervisor concrete system
-//  */
+/*! \brief Computes the monolithic supervisor of plants and specs
+ * \details Build a binary expression tree of synchronizations and execute
+ * the supervisor synthesis with the second level of the tree.
+ * The root of the tree is the supervisor.
+ * \warning Assumes that vectors has length >= 2
+ * \note It balance the trees with a naive algorithm. The most
+ * effiecient this structure is, the most scattered the events are
+ * on the leafs: Not only the balance matters here.
+ *
+ * @param aPlants Vector containing plants systems const references
+ * @param aSpecs Vector containing specs systems const references
+ * @param aNonContr Hash table containing all non-controllable events indexes
+ * \return The monolithic supervisor concrete system
+ */
 // template<uint8_t NEvents, typename StorageIndex>
 // DESystem<NEvents, StorageIndex>
 // supC(DESVector<NEvents, StorageIndex> const& aPlants,

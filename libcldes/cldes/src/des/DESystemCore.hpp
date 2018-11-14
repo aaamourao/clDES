@@ -51,7 +51,7 @@ DESystem<NEvents, StorageIndex>::DESystem(StorageIndex const& aStatesNumber,
                                           StorageIndex const& aInitState,
                                           StatesSet& aMarkedStates,
                                           bool const& aDevCacheEnabled)
-  : DESystemBase{ aStatesNumber, aInitState }
+  : Base{ aStatesNumber, aInitState }
 {
     dev_cache_enabled_ = aDevCacheEnabled;
     is_cache_outdated_ = true;
@@ -197,7 +197,7 @@ DESystem<NEvents, StorageIndex>::cropGraph_(
   StatesSet const&& aTrimStates,
   std::vector<StorageIndexSigned> const& aStatesMap) noexcept
 {
-    std::vector<Triplet> triplet;
+    std::vector<Triplet_t> triplet;
     triplet.reserve(aSparcityPattern);
     // Build new graph_ slice by slice
     {
@@ -210,7 +210,7 @@ DESystem<NEvents, StorageIndex>::cropGraph_(
             for (RowIterator e(aOldGraph, s); e; ++e) {
                 if (aStatesMap[e.col()] != -1) {
                     auto const col_id = aStatesMap[e.col()];
-                    triplet.push_back(Triplet(row_id, col_id, e.value()));
+                    triplet.push_back(Triplet_t(row_id, col_id, e.value()));
                     this->events_ |= e.value();
                     if (this->states_events_.size() > 0) {
                         this->states_events_[row_id] |= e.value();
@@ -227,9 +227,10 @@ DESystem<NEvents, StorageIndex>::cropGraph_(
 
 template<uint8_t NEvents, typename StorageIndex>
 void
-DESystem<NEvents, StorageIndex>::insertEvents(EventsSet const& aEvents) noexcept
+DESystem<NEvents, StorageIndex>::insertEvents(
+  EventsSet_t const& aEvents) noexcept
 {
-    this->events_ = EventsSet(aEvents);
+    this->events_ = EventsSet_t(aEvents);
 }
 
 template<uint8_t NEvents, typename StorageIndex>
@@ -414,7 +415,8 @@ DESystem<NEvents, StorageIndex>::procStVec_(
 
 template<uint8_t NEvents, typename StorageIndex>
 cldes::DESystem<NEvents, StorageIndex>&
-DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
+DESystem<NEvents, StorageIndex>::proj_impl(
+  EventsSet_t const& aAlphabet) noexcept
 {
     for (StorageIndex q = 0; q < graph_.rows(); ++q) {
         for (RowIteratorGraph d(graph_, q); d; ++d) {
@@ -425,14 +427,14 @@ DESystem<NEvents, StorageIndex>::proj_impl(EventsSet const& aAlphabet) noexcept
             this->inv_states_events_[q] &= aAlphabet;
         }
     }
-    graph_.prune(EventsSet{ 0 });
+    graph_.prune(EventsSet_t{ 0 });
     return *this;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 bool
 cldes::DESystem<NEvents, StorageIndex>::checkObsProp_impl(
-  EventsSet const&) const noexcept
+  EventsSet_t const&) const noexcept
 {
     return false;
 }

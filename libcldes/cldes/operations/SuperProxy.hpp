@@ -70,13 +70,19 @@ public:
     /*! \brief Base alias
      * \details Alias to implicit speciallization of base class.
      */
-    using DESystemBase =
-      DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>;
+    using Base =
+      DESystemBase<NEvents, StorageIndex, SuperProxy<NEvents, StorageIndex>>;
+
+    /*! \brief Alias to the the related DESystem template
+     * \details alias Alias to implicit speciallization to concrete system.
+     */
+    using RealSys = DESystem<NEvents, StorageIndex>;
+    using BaseReal = DESystemBase<NEvents, StorageIndex, RealSys>;
 
     /*! \brief Vector of states type
      * \details Vector containing states represented by unsigned indexes.
      */
-    using StatesTable = typename DESystemBase::StatesTable;
+    using StatesTable = typename BaseReal::StatesTable;
 
     /*! \brief Vector of inverted transitions
      * \details Vector which stores transitions:
@@ -85,19 +91,14 @@ public:
     using TrVector =
       std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>*>>;
 
-    /*! \brief Alias to the the related DESystem template
-     * \details alias Alias to implicit speciallization to concrete system.
-     */
-    using DESystem = DESystem<NEvents, StorageIndex>;
-
     /*! \brief SyncSysProxy unique constructor
      * Create a binary tree that represents multiple operations.
      *
      * @param aPlant Left operand DESystem reference
      * @param aSpec Right operand DESystem reference
      */
-    SuperProxy(DESystemBase const& aPlant,
-               DESystemBase const& aSpec,
+    SuperProxy(BaseReal const& aPlant,
+               BaseReal const& aSpec,
                EventsTableHost const& aNonContr);
 
     /*! \brief DESystem destructor
@@ -130,7 +131,7 @@ public:
      * const.
      * \warning Expensive, because it implies a copy. Avoid it.
      */
-    operator DESystem() noexcept;
+    operator RealSys() noexcept;
 
     /*! \brief Is it real?
      * \details Nooo!!!
@@ -144,15 +145,9 @@ public:
      *
      * \return shared pointer to base.
      */
-    std::shared_ptr<cldes::DESystemBase<
-      NEvents,
-      StorageIndex,
-      SuperProxy<NEvents, StorageIndex>>> constexpr clone_impl() const noexcept
+    std::shared_ptr<Base> constexpr clone_impl() const noexcept
     {
-        std::shared_ptr<cldes::DESystemBase<NEvents,
-                                            StorageIndex,
-                                            SuperProxy<NEvents, StorageIndex>>>
-          this_ptr = std::make_shared<SuperProxy>(*this);
+        std::shared_ptr<Base> this_ptr = std::make_shared<SuperProxy>(*this);
         return this_ptr;
     }
 
@@ -251,9 +246,9 @@ public:
 protected:
     /*! \brief Monolithic supervisor synthesis
      */
-    friend DESystem supC<>(DESystemBase const& aP,
-                           DESystemBase const& aE,
-                           EventsTableHost const& aNonContr) noexcept;
+    friend RealSys supC<>(BaseReal const& aP,
+                          BaseReal const& aE,
+                          EventsTableHost const& aNonContr) noexcept;
 
     /*! \brief Disabled default constructor
      * \details There is no use for the default constructor.
@@ -262,18 +257,18 @@ protected:
 
     /*! \brief Find states that are not in SupC
      */
-    void findRemovedStates_(DESystemBase const& aP,
-                            DESystemBase const& aE,
+    void findRemovedStates_(BaseReal const& aP,
+                            BaseReal const& aE,
                             EventsTableHost const& aNonContr) noexcept;
 
 private:
     /*! \brief Reference to the left operand
      */
-    DESystemBase const& sys0_;
+    BaseReal const& sys0_;
 
     /*! \brief Reference to right operand
      */
-    DESystemBase const& sys1_;
+    BaseReal const& sys1_;
 
     /*! \brief Cache number of states of Sys0
      *

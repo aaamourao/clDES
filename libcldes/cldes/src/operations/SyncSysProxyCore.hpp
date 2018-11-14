@@ -38,16 +38,11 @@
 
 namespace cldes {
 template<uint8_t NEvents, typename StorageIndex>
-op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
-                                                      DESystemBase const& aSys1)
-  : cldes::DESystemBase<
-      NEvents,
-      StorageIndex,
-      op::SyncSysProxy<NEvents, StorageIndex>>{ aSys0.getStatesNumber() *
-                                                  aSys1.getStatesNumber(),
-                                                aSys1.getInitialState() *
-                                                    aSys0.getStatesNumber() +
-                                                  aSys0.getInitialState() }
+op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(BaseReal const& aSys0,
+                                                      BaseReal const& aSys1)
+  : Base{ aSys0.getStatesNumber() * aSys1.getStatesNumber(),
+          aSys1.getInitialState() * aSys0.getStatesNumber() +
+            aSys0.getInitialState() }
   , sys0_{ aSys0 }
   , sys1_{ aSys1 }
 {
@@ -66,7 +61,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::SyncSysProxy(DESystemBase const& aSys0,
 }
 
 template<uint8_t NEvents, typename StorageIndex>
-op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
+op::SyncSysProxy<NEvents, StorageIndex>::operator RealSys() noexcept
 {
     if (virtual_states_.empty()) {
         synchronizeEmptyStage2(*this);
@@ -75,7 +70,7 @@ op::SyncSysProxy<NEvents, StorageIndex>::operator DESystem() noexcept
         synchronizeStage2(*this);
     }
 
-    auto sys_ptr = std::make_shared<DESystem>(DESystem{});
+    auto sys_ptr = std::make_shared<RealSys>(RealSys{});
 
     sys_ptr->states_number_ = std::move(this->states_number_);
     sys_ptr->init_state_ = std::move(this->init_state_);

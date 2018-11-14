@@ -59,7 +59,22 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
        aE,
      EventsTableHost const& aNonContr) noexcept;
 
+#ifdef __GNUC__
 template<uint8_t NEvents, typename StorageIndex>
+transMap<StorageIndex>
+computeSupCStates_(
+  SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+  EventsSet<NEvents> const&& aNonContrBit,
+  EventsSet<NEvents> const&& aPNonContrBit,
+  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+    aP) noexcept;
+
+template<uint8_t NEvents, typename StorageIndex>
+void
+processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+                unsigned long const& aSparcityPattern,
+                SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+#elif __clang__
 inline transMap<StorageIndex>
 computeSupCStates_(
   SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
@@ -73,6 +88,7 @@ inline void
 processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
                 unsigned long const& aSparcityPattern,
                 SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+#endif
 
 template<uint8_t NEvents, typename StorageIndex>
 class SuperProxy;
