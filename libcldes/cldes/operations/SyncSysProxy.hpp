@@ -272,6 +272,11 @@ private:
       EventsSet<NEvents> const&& aPNonContrBit,
       DESystemBase const& aP) noexcept;
 
+    friend inline void processVirtSys_<>(
+      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+      unsigned long const& aSparcityPattern,
+      SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+
     /*! \brief Reference to the left operand
      */
     DESystemBase const& sys0_;
@@ -306,10 +311,6 @@ private:
     /*! \brief 3-tuples for filling graph_
      */
     std::vector<Triplet<NEvents>> triplet_;
-
-    /*! \brief 3-tuples for filling bit_graph_
-     */
-    std::vector<BitTriplet> bittriplet_;
 };
 
 } // namespace op

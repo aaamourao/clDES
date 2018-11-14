@@ -44,11 +44,7 @@ synchronizeEmptyStage2(
       aVirtualSys.events_.count() * aVirtualSys.states_number_;
     aVirtualSys.resizeStatesEvents(aVirtualSys.states_number_);
     aVirtualSys.triplet_.reserve(sparcitypattern);
-    aVirtualSys.bittriplet_.reserve(sparcitypattern +
-                                    aVirtualSys.states_number_);
     for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_; ++qfrom) {
-        aVirtualSys.bittriplet_.push_back(BitTriplet(qfrom, qfrom, true));
-
         aVirtualSys.setStateEvents(qfrom, aVirtualSys.getStateEvents(qfrom));
         aVirtualSys.setInvStateEvents(qfrom,
                                       aVirtualSys.getInvStateEvents(qfrom));
@@ -57,14 +53,8 @@ synchronizeEmptyStage2(
         while (event_it != 0) {
             if (event_it.test(0)) {
                 auto const qto = aVirtualSys.trans(qfrom, event);
-
                 aVirtualSys.triplet_.push_back(Triplet<NEvents>(
                   qfrom, qto, EventsSet<NEvents>{ 1ul << event }));
-
-                if (qfrom != static_cast<StorageIndex>(qto)) {
-                    aVirtualSys.bittriplet_.push_back(
-                      BitTriplet(qto, qfrom, true));
-                }
             }
             ++event;
             event_it >>= 1;
@@ -79,14 +69,13 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
 {
     SparseStatesMap<StorageIndex> statesmap;
     aVirtualSys.setStatesNumber(aVirtualSys.virtual_states_.size());
-    aVirtualSys.bittriplet_.reserve(aVirtualSys.states_number_);
     StorageIndex const sparcitypattern =
       aVirtualSys.events_.count() * aVirtualSys.states_number_;
+
     // TODO: It SHOULD be returned in the future in a pair
     StorageIndex cst = 0;
     for (StorageIndex s : aVirtualSys.virtual_states_) {
         statesmap[s] = cst;
-        aVirtualSys.bittriplet_.push_back(BitTriplet(cst, cst, true));
         ++cst;
     }
     aVirtualSys.virtual_states_.clear();
@@ -98,23 +87,28 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
             }
         }
     }
-    aVirtualSys.triplet_.reserve(sparcitypattern);
-    aVirtualSys.bittriplet_.reserve(sparcitypattern +
-                                    aVirtualSys.states_number_);
+    processVirtSys_(aVirtualSys, sparcitypattern, std::move(statesmap));
+    return;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+inline void
+processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+                unsigned long const& aSparcityPattern,
+                SparseStatesMap<StorageIndex>&& aStatesMap) noexcept
+{
+    aVirtualSys.triplet_.reserve(aSparcityPattern);
     while (!aVirtualSys.transtriplet_.empty()) {
         auto q_trans = aVirtualSys.transtriplet_.back();
         auto const q = q_trans.first;
         while (!q_trans.second->empty()) {
             auto const qto_e = q_trans.second->back();
             auto const qto = qto_e.first;
-            if (statesmap.contains(qto)) {
-                auto const event = qto_e.second;
-                auto const qto_mapped = statesmap[qto];
-                auto const q_mapped = statesmap[q];
-                aVirtualSys.triplet_.push_back(Triplet<NEvents>(
-                  q_mapped, qto_mapped, EventsSet<NEvents>{ 1ul << event }));
-                aVirtualSys.bittriplet_.push_back(
-                  BitTriplet(qto_mapped, q_mapped, true));
+            if (aStatesMap.contains(qto)) {
+                aVirtualSys.triplet_.push_back(
+                  Triplet<NEvents>(aStatesMap[q],
+                                   aStatesMap[qto],
+                                   EventsSet<NEvents>{ 1ul << qto_e.second }));
             }
             q_trans.second->pop_back();
         }

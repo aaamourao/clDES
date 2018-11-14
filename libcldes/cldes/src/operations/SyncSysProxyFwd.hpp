@@ -33,16 +33,27 @@
 namespace cldes {
 namespace op {
 
-// Forward declaration of friend function
+using EventsTableHost = spp::sparse_hash_set<uint8_t>;
+
+template<typename StorageIndex>
+using SparseStatesMap = spp::sparse_hash_map<StorageIndex, StorageIndex>;
+
 template<uint8_t NEvents, typename StorageIndex>
 void
 synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
 
-// Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
 void
 synchronizeEmptyStage2(
   SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+
+template<uint8_t NEvents, typename StorageIndex>
+DESystem<NEvents, StorageIndex>
+supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aP,
+     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
+       aE,
+     EventsTableHost const& aNonContr) noexcept;
 
 template<uint8_t NEvents, typename StorageIndex>
 inline transMap<StorageIndex>
@@ -53,17 +64,11 @@ computeSupCStates_(
   DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     aP) noexcept;
 
-// Alias to events hash map
-using EventsTableHost = spp::sparse_hash_set<uint8_t>;
-
-// Forward declaration of friend function
 template<uint8_t NEvents, typename StorageIndex>
-DESystem<NEvents, StorageIndex>
-supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aP,
-     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aE,
-     EventsTableHost const& aNonContr) noexcept;
+inline void
+processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+                unsigned long const& aSparcityPattern,
+                SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
 
 template<uint8_t NEvents, typename StorageIndex>
 class SuperProxy;
