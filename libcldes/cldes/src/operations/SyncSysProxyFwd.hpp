@@ -38,59 +38,63 @@ using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 template<typename StorageIndex>
 using SparseStatesMap = spp::sparse_hash_map<StorageIndex, StorageIndex>;
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-synchronizeEmptyStage2(
-  SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
-template<uint8_t NEvents, typename StorageIndex>
-inline StorageIndex
-aproxSpacPat_(SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
-
-template<uint8_t NEvents, typename StorageIndex>
-DESystem<NEvents, StorageIndex>
-supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aP,
-     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aE,
+template<class SysT_l, class SysT_r>
+DESystem<SysTraits<SysT_l>::Ne_, typename SysTraits<SysT_l>::Si_>
+supC(SysT_l const& aP,
+     SysT_r const& aE,
      EventsTableHost const& aNonContr) noexcept;
 
 #ifdef __GNUC__
-template<uint8_t NEvents, typename StorageIndex>
-transMap<StorageIndex>
-computeSupCStates_(
-  SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
-  EventsSet<NEvents> const&& aNonContrBit,
-  EventsSet<NEvents> const&& aPNonContrBit,
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aP) noexcept;
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
+transMap<typename SysTraits<SysT_l>::Si_>
+computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
+                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aNonContrBit,
+                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aPNonContrBit,
+                   SysT_l const& aP) noexcept;
+
+template<class SysT_l, class SysT_r>
 void
-processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
-                unsigned long const& aSparcityPattern,
-                SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
-#elif __clang__
-inline transMap<StorageIndex>
-computeSupCStates_(
-  SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
-  EventsSet<NEvents> const&& aNonContrBit,
-  EventsSet<NEvents> const&& aPNonContrBit,
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aP) noexcept;
+processVirtSys_(
+  SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
+  unsigned long const& aSparcityPattern,
+  SparseStatesMap<typename SysTraits<SysT_l>::Si_>&& aStatesMap) noexcept;
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
+long unsigned
+aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
+
+#elif __clang__
+
+template<class SysT_l, class SysT_r>
+inline transMap<typename SysTraits<SysT_l>::Si_>
+computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
+                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aNonContrBit,
+                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aPNonContrBit,
+                   SysT_l const& aP) noexcept;
+
+template<class SysT_l, class SysT_r>
 inline void
-processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
-                unsigned long const& aSparcityPattern,
-                SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+processVirtSys_(
+  SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
+  unsigned long const& aSparcityPattern,
+  SparseStatesMap<typename SysTraits<SysT_l>::Si_>&& aStatesMap) noexcept;
+
+template<class SysT_l, class SysT_r>
+inline long unsigned
+aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
+
 #endif
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 class SuperProxy;
 }
 }

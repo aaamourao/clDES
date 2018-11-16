@@ -428,9 +428,6 @@ private:
      */
     friend RealDESystem;
 
-    friend StorageIndex op::aproxSpacPat_<>(
-      op::SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
-
     /*! \brief DESystem constructor
      * \details Create a system with the defined params.
      *

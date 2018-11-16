@@ -56,13 +56,17 @@ namespace op {
  * \tparam NEvents Number of events
  * \tparam StorageIndex Unsigned type use for indexing the ajacency matrix
  */
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 class SuperProxy
-  : public DESystemBase<NEvents,
-                        StorageIndex,
-                        SuperProxy<NEvents, StorageIndex>>
+  : public DESystemBase<SysTraits<SysT_l>::Ne_,
+                        typename SysTraits<SysT_l>::Si_,
+                        SuperProxy<SysT_l, SysT_r>>
 {
 public:
+    uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
+    using StorageIndex = typename SysTraits<SysT_l>::Si_;
+
+    using EventsSet_t = EventsSet<NEvents>;
     /*! \brief Signed template parameter type for eigen indexes
      */
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
@@ -71,7 +75,7 @@ public:
      * \details Alias to implicit speciallization of base class.
      */
     using Base =
-      DESystemBase<NEvents, StorageIndex, SuperProxy<NEvents, StorageIndex>>;
+      DESystemBase<NEvents, StorageIndex, SuperProxy<SysT_l, SysT_r>>;
 
     /*! \brief Alias to the the related DESystem template
      * \details alias Alias to implicit speciallization to concrete system.
@@ -97,8 +101,8 @@ public:
      * @param aPlant Left operand DESystem reference
      * @param aSpec Right operand DESystem reference
      */
-    SuperProxy(BaseReal const& aPlant,
-               BaseReal const& aSpec,
+    SuperProxy(SysT_l const& aPlant,
+               SysT_r const& aSpec,
                EventsTableHost const& aNonContr);
 
     /*! \brief DESystem destructor
@@ -119,12 +123,12 @@ public:
     /*! \brief Operator =
      * Use move semantics when assigning to rvalues.
      */
-    SuperProxy<NEvents, StorageIndex>& operator=(SuperProxy&&) = default;
+    SuperProxy& operator=(SuperProxy&&) = default;
 
     /*! \brief Operator = to const type
      * \details Enables copy by reference.
      */
-    SuperProxy<NEvents, StorageIndex>& operator=(SuperProxy const&) = default;
+    SuperProxy& operator=(SuperProxy const&) = default;
 
     /*! \brief Convert to DESystem from const proxy
      * \details Convert it to a concrete system when the current system is
@@ -246,8 +250,8 @@ public:
 protected:
     /*! \brief Monolithic supervisor synthesis
      */
-    friend RealSys supC<>(BaseReal const& aP,
-                          BaseReal const& aE,
+    friend RealSys supC<>(SysT_l const& aP,
+                          SysT_r const& aE,
                           EventsTableHost const& aNonContr) noexcept;
 
     /*! \brief Disabled default constructor
@@ -257,18 +261,18 @@ protected:
 
     /*! \brief Find states that are not in SupC
      */
-    void findRemovedStates_(BaseReal const& aP,
-                            BaseReal const& aE,
+    void findRemovedStates_(SysT_l const& aP,
+                            SysT_r const& aE,
                             EventsTableHost const& aNonContr) noexcept;
 
 private:
     /*! \brief Reference to the left operand
      */
-    BaseReal const& sys0_;
+    SysT_l const& sys0_;
 
     /*! \brief Reference to right operand
      */
-    BaseReal const& sys1_;
+    SysT_r const& sys1_;
 
     /*! \brief Cache number of states of Sys0
      *

@@ -545,7 +545,11 @@ private:
      * * More efficiency when accessing vars than using getters and setters.
      * * Define a different namespace for DES operations.
      */
-    friend class op::SyncSysProxy<NEvents, StorageIndex>;
+    template<class SysT_l, class SysT_r>
+    friend class op::SyncSysProxy;
+
+    // TODO: make dispatcher (type erasure) friend when it is done for dynamic
+    // polymorphism
 
     /*! \brief Graph represented by an adjacency matrix of bitsets
      * \details A sparse matrix which represents the automata as a graph in an

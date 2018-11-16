@@ -37,11 +37,10 @@
  */
 
 namespace cldes {
-template<uint8_t NEvents, typename StorageIndex>
-op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
-  BaseReal const& aPlant,
-  BaseReal const& aSpec,
-  EventsTableHost const& aNonContr)
+template<class SysT_l, class SysT_r>
+op::SuperProxy<SysT_l, SysT_r>::SuperProxy(SysT_l const& aPlant,
+                                           SysT_r const& aSpec,
+                                           EventsTableHost const& aNonContr)
   : Base{ aPlant.getStatesNumber() * aSpec.getStatesNumber(),
           aSpec.getInitialState() * aPlant.getStatesNumber() +
             aPlant.getInitialState() }
@@ -63,8 +62,8 @@ op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
     findRemovedStates_(aPlant, aSpec, aNonContr);
 }
 
-// template<uint8_t NEvents, typename StorageIndex>
-// op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
+// template<class SysT_l, class SysT_r>
+// op::SuperProxy<SysT_l, SysT_r>::SuperProxy(
 //   DESVector<NEvents, StorageIndex> const& aPlants,
 //   DESVector<NEvents, StorageIndex> const& aSpecs,
 //   EventsTableHost const& aNonContr)
@@ -72,14 +71,14 @@ op::SuperProxy<NEvents, StorageIndex>::SuperProxy(
 //     // TODO: Implement this function
 // }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
-  BaseReal const& aP,
-  BaseReal const& aE,
+op::SuperProxy<SysT_l, SysT_r>::findRemovedStates_(
+  SysT_l const& aP,
+  SysT_r const& aE,
   EventsTableHost const& aNonContr) noexcept
 {
-    SyncSysProxy<NEvents, StorageIndex> virtualsys{ aP, aE };
+    SyncSysProxy<SysT_l, SysT_r> virtualsys{ aP, aE };
     EventsSet<NEvents> non_contr_bit;
     EventsSet<NEvents> p_non_contr_bit;
     for (cldes::ScalarType event : aNonContr) {
@@ -103,8 +102,7 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
             auto const in_ncqx = p_non_contr_bit & aP.getStateEvents(qx);
             auto const in_ncqx_and_q = in_ncqx & q_events;
             if (in_ncqx_and_q != in_ncqx) {
-                // TODO: Fix template implicit instantiation
-                removeBadStates_<NEvents, StorageIndex>(
+                removeBadStates_(
                   virtualsys, virtual_states_, q, non_contr_bit, rmtable);
             } else {
                 virtual_states_.insert(q);
@@ -132,8 +130,8 @@ op::SuperProxy<NEvents, StorageIndex>::findRemovedStates_(
     return;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-op::SuperProxy<NEvents, StorageIndex>::operator RealSys() noexcept
+template<class SysT_l, class SysT_r>
+op::SuperProxy<SysT_l, SysT_r>::operator RealSys() noexcept
 {
     std::sort(virtual_states_.begin(), virtual_states_.end());
     synchronizeStage2(*this);
@@ -157,9 +155,9 @@ op::SuperProxy<NEvents, StorageIndex>::operator RealSys() noexcept
     return *sys_ptr;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 bool
-op::SuperProxy<NEvents, StorageIndex>::containstrans_impl(
+op::SuperProxy<SysT_l, SysT_r>::containstrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const noexcept
 {
@@ -179,11 +177,11 @@ op::SuperProxy<NEvents, StorageIndex>::containstrans_impl(
     return contains;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-typename op::SuperProxy<NEvents, StorageIndex>::StorageIndexSigned
-op::SuperProxy<NEvents, StorageIndex>::trans_impl(
-  StorageIndex const& aQ,
-  ScalarType const& aEvent) const noexcept
+template<class SysT_l, class SysT_r>
+typename op::SuperProxy<SysT_l, SysT_r>::StorageIndexSigned
+op::SuperProxy<SysT_l, SysT_r>::trans_impl(StorageIndex const& aQ,
+                                           ScalarType const& aEvent) const
+  noexcept
 {
     if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
         return -1;
@@ -211,9 +209,9 @@ op::SuperProxy<NEvents, StorageIndex>::trans_impl(
     }
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 bool
-op::SuperProxy<NEvents, StorageIndex>::containsinvtrans_impl(
+op::SuperProxy<SysT_l, SysT_r>::containsinvtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
@@ -233,11 +231,10 @@ op::SuperProxy<NEvents, StorageIndex>::containsinvtrans_impl(
     return contains;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-StatesArray<StorageIndex>
-op::SuperProxy<NEvents, StorageIndex>::invtrans_impl(
-  StorageIndex const& aQ,
-  ScalarType const& aEvent) const
+template<class SysT_l, class SysT_r>
+StatesArray<typename op::SuperProxy<SysT_l, SysT_r>::StorageIndex>
+op::SuperProxy<SysT_l, SysT_r>::invtrans_impl(StorageIndex const& aQ,
+                                              ScalarType const& aEvent) const
 {
     StatesArray<StorageIndex> inv_transitions;
     if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
@@ -280,9 +277,9 @@ op::SuperProxy<NEvents, StorageIndex>::invtrans_impl(
     return inv_transitions;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-op::SuperProxy<NEvents, StorageIndex>::getStateEvents_impl(
+template<class SysT_l, class SysT_r>
+typename op::SuperProxy<SysT_l, SysT_r>::EventsSet_t
+op::SuperProxy<SysT_l, SysT_r>::getStateEvents_impl(
   StorageIndex const& aQ) const noexcept
 {
     auto const state_event_0 = sys0_.getStateEvents(aQ % n_states_sys0_);
@@ -293,9 +290,9 @@ op::SuperProxy<NEvents, StorageIndex>::getStateEvents_impl(
     return state_event;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-EventsSet<NEvents>
-op::SuperProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
+template<class SysT_l, class SysT_r>
+typename op::SuperProxy<SysT_l, SysT_r>::EventsSet_t
+op::SuperProxy<SysT_l, SysT_r>::getInvStateEvents_impl(
   StorageIndex const& aQ) const
 {
     auto const state_event_0 = sys0_.getInvStateEvents(aQ % n_states_sys0_);
@@ -306,26 +303,25 @@ op::SuperProxy<NEvents, StorageIndex>::getInvStateEvents_impl(
     return state_event;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-op::SuperProxy<NEvents, StorageIndex>::allocateInvertedGraph_impl() const
-  noexcept
+op::SuperProxy<SysT_l, SysT_r>::allocateInvertedGraph_impl() const noexcept
 {
     sys0_.allocateInvertedGraph();
     sys1_.allocateInvertedGraph();
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-op::SuperProxy<NEvents, StorageIndex>::clearInvertedGraph_impl() const noexcept
+op::SuperProxy<SysT_l, SysT_r>::clearInvertedGraph_impl() const noexcept
 {
     sys0_.clearInvertedGraph();
     sys1_.clearInvertedGraph();
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-op::SuperProxy<NEvents, StorageIndex>::trim() noexcept
+op::SuperProxy<SysT_l, SysT_r>::trim() noexcept
 {
     StatesTableHost<StorageIndex> trimmed_virtual_states;
     for (auto mstate : this->marked_states_) {

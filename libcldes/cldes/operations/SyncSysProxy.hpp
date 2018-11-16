@@ -57,13 +57,16 @@ namespace op {
  * \tparam NEvents Number of events
  * \tparam StorageIndex Unsigned type use for indexing the ajacency matrix
  */
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 class SyncSysProxy
-  : public DESystemBase<NEvents,
-                        StorageIndex,
-                        SyncSysProxy<NEvents, StorageIndex>>
+  : public DESystemBase<SysTraits<SysT_l>::Ne_,
+                        typename SysTraits<SysT_l>::Si_,
+                        SyncSysProxy<SysT_l, SysT_r>>
 {
 public:
+    uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
+    using StorageIndex = typename SysTraits<SysT_l>::Si_;
+
     /*! \brief Signed template parameter type for eigen indexes
      */
     using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
@@ -72,7 +75,7 @@ public:
      * \details Alias to implicit speciallization of base class.
      */
     using Base =
-      DESystemBase<NEvents, StorageIndex, SyncSysProxy<NEvents, StorageIndex>>;
+      DESystemBase<NEvents, StorageIndex, SyncSysProxy<SysT_l, SysT_r>>;
 
     /*! \brief Alias to the the related DESystem template
      * \details alias Alias to implicit speciallization to concrete system.
@@ -98,7 +101,7 @@ public:
      * @param aSys0 Left operand DESystem reference
      * @param aSys1 Right operand DESystem reference
      */
-    SyncSysProxy(BaseReal const& aSys0, BaseReal const& aSys1);
+    SyncSysProxy(SysT_l const& aSys0, SysT_r const& aSys1);
 
     /*! \brief DESystem destructor
      * \details Override base destructor.
@@ -118,13 +121,12 @@ public:
     /*! \brief Operator =
      * Use move semantics when assigning to rvalues.
      */
-    SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy&&) = default;
+    SyncSysProxy<SysT_l, SysT_r>& operator=(SyncSysProxy&&) = default;
 
     /*! \brief Operator = to const type
      * \details Enables copy by reference.
      */
-    SyncSysProxy<NEvents, StorageIndex>& operator=(SyncSysProxy const&) =
-      default;
+    SyncSysProxy<SysT_l, SysT_r>& operator=(SyncSysProxy const&) = default;
 
     /*! \brief Overload conversion to DESystem
      * \details Convert the current virtual proxy to a concrete system.
@@ -243,15 +245,15 @@ public:
 protected:
     /*! \brief Second step of the lazy parallel composition
      */
-    friend void cldes::op::synchronizeStage2<>(
-      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+    friend void synchronizeStage2<>(
+      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
     /*! \brief Second step of the lazy parallel composition
      */
-    friend void cldes::op::synchronizeEmptyStage2<>(
-      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+    friend void synchronizeEmptyStage2<>(
+      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
-    friend class cldes::op::SuperProxy<NEvents, StorageIndex>;
+    friend class cldes::op::SuperProxy<SysT_l, SysT_r>;
 
     /*! \brief Disabled default constructor
      * \details There is no use for the default constructor.
@@ -259,44 +261,47 @@ protected:
     SyncSysProxy() = default;
 
 private:
-    friend RealSys supC<>(BaseReal const& aP,
-                          BaseReal const& aE,
+    friend RealSys supC<>(SysT_l const& aP,
+                          SysT_r const& aE,
                           EventsTableHost const& aNonContr) noexcept;
 
 #ifdef __GNUC__
     friend transMap<StorageIndex> computeSupCStates_<>(
-      SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+      SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
       EventsSet<NEvents> const&& aNonContrBit,
       EventsSet<NEvents> const&& aPNonContrBit,
-      BaseReal const& aP) noexcept;
+      SysT_l const& aP) noexcept;
 
     friend void processVirtSys_<>(
-      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
       unsigned long const& aSparcityPattern,
       SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+
+    friend long unsigned  aproxSpacPat_<>(
+      SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
 #elif __clang__
     friend inline transMap<StorageIndex> computeSupCStates_<>(
-      SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+      SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
       EventsSet<NEvents> const&& aNonContrBit,
       EventsSet<NEvents> const&& aPNonContrBit,
-      BaseReal const& aP) noexcept;
+      SysT_l const& aP) noexcept;
 
     friend inline void processVirtSys_<>(
-      SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
       unsigned long const& aSparcityPattern,
       SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
-#endif
 
-    friend StorageIndex aproxSpacPat_<>(
-      SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
+    friend inline long unsigned aproxSpacPat_<>(
+      SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
+#endif
 
     /*! \brief Reference to the left operand
      */
-    BaseReal const& sys0_;
+    SysT_l const& sys0_;
 
     /*! \brief Reference to right operand
      */
-    BaseReal const& sys1_;
+    SysT_r const& sys1_;
 
     /*! \brief Cache number of states of Sys0
      *

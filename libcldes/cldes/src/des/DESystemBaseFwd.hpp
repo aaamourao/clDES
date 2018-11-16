@@ -42,11 +42,7 @@ template<typename StorageIndex>
 using StatesArray = std::vector<StorageIndex>;
 
 namespace op {
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 class SyncSysProxy;
-
-template<uint8_t NEvents, typename StorageIndex>
-inline StorageIndex
-aproxSpacPat_(SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept;
 }
 }

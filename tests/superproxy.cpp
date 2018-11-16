@@ -82,32 +82,36 @@ main()
     PrintGraph(spec.getGraph(), "Spec");
 
     auto t1 = high_resolution_clock::now();
-    auto supervisor =
-      cldes::op::SuperProxy<4u, StorageIndex>(plant, spec, non_contr);
+    auto supervisor = cldes::op::SuperProxy<cldes::DESystem<4u, StorageIndex>,
+                                            cldes::DESystem<4u, StorageIndex>>{
+        plant, spec, non_contr
+    };
     auto t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<microseconds>(t2 - t1).count();
     std::cout << "Supervisor synth time spent: " << duration << " microseconds"
               << std::endl;
 
-//     std::cout << "Number of states of the supervisor: " << supervisor.size()
-//               << std::endl;
-//     std::cout << "Number of transitions of the supervisor "
-//               << supervisor.getGraph().nonZeros() << std::endl;
-//
-//     std::ostringstream expected_result;
-//
-//     expected_result << "0 1 0 0 0 0 " << std::endl;
-//     expected_result << "0 0 0 0 4 0 " << std::endl;
-//     expected_result << "8 0 0 1 0 0 " << std::endl;
-//     expected_result << "0 8 0 0 0 4 " << std::endl;
-//     expected_result << "0 0 2 0 0 0 " << std::endl;
-//     expected_result << "0 0 0 0 8 0 " << std::endl;
-//     expected_result << ">" << std::endl;
-//     ProcessResult(
-//       supervisor.getGraph(), "< Sync graph", expected_result.str().c_str());
-//     std::cout << "synchronize time: " << duration << " microseconds"
-//               << std::endl;
+    //     std::cout << "Number of states of the supervisor: " <<
+    //     supervisor.size()
+    //               << std::endl;
+    //     std::cout << "Number of transitions of the supervisor "
+    //               << supervisor.getGraph().nonZeros() << std::endl;
+    //
+    //     std::ostringstream expected_result;
+    //
+    //     expected_result << "0 1 0 0 0 0 " << std::endl;
+    //     expected_result << "0 0 0 0 4 0 " << std::endl;
+    //     expected_result << "8 0 0 1 0 0 " << std::endl;
+    //     expected_result << "0 8 0 0 0 4 " << std::endl;
+    //     expected_result << "0 0 2 0 0 0 " << std::endl;
+    //     expected_result << "0 0 0 0 8 0 " << std::endl;
+    //     expected_result << ">" << std::endl;
+    //     ProcessResult(
+    //       supervisor.getGraph(), "< Sync graph",
+    //       expected_result.str().c_str());
+    //     std::cout << "synchronize time: " << duration << " microseconds"
+    //               << std::endl;
 
     return 0;
 }

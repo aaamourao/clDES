@@ -41,6 +41,22 @@ namespace cldes {
 
 namespace op {
 
+template<class SysT_l>
+using SparseStatesMap_t = SparseStatesMap<typename SysTraits<SysT_l>::Si_>;
+
+template<class SysT_l>
+using EventsSet_t = EventsSet<SysTraits<SysT_l>::Ne_>;
+
+template<class SysT_l>
+using StatesTableHost_t = StatesTableHost<typename SysTraits<SysT_l>::Si_>;
+
+template<class SysT_l>
+using transMap_t = transMap<typename SysTraits<SysT_l>::Si_>;
+
+template<class SysT_l>
+using DESystem_t =
+  DESystem<SysTraits<SysT_l>::Ne_, typename SysTraits<SysT_l>::Si_>;
+
 /*! \brief Calculate the parallel composition between two systems
  * \details The composed states are sorted by the right operand indexes:
  * e.g. indexes(sys0.size{3} || sys.size{2}) =
@@ -55,13 +71,15 @@ namespace op {
  * \return A concrete system which represents a parallel composition
  * between two systems
  */
-template<uint8_t NEvents, typename StorageIndex, class TSys0>
-DESystem<NEvents, StorageIndex> constexpr synchronize(
-  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
-  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1) noexcept
+template<class SysT_l, class SysT_r>
+DESystem_t<SysT_l> constexpr synchronize(SysT_l const& aSys0,
+                                         SysT_r const& aSys1) noexcept
 {
+    uint8_t constexpr NEvents = SysTraits<SysT_l>::Ne_;
+    using StorageIndex = typename SysTraits<SysT_l>::Si_;
+
     DESystem<NEvents, StorageIndex> sys = DESystem<NEvents, StorageIndex>(
-      SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 });
+      SyncSysProxy<SysT_l, SysT_r>{ aSys0, aSys1 });
 
     return sys;
 }
@@ -79,12 +97,12 @@ DESystem<NEvents, StorageIndex> constexpr synchronize(
  * \return A virtual system which represents a parallel composition
  * between two systems.
  */
-template<uint8_t NEvents, typename StorageIndex, class TSys0>
-SyncSysProxy<NEvents, StorageIndex> constexpr synchronizeStage1(
-  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys0,
-  DESystemBase<NEvents, StorageIndex, TSys0> const& aSys1) noexcept
+template<class SysT_l, class SysT_r>
+SyncSysProxy<SysT_l, SysT_r> constexpr synchronizeStage1(
+  SysT_l const& aSys0,
+  SysT_r const& aSys1) noexcept
 {
-    return SyncSysProxy<NEvents, StorageIndex>{ aSys0, aSys1 };
+    return SyncSysProxy<SysT_l, SysT_r>{ aSys0, aSys1 };
 }
 
 /*! \brief Final stage of the lazy parallel composition evaluation
@@ -95,10 +113,11 @@ SyncSysProxy<NEvents, StorageIndex> constexpr synchronizeStage1(
  * @param[out] aVirtualSys Reference to the system which will be transformed.
  * \return void
  */
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-synchronizeEmptyStage2(
-  SyncSysProxy<NEvents, StorageIndex> const&& aVirtualSys) noexcept;
+synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
+                       SysT_l,
+                       SysT_r) noexcept;
 
 /*! \brief transform a virtual system in a real system: optmized to supervisor
  * synthesis
@@ -111,10 +130,9 @@ synchronizeEmptyStage2(
  * @param[out] aVirtualSys Reference to the system which will be transformed.
  * \return void
  */
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-synchronizeStage2(
-  SyncSysProxy<NEvents, StorageIndex> const&& aVirtualSys) noexcept;
+synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
 /*! \brief Remove bad states recursively
  * \details Remove a state and all the states that become a bad state when the
@@ -130,13 +148,13 @@ synchronizeStage2(
  * @param aRmTable A hash table containing all the removed states so far
  * \return void
  */
-template<uint8_t NEvents, typename StorageIndex, class StTabT>
+template<class SysT_l, class SysT_r, class StTabT, typename StorageIndex>
 inline void
-removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+removeBadStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
                  StTabT& aC,
                  StorageIndex const& aQ,
-                 EventsSet<NEvents> const& aNonContrBit,
-                 StatesTableHost<StorageIndex>& aRmTable) noexcept;
+                 EventsSet_t<SysT_l> const& aNonContrBit,
+                 StatesTableHost_t<SysT_l>& aRmTable) noexcept;
 
 /*! \brief Computes the monolithic supervisor of a plant and a spec
  *
@@ -145,12 +163,10 @@ removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
  * @param aNonContr Hash table containing all non-controllable events indexes.
  * \return The monolithic supervisorconcrete system
  */
-template<uint8_t NEvents, typename StorageIndex>
-DESystem<NEvents, StorageIndex>
-supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aP,
-     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aE,
+template<class SysT_l, class SysT_r>
+DESystem<SysTraits<SysT_l>::Ne_, typename SysTraits<SysT_l>::Si_>
+supC(SysT_l const& aP,
+     SysT_r const& aE,
      EventsTableHost const& aNonContr) noexcept;
 
 /*! \brief Generate a expression tree of synchronize operations

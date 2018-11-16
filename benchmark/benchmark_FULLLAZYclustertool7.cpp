@@ -122,8 +122,10 @@ main()
 
     std::cout << "Computing the supervisor" << std::endl;
     t1 = high_resolution_clock::now();
-    auto supervisor =
-      cldes::op::SuperProxy<56, StorageIndex>(plant, spec, non_contr);
+    auto supervisor = cldes::op::SuperProxy<cldes::DESystem<56, StorageIndex>,
+                                            cldes::DESystem<56, StorageIndex>>{
+        plant, spec, non_contr
+    };
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<microseconds>(t2 - t1).count();

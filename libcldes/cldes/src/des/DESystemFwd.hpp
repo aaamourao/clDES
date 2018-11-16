@@ -88,7 +88,7 @@ namespace op {
 /*
  * Forward declaration of the synchronize virtual proxy
  */
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 class SyncSysProxy;
 }
 

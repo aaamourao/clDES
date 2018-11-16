@@ -23,7 +23,7 @@
  LacSED - Laboratorio de Analise e Controle de Sistemas a Eventos Discretos
  Universidade Federal de Minas Gerais
 
- File: cldes/src/operations/SyncSysProxyCore.hpp
+ File: cldes/src/operations/SuperProxyCore.hpp
  Description: includes and alias.
  =========================================================================
 */
@@ -33,28 +33,20 @@
 namespace cldes {
 namespace op {
 
-// Forward declaration of friend function
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
-// Forward declaration of friend function
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-synchronizeEmptyStage2(
-  SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept;
+synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
-// Alias to events hash map
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
-// Forward declaration of friend function
-template<uint8_t NEvents, typename StorageIndex>
-DESystem<NEvents, StorageIndex>
-supC(
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aP,
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aE,
-  EventsTableHost const& aNonContr) noexcept;
+template<class SysT_l, class SysT_r>
+DESystem<SysTraits<SysT_l>::Ne_, typename SysTraits<SysT_l>::Si_>
+supC(SysT_l const& aP,
+     SysT_r const& aE,
+     EventsTableHost const& aNonContr) noexcept;
 }
 }

@@ -35,11 +35,14 @@
 namespace cldes {
 namespace op {
 
-template<uint8_t NEvents, typename StorageIndex>
+// TODO: put all stage2 on impl and make a single function
+template<class SysT_l, class SysT_r>
 void
-synchronizeEmptyStage2(
-  SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
+synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept
 {
+    uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
+    using StorageIndex = typename SysTraits<SysT_l>::Si_;
+
     StorageIndex const sparcitypattern = aproxSpacPat_(aVirtualSys);
     aVirtualSys.resizeStatesEvents(aVirtualSys.states_number_);
     aVirtualSys.trans_number_ = 0;
@@ -64,10 +67,12 @@ synchronizeEmptyStage2(
     return;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 void
-synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
+synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept
 {
+    using StorageIndex = typename SysTraits<SysT_l>::Si_;
+
     StorageIndex const sparcitypattern = aproxSpacPat_(aVirtualSys);
     SparseStatesMap<StorageIndex> statesmap;
     aVirtualSys.setStatesNumber(aVirtualSys.virtual_states_.size());
@@ -91,9 +96,13 @@ synchronizeStage2(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys) noexcept
     return;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-inline StorageIndex
-aproxSpacPat_(SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept
+template<class SysT_l, class SysT_r>
+#ifdef __GNUC__
+long unsigned
+#elif __clang__
+inline long unsigned
+#endif
+aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept
 {
     if (aV.trans_number_ > 0) {
         return aV.trans_number_;
@@ -101,16 +110,18 @@ aproxSpacPat_(SyncSysProxy<NEvents, StorageIndex> const& aV) noexcept
     return (aV.events_.count() * aV.states_number_) / 3;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 #ifdef __GNUC__
 void
 #elif __clang__
 inline void
 #endif
-processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
+processVirtSys_(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
                 unsigned long const& aSparcityPattern,
-                SparseStatesMap<StorageIndex>&& aStatesMap) noexcept
+                SparseStatesMap_t<SysT_l>&& aStatesMap) noexcept
 {
+    uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
+
     aVirtualSys.triplet_.reserve(aSparcityPattern);
     aVirtualSys.trans_number_ = 0;
     while (!aVirtualSys.transtriplet_.empty()) {
@@ -134,13 +145,13 @@ processVirtSys_(SyncSysProxy<NEvents, StorageIndex>& aVirtualSys,
     return;
 }
 
-template<uint8_t NEvents, typename StorageIndex, class StTabT>
+template<class SysT_l, class SysT_r, class StTabT, typename StorageIndex>
 inline void
-removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
+removeBadStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
                  StTabT& aC,
                  StorageIndex const& aQ,
-                 EventsSet<NEvents> const& aNonContrBit,
-                 StatesTableHost<StorageIndex>& aRmTable) noexcept
+                 EventsSet_t<SysT_l> const& aNonContrBit,
+                 StatesTableHost_t<SysT_l>& aRmTable) noexcept
 {
     StatesStack<StorageIndex> f;
     f.push(aQ);
@@ -172,13 +183,13 @@ removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
     return;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r, typename StorageIndex>
 inline void
-removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
-                 transMap<StorageIndex>& aC,
+removeBadStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
+                 transMap_t<SysT_l>& aC,
                  StorageIndex const& aQ,
-                 EventsSet<NEvents> const& aNonContrBit,
-                 StatesTableHost<StorageIndex>& aRmTable) noexcept
+                 EventsSet_t<SysT_l> const& aNonContrBit,
+                 StatesTableHost_t<SysT_l>& aRmTable) noexcept
 {
     StatesStack<StorageIndex> f;
     f.push(aQ);
@@ -211,15 +222,16 @@ removeBadStates_(SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
     return;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
-DESystem<NEvents, StorageIndex>
-supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aP,
-     DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-       aE,
+template<class SysT_l, class SysT_r>
+DESystem_t<SysT_l>
+supC(SysT_l const& aP,
+     SysT_r const& aE,
      EventsTableHost const& aNonContr) noexcept
 {
-    SyncSysProxy<NEvents, StorageIndex> virtualsys{ aP, aE };
+    uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
+    using StorageIndex = typename SysTraits<SysT_l>::Si_;
+
+    SyncSysProxy<SysT_l, SysT_r> virtualsys{ aP, aE };
     EventsSet<NEvents> non_contr_bit;
     EventsSet<NEvents> p_non_contr_bit;
 
@@ -248,19 +260,18 @@ supC(DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
     return sys;
 }
 
-template<uint8_t NEvents, typename StorageIndex>
+template<class SysT_l, class SysT_r>
 #ifdef __GNUC__
-transMap<StorageIndex>
+transMap_t<SysT_l>
 #elif __clang__
-inline transMap<StorageIndex>
+inline transMap_t<SysT_l>
 #endif
-computeSupCStates_(
-  SyncSysProxy<NEvents, StorageIndex> const& aVirtualSys,
-  EventsSet<NEvents> const&& aNonContrBit,
-  EventsSet<NEvents> const&& aPNonContrBit,
-  DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>> const&
-    aP) noexcept
+computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
+                   EventsSet_t<SysT_l> const&& aNonContrBit,
+                   EventsSet_t<SysT_l> const&& aPNonContrBit,
+                   SysT_l const& aP) noexcept
 {
+    using StorageIndex = typename SysTraits<SysT_l>::Si_;
     transMap<StorageIndex> c;
     StatesTableHost<StorageIndex> rmtable;
     StatesStack<StorageIndex> f;
@@ -274,8 +285,7 @@ computeSupCStates_(
             auto const in_ncqx =
               aPNonContrBit & aP.getStateEvents(q % aVirtualSys.n_states_sys0_);
             if ((in_ncqx & q_events) != in_ncqx) {
-                removeBadStates_<NEvents, StorageIndex>(
-                  aVirtualSys, c, q, aNonContrBit, rmtable);
+                removeBadStates_(aVirtualSys, c, q, aNonContrBit, rmtable);
             } else {
                 c[q] = new InvArgtrans<StorageIndex>();
                 cldes::ScalarType event = 0;
@@ -357,9 +367,9 @@ computeSupCStates_(
 //     return supervisor;
 // }
 
-template<uint8_t NEvents, typename StorageIndex, class SysT>
+template<class SysT>
 SysT&
-proj(SysT const& aSys, EventsSet<NEvents> const&) noexcept
+proj(SysT const& aSys, EventsSet_t<SysT> const&) noexcept
 {
     return aSys;
 }

@@ -62,6 +62,18 @@ uint64_t const kMaxEventsGPU = std::numeric_limits<uint64_t>::max();
 // Default DESystem events
 uint8_t const kDefaultEventsN = 25u;
 
+template<class SysT>
+struct SysTraits;
+
+template<template<uint8_t, typename> class SysT,
+         uint8_t NEvents,
+         typename StorageIndex>
+struct SysTraits<SysT<NEvents, StorageIndex>>
+{
+    uint8_t static constexpr Ne_ = NEvents;
+    using Si_ = StorageIndex;
+};
+
 } // namespace cldes
 
 #endif // CLDES_CONSTANTS_HPP
