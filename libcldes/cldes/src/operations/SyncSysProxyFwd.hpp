@@ -52,27 +52,7 @@ supC(SysT_l const& aP,
      SysT_r const& aE,
      EventsTableHost const& aNonContr) noexcept;
 
-#ifdef __GNUC__
-
-template<class SysT_l, class SysT_r>
-transMap<typename SysTraits<SysT_l>::Si_>
-computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
-                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aNonContrBit,
-                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aPNonContrBit,
-                   SysT_l const& aP) noexcept;
-
-template<class SysT_l, class SysT_r>
-void
-processVirtSys_(
-  SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
-  unsigned long const& aSparcityPattern,
-  SparseStatesMap<typename SysTraits<SysT_l>::Si_>&& aStatesMap) noexcept;
-
-template<class SysT_l, class SysT_r>
-long unsigned
-aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
-
-#elif __clang__
+#ifdef __clang__
 
 template<class SysT_l, class SysT_r>
 inline transMap<typename SysTraits<SysT_l>::Si_>
@@ -90,6 +70,26 @@ processVirtSys_(
 
 template<class SysT_l, class SysT_r>
 inline long unsigned
+aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
+
+#elif __GNUC__
+
+template<class SysT_l, class SysT_r>
+transMap<typename SysTraits<SysT_l>::Si_>
+computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
+                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aNonContrBit,
+                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aPNonContrBit,
+                   SysT_l const& aP) noexcept;
+
+template<class SysT_l, class SysT_r>
+void
+processVirtSys_(
+  SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
+  unsigned long const& aSparcityPattern,
+  SparseStatesMap<typename SysTraits<SysT_l>::Si_>&& aStatesMap) noexcept;
+
+template<class SysT_l, class SysT_r>
+long unsigned
 aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
 
 #endif

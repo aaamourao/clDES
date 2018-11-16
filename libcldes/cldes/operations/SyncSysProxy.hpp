@@ -265,21 +265,7 @@ private:
                           SysT_r const& aE,
                           EventsTableHost const& aNonContr) noexcept;
 
-#ifdef __GNUC__
-    friend transMap<StorageIndex> computeSupCStates_<>(
-      SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
-      EventsSet<NEvents> const&& aNonContrBit,
-      EventsSet<NEvents> const&& aPNonContrBit,
-      SysT_l const& aP) noexcept;
-
-    friend void processVirtSys_<>(
-      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
-      unsigned long const& aSparcityPattern,
-      SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
-
-    friend long unsigned  aproxSpacPat_<>(
-      SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
-#elif __clang__
+#ifdef __clang__
     friend inline transMap<StorageIndex> computeSupCStates_<>(
       SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
       EventsSet<NEvents> const&& aNonContrBit,
@@ -292,6 +278,20 @@ private:
       SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
 
     friend inline long unsigned aproxSpacPat_<>(
+      SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
+#elif __GNUC__
+    friend transMap<StorageIndex> computeSupCStates_<>(
+      SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
+      EventsSet<NEvents> const&& aNonContrBit,
+      EventsSet<NEvents> const&& aPNonContrBit,
+      SysT_l const& aP) noexcept;
+
+    friend void processVirtSys_<>(
+      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
+      unsigned long const& aSparcityPattern,
+      SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
+
+    friend long unsigned  aproxSpacPat_<>(
       SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
 #endif
 

@@ -97,10 +97,10 @@ synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept
 }
 
 template<class SysT_l, class SysT_r>
-#ifdef __GNUC__
-long unsigned
-#elif __clang__
+#ifdef __clang__
 inline long unsigned
+#elif __GNUC__
+long unsigned
 #endif
 aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept
 {
@@ -111,9 +111,9 @@ aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept
 }
 
 template<class SysT_l, class SysT_r>
-#ifdef __GNUC__
+#ifdef __clang__
 void
-#elif __clang__
+#elif __GNUC__
 inline void
 #endif
 processVirtSys_(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
@@ -261,9 +261,9 @@ supC(SysT_l const& aP,
 }
 
 template<class SysT_l, class SysT_r>
-#ifdef __GNUC__
+#ifdef __clang__
 transMap_t<SysT_l>
-#elif __clang__
+#elif __GNUC__
 inline transMap_t<SysT_l>
 #endif
 computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
