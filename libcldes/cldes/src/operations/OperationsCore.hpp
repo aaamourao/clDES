@@ -112,9 +112,9 @@ aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept
 
 template<class SysT_l, class SysT_r>
 #ifdef __clang__
-void
-#elif __GNUC__
 inline void
+#elif __GNUC__
+void
 #endif
 processVirtSys_(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
                 unsigned long const& aSparcityPattern,
@@ -262,9 +262,9 @@ supC(SysT_l const& aP,
 
 template<class SysT_l, class SysT_r>
 #ifdef __clang__
-transMap_t<SysT_l>
-#elif __GNUC__
 inline transMap_t<SysT_l>
+#elif __GNUC__
+transMap_t<SysT_l>
 #endif
 computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
                    EventsSet_t<SysT_l> const&& aNonContrBit,
@@ -310,14 +310,10 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
     return c;
 }
 
-// template<uint8_t NEvents, typename StorageIndex>
-// BinExprTree<NEvents, StorageIndex>
-// GenBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems)
+// template<class SysT_l, class SysT_r>
+// GenericSystem
+// createBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems)
 // {
-//     using SyncSysProxy = SyncSysProxy<NEvents, StorageIndex>;
-//     using DESystemBase = DESystemBase<NEvents, StorageIndex, SyncSysProxy>;
-//     using DESystem = DESystem<NEvents, StorageIndex>;
-//
 //     std::vector<std::shared_ptr<DESystemBase>> sys;
 //     std::vector<std::shared_ptr<DESystemBase>> nodes_ref;
 //
@@ -349,7 +345,7 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
 //     }
 //     return std::make_pair(sys[0], nodes_ref);
 // }
-//
+
 // template<uint8_t NEvents, typename StorageIndex>
 // DESystem<NEvents, StorageIndex>
 // supC(DESVector<NEvents, StorageIndex> const& aPlants,

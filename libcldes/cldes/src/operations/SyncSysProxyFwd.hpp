@@ -62,14 +62,14 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
                    SysT_l const& aP) noexcept;
 
 template<class SysT_l, class SysT_r>
-inline void
+void
 processVirtSys_(
   SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
   unsigned long const& aSparcityPattern,
   SparseStatesMap<typename SysTraits<SysT_l>::Si_>&& aStatesMap) noexcept;
 
 template<class SysT_l, class SysT_r>
-inline long unsigned
+long unsigned
 aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
 
 #elif __GNUC__
