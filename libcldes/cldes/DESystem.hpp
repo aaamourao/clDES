@@ -566,7 +566,7 @@ private:
      * Keep it free whenever it is possible.
      * TODO: Make unique
      */
-    std::shared_ptr<GraphHostData> mutable inv_graph_;
+    std::shared_ptr<GraphHostData const> mutable inv_graph_;
 
     /*! \brief Keeps if caching graph data on device is enabled
      * \details If dev_cache_enabled_ is true, the graph should be cached on

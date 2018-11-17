@@ -271,7 +271,7 @@ template<uint8_t NEvents, typename StorageIndex>
 void
 DESystem<NEvents, StorageIndex>::allocateInvertedGraph_impl() const noexcept
 {
-    inv_graph_ = std::make_shared<GraphHostData>(graph_.transpose());
+    inv_graph_ = std::make_shared<GraphHostData const>(graph_.transpose());
 }
 
 template<uint8_t NEvents, typename StorageIndex>
