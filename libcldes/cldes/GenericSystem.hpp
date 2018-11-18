@@ -86,7 +86,7 @@ struct GenericSystem
 
         virtual InnerSystemBase* clone() const noexcept override
         {
-            return new InnerSystem{ innersys_ };
+            return new InnerSystem{ SysT_{ innersys_ } };
         }
 
         SysT_& operator*() { return innersys_; }
@@ -121,7 +121,7 @@ struct GenericSystem
     GenericSystem& operator=(GenericSystem const& aSys)
     {
         GenericSystem tmp{ aSys };
-        std::swap(tmp, *this);
+        inner_ = std::move(tmp.inner_);
         return *this;
     }
 
@@ -144,9 +144,13 @@ struct GenericSystem
     bool isVirtual() const noexcept { return inner_->isVirtual(); }
 
     typename InnerSystemBase::ptr inner_;
-
-private:
-    explicit GenericSystem() = default;
 };
+
+template<class SysT_l, class SysT_r>
+bool constexpr
+operator==(GenericSystem const& aLhs, GenericSystem const& aRhs)
+{
+    return aLhs.template cast<SysT_l>() == aRhs.template cast<SysT_r>();
+}
 }
 #endif // GENERIC_SYSTEM_HPP
