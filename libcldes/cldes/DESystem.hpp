@@ -443,6 +443,18 @@ public:
         return *this;
     }
 
+    bool operator==(DESystem const& aRhs)
+    {
+        if (this->init_state_ != aRhs.init_state_) {
+            return false;
+        } else if (this->marked_states_ != aRhs.marked_states_) {
+            return false;
+        } else if (graph_ != aRhs.graph_) {
+            return false;
+        }
+        return true;
+    }
+
 protected:
     /*! \brief Method for caching the graph
      * \details Copy the graph after transposing it to the device memory.
@@ -601,6 +613,10 @@ struct GenericSystem::InnerSystem<DESystem<NEvents, StorageIndex>>
       : innersys_{ std::move(aSys) }
     {}
 
+    wrappedSysT& operator*() { return innersys_; }
+
+    wrappedSysT const& operator*() const { return innersys_; }
+
     std::type_info const& type() const noexcept override
     {
         return typeid(wrappedSysT);
@@ -608,7 +624,7 @@ struct GenericSystem::InnerSystem<DESystem<NEvents, StorageIndex>>
 
     InnerSystemBase* clone() const noexcept override
     {
-        return new InnerSystem{ innersys_ };
+        return new InnerSystem<wrappedSysT>{ wrappedSysT{ innersys_ } };
     }
 
     long unsigned size() const noexcept override { return innersys_.size(); }
