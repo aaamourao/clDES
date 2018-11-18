@@ -583,6 +583,41 @@ private:
     bool is_cache_outdated_;
 };
 
+/*! \brief Specialize GenericSystem::InnerSystem struct to all derived classes
+ *
+ * details: Enables dynamic polymorphism with all classes derived from
+ * DESystemBase by a type erasure approach.
+ */
+template<uint8_t NEvents, typename StorageIndex>
+struct GenericSystem::InnerSystem<DESystem<NEvents, StorageIndex>>
+  : GenericSystem::InnerSystemBase
+{
+    using wrappedSysT = DESystem<NEvents, StorageIndex>;
+    using Event_t = ScalarType;
+    using State_t = StorageIndex;
+    using Size_t = StorageIndex;
+
+    InnerSystem(DESystem<NEvents, StorageIndex> aSys)
+      : innersys_{ std::move(aSys) }
+    {}
+
+    std::type_info const& type() const noexcept override
+    {
+        return typeid(wrappedSysT);
+    }
+
+    InnerSystemBase* clone() const noexcept override
+    {
+        return new InnerSystem{ innersys_ };
+    }
+
+    long unsigned size() const noexcept override { return innersys_.size(); }
+
+    bool isVirtual() const noexcept override { return innersys_.isVirtual(); }
+
+private:
+    wrappedSysT innersys_;
+};
 } // namespace cldes
 
 // class methods definitions

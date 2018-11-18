@@ -41,6 +41,7 @@
 
 #include "cldes/Constants.hpp"
 #include "cldes/EventsSet.hpp"
+#include "cldes/GenericSystem.hpp"
 #include "cldes/src/des/DESystemBaseFwd.hpp"
 
 namespace cldes {
