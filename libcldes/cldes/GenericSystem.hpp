@@ -152,5 +152,12 @@ operator==(GenericSystem const& aLhs, GenericSystem const& aRhs)
 {
     return aLhs.template cast<SysT_l>() == aRhs.template cast<SysT_r>();
 }
+
+template<>
+struct SysTraits<GenericSystem>
+{
+    uint8_t static constexpr Ne_ = 64;
+    using Si_ = unsigned long;
+};
 }
 #endif // GENERIC_SYSTEM_HPP

@@ -310,41 +310,61 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
     return c;
 }
 
-// template<class SysT_l, class SysT_r>
-// GenericSystem
-// createBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems)
-// {
-//     std::vector<std::shared_ptr<DESystemBase>> sys;
-//     std::vector<std::shared_ptr<DESystemBase>> nodes_ref;
-//
-//     for (auto s : aSystems) { // initialize tree
-//         auto node = std::make_shared<DESystem>(s);
-//         sys.push_back(node);
-//         nodes_ref.push_back(node);
-//     }
-//     while (sys.size() != 1) {
-//         auto cp_sys = std::move(sys);
-//         if (cp_sys.size() % 2 != 0) {
-//             std::shared_ptr<DESystemBase> node =
-//               cp_sys.back(); // node is a shared ptr
-//             cp_sys.pop_back();
-//             sys.push_back(node);
-//         }
-//         size_t processed_nodes = 0ul;
-//         while (!cp_sys.empty()) { // So it has even number of items
-//             std::shared_ptr<DESystemBase> lhs = cp_sys.back();
-//             cp_sys.pop_back();
-//             std::shared_ptr<DESystemBase> rhs = cp_sys.back();
-//             cp_sys.pop_back();
-//             std::shared_ptr<DESystemBase> node =
-//               std::make_shared<SyncSysProxy>(SyncSysProxy{ *lhs, *rhs });
-//             nodes_ref.push_back(node);
-//             sys.push_back(node);
-//             processed_nodes += 2;
-//         }
-//     }
-//     return std::make_pair(sys[0], nodes_ref);
-// }
+template<uint8_t NEvents, typename StorageIndex>
+std::vector<GenericSystem>
+createBinExprTree(std::vector<DESystem<NEvents, StorageIndex>> const& aSystems)
+{
+    using RealSysT = DESystem<NEvents, StorageIndex>;
+    std::vector<GenericSystem> nodes =
+      maxEvtDisperLeafs_(std::forward<RealSysT const&>(aSystems));
+    auto sys = nodes;
+    while (sys.size() != 1) {
+        auto cp_sys = std::move(sys);
+        if (cp_sys.size() % 2 != 0) {
+            auto node = cp_sys.back();
+            cp_sys.pop_back();
+            sys.push_back(node);
+        }
+        while (!cp_sys.empty()) {
+            GenericSystem lhs = cp_sys.back();
+            cp_sys.pop_back();
+            GenericSystem rhs = cp_sys.back();
+            cp_sys.pop_back();
+            auto node = GenericSystem{
+                SyncSysProxy<GenericSystem, GenericSystem>{ lhs, rhs }
+            };
+            nodes.push_back(node);
+            sys.push_back(node);
+        }
+    }
+    // return std::make_pair(sys[0], nodes_ref);
+    return nodes;
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+inline std::vector<GenericSystem>
+maxEvtDisperLeafs_(std::vector<DESystem<NEvents, StorageIndex>> const& aSystems)
+{
+    using RealSysT = DESystem<NEvents, StorageIndex>;
+    std::vector<GenericSystem> nodes;
+    for (auto s : aSystems) {
+        RealSysT node = s;
+        // TODO: there is a better way of doing it without pos and using
+        // iterators
+        uint32_t pos = 0;
+        for (auto ngen : nodes) {
+            auto n = ngen.template cast<RealSysT>();
+            if ((n.getEvents() & s.getEvents()).any()) {
+                node = synchronize(n, s);
+                nodes.erase(nodes.begin(), nodes.begin() + pos);
+                break;
+            }
+            ++pos;
+        }
+        nodes.push_back(GenericSystem{ node });
+    }
+    return nodes;
+}
 
 // template<uint8_t NEvents, typename StorageIndex>
 // DESystem<NEvents, StorageIndex>
