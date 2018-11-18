@@ -39,31 +39,18 @@
 
 namespace cldes {
 namespace op {
-/*! \brief tuple representing a state of a virtual synch (stage 1)
- * \details (state_id_g0, state_id_g1)
- */
 template<typename StorageIndex>
 using StatesTupleHost = std::pair<StorageIndex, StorageIndex>;
 
-/*! \brief Hash set of virtual states (stage 1)
- * \details st = state_id_g1 * g0.size() + state_id_g0
- */
 template<typename StorageIndex>
 using StatesTableHost = spp::sparse_hash_set<StorageIndex>;
 
-/*! \brief Hash map type for maps a virtual state to its new index
- * \details It is necessary when states are removed.
- */
 template<typename StorageIndex>
 using SparseStatesMap = spp::sparse_hash_map<StorageIndex, StorageIndex>;
 
-/*! \brief Stack of states type
- */
 template<typename StorageIndex>
 using StatesStack = std::stack<StorageIndex>;
 
-/*! \brief Hash set containing events indexes
- */
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
 
 template<uint8_t NEvents, typename StorageIndex>
