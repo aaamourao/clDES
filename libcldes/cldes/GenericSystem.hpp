@@ -42,6 +42,7 @@
 #define GENERIC_SYSTEM_HPP
 
 #include <typeinfo>
+#include <set>
 
 template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
 class DESystemBase;
@@ -49,6 +50,8 @@ class DESystemBase;
 namespace cldes {
 struct GenericSystem
 {
+    using StatesSet = std::set<uint64_t>;
+
     struct InnerSystemBase
     {
         using ptr = std::unique_ptr<InnerSystemBase>;
@@ -62,6 +65,14 @@ struct GenericSystem
         virtual long unsigned size() const noexcept = 0;
 
         virtual bool isVirtual() const noexcept = 0;
+
+        virtual uint64_t getStatesNumber() const noexcept = 0;
+
+        virtual uint64_t getEvents() const noexcept = 0;
+
+        virtual uint64_t getInitialState() const noexcept = 0;
+
+        virtual StatesSet getMarkedStates() const noexcept = 0;
     };
 
     template<typename SysT_>
@@ -96,6 +107,14 @@ struct GenericSystem
         virtual long unsigned size() const noexcept override;
 
         virtual bool isVirtual() const noexcept override;
+
+        virtual uint64_t getStatesNumber() const noexcept override;
+
+        virtual uint64_t getEvents() const noexcept override;
+
+        virtual uint64_t getInitialState() const noexcept override;
+
+        virtual StatesSet getMarkedStates() const noexcept override;
 
     private:
         SysT_ innersys_;
@@ -142,6 +161,23 @@ struct GenericSystem
     long unsigned size() const noexcept { return inner_->size(); }
 
     bool isVirtual() const noexcept { return inner_->isVirtual(); }
+
+    uint64_t getStatesNumber() const noexcept
+    {
+        return inner_->getStatesNumber();
+    }
+
+    uint64_t getEvents() const noexcept { return inner_->getEvents(); }
+
+    uint64_t getInitialState() const noexcept
+    {
+        return inner_->getInitialState();
+    }
+
+    StatesSet getMarkedStates() const noexcept
+    {
+        return inner_->getMarkedStates();
+    }
 
     typename InnerSystemBase::ptr inner_;
 };

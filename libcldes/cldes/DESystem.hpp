@@ -598,7 +598,7 @@ private:
 /*! \brief Specialize GenericSystem::InnerSystem struct to all derived classes
  *
  * details: Enables dynamic polymorphism with all classes derived from
- * DESystemBase by a type erasure approach.
+ * DESystem by a type erasure approach.
  */
 template<uint8_t NEvents, typename StorageIndex>
 struct GenericSystem::InnerSystem<DESystem<NEvents, StorageIndex>>
@@ -609,7 +609,7 @@ struct GenericSystem::InnerSystem<DESystem<NEvents, StorageIndex>>
     using State_t = StorageIndex;
     using Size_t = StorageIndex;
 
-    InnerSystem(DESystem<NEvents, StorageIndex> aSys)
+    InnerSystem(wrappedSysT aSys)
       : innersys_{ std::move(aSys) }
     {}
 
@@ -630,6 +630,28 @@ struct GenericSystem::InnerSystem<DESystem<NEvents, StorageIndex>>
     long unsigned size() const noexcept override { return innersys_.size(); }
 
     bool isVirtual() const noexcept override { return innersys_.isVirtual(); }
+
+    uint64_t getStatesNumber() const noexcept override
+    {
+        return innersys_.getStatesNumber();
+    }
+
+    uint64_t getEvents() const noexcept override
+    {
+        return innersys_.getEvents().to_ulong();
+    }
+
+    uint64_t getInitialState() const noexcept override
+    {
+        return innersys_.getInitialState();
+    }
+
+    StatesSet getMarkedStates() const noexcept override
+    {
+        typename wrappedSysT::StatesSet const markedset =
+          innersys_.getMarkedStates();
+        return StatesSet(markedset.begin(), markedset.end());
+    }
 
 private:
     wrappedSysT innersys_;

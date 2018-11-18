@@ -309,41 +309,10 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
     aVirtualSys.clearInvertedGraph();
     return c;
 }
-
-template<uint8_t NEvents, typename StorageIndex>
-std::vector<GenericSystem>
-createBinExprTree(std::vector<DESystem<NEvents, StorageIndex>> const& aSystems)
-{
-    using RealSysT = DESystem<NEvents, StorageIndex>;
-    std::vector<GenericSystem> nodes =
-      maxEvtDisperLeafs_(std::forward<RealSysT const&>(aSystems));
-    auto sys = nodes;
-    while (sys.size() != 1) {
-        auto cp_sys = std::move(sys);
-        if (cp_sys.size() % 2 != 0) {
-            auto node = cp_sys.back();
-            cp_sys.pop_back();
-            sys.push_back(node);
-        }
-        while (!cp_sys.empty()) {
-            GenericSystem lhs = cp_sys.back();
-            cp_sys.pop_back();
-            GenericSystem rhs = cp_sys.back();
-            cp_sys.pop_back();
-            auto node = GenericSystem{
-                SyncSysProxy<GenericSystem, GenericSystem>{ lhs, rhs }
-            };
-            nodes.push_back(node);
-            sys.push_back(node);
-        }
-    }
-    // return std::make_pair(sys[0], nodes_ref);
-    return nodes;
-}
-
 template<uint8_t NEvents, typename StorageIndex>
 inline std::vector<GenericSystem>
-maxEvtDisperLeafs_(std::vector<DESystem<NEvents, StorageIndex>> const& aSystems)
+maxEvtDisperLeaves_(
+  std::vector<DESystem<NEvents, StorageIndex>> const& aSystems)
 {
     using RealSysT = DESystem<NEvents, StorageIndex>;
     std::vector<GenericSystem> nodes;
@@ -366,22 +335,52 @@ maxEvtDisperLeafs_(std::vector<DESystem<NEvents, StorageIndex>> const& aSystems)
     return nodes;
 }
 
-// template<uint8_t NEvents, typename StorageIndex>
-// DESystem<NEvents, StorageIndex>
-// supC(DESVector<NEvents, StorageIndex> const& aPlants,
-//                 DESVector<NEvents, StorageIndex> const& aSpecs,
-//                 EventsTableHost const& aNonContr)
-// {
-//     using BinExprTree = BinExprTree<NEvents, StorageIndex>;
-//
-//     BinExprTree plant = GenBinExprTree(aPlants);
-//     BinExprTree spec = GenBinExprTree(aSpecs);
-//
-//     auto const supervisor = supC<NEvents, StorageIndex>(
-//       *(plant.first), *(spec.first), aNonContr);
-//
-//     return supervisor;
-// }
+template<uint8_t NEvents, typename StorageIndex>
+std::pair<GenericSystem, std::vector<GenericSystem>>
+createBinExprTree(std::vector<DESystem<NEvents, StorageIndex>> const& aSystems)
+{
+    std::vector<GenericSystem> nodes = maxEvtDisperLeaves_(aSystems);
+    auto sys = nodes;
+    while (sys.size() != 1) {
+        auto cp_sys = std::move(sys);
+        if (cp_sys.size() % 2 != 0) {
+            auto node = cp_sys.back();
+            cp_sys.pop_back();
+            sys.push_back(node);
+        }
+        while (!cp_sys.empty()) {
+            GenericSystem lhs = cp_sys.back();
+            cp_sys.pop_back();
+            GenericSystem rhs = cp_sys.back();
+            cp_sys.pop_back();
+            auto node = GenericSystem{
+                SyncSysProxy<GenericSystem, GenericSystem>{ lhs, rhs }
+            };
+            nodes.push_back(node);
+            sys.push_back(node);
+        }
+    }
+    return std::make_pair(sys[0], nodes);
+}
+
+template<uint8_t NEvents, typename StorageIndex>
+DESystem<NEvents, StorageIndex>
+supC(std::vector<DESystem<NEvents, StorageIndex>> const& aPlants,
+     std::vector<DESystem<NEvents, StorageIndex>> const& aSpecs,
+     EventsTableHost const& aNonContr)
+{
+    // using BinExprTree = BinExprTree<NEvents, StorageIndex>;
+    std::vector<DESystem<NEvents, StorageIndex>> kvec(aPlants);
+    kvec.insert(k.end(), aSpecs.begin(), aSpecs.end());
+
+    auto k = createBinExprTree(kvec);
+    auto plant = createBinExprTree(aPlants);
+
+    auto const supervisor =
+      supC(tree.first, plant.first, aNonContr);
+
+    return supervisor;
+}
 
 template<class SysT>
 SysT&
