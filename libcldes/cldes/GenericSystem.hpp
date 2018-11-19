@@ -41,16 +41,16 @@
 #ifndef GENERIC_SYSTEM_HPP
 #define GENERIC_SYSTEM_HPP
 
-#include <typeinfo>
 #include <set>
-
-template<uint8_t NEvents, typename StorageIndex, class RealDESystem>
-class DESystemBase;
+#include <typeinfo>
 
 namespace cldes {
+template<uint8_t NEvents, typename StorageIndex>
 struct GenericSystem
 {
-    using StatesSet = std::set<uint64_t>;
+    using StatesSet = std::set<StorageIndex>;
+    using StorageIndexSigned = typename std::make_signed<StorageIndex>::type;
+    using StatesArray = std::vector<StorageIndex>;
 
     struct InnerSystemBase
     {
@@ -62,30 +62,44 @@ struct GenericSystem
 
         virtual InnerSystemBase* clone() const noexcept = 0;
 
-        virtual long unsigned size() const noexcept = 0;
+        virtual StorageIndex size() const noexcept = 0;
 
         virtual bool isVirtual() const noexcept = 0;
 
-        virtual uint64_t getStatesNumber() const noexcept = 0;
+        virtual StorageIndex getStatesNumber() const noexcept = 0;
 
-        virtual uint64_t getEvents() const noexcept = 0;
+        virtual EventsSet<NEvents> getEvents() const noexcept = 0;
 
-        virtual uint64_t getInitialState() const noexcept = 0;
+        virtual StorageIndex getInitialState() const noexcept = 0;
 
         virtual StatesSet getMarkedStates() const noexcept = 0;
+
+        virtual EventsSet<NEvents> getStateEvents(StorageIndex const& aQ) const
+          noexcept = 0;
+
+        virtual EventsSet<NEvents> getInvStateEvents(
+          StorageIndex const& aQ) const noexcept = 0;
+
+        virtual StorageIndexSigned trans(StorageIndex const& aQ,
+                                         ScalarType e) const noexcept = 0;
+
+        virtual StatesArray invtrans(StorageIndex const& aQ, ScalarType e) const
+          noexcept = 0;
+
+        virtual bool containstrans(StorageIndex const& aQ, ScalarType e) const
+          noexcept = 0;
+
+        virtual bool containsinvtrans(StorageIndex const& aQ,
+                                      ScalarType e) const noexcept = 0;
+
+        virtual void allocateInvertedGraph() const noexcept = 0;
+
+        virtual void clearInvertedGraph() const noexcept = 0;
     };
 
     template<typename SysT_>
     struct InnerSystem : InnerSystemBase
     {
-        /* User should define:
-         * EventsSet_t
-         * StatesSet_t
-         * Event_t
-         * State_t
-         * Size_t
-         */
-
         InnerSystem(SysT_ aSys)
           : innersys_{ std::move(aSys) }
         {}
@@ -97,24 +111,85 @@ struct GenericSystem
 
         virtual InnerSystemBase* clone() const noexcept override
         {
-            return new InnerSystem{ SysT_{ innersys_ } };
+            return new InnerSystem<SysT_>{ SysT_{ innersys_ } };
         }
 
         SysT_& operator*() { return innersys_; }
 
         SysT_ const& operator*() const { return innersys_; }
 
-        virtual long unsigned size() const noexcept override;
+        StorageIndex size() const noexcept override { return innersys_.size(); }
 
-        virtual bool isVirtual() const noexcept override;
+        bool isVirtual() const noexcept override
+        {
+            return innersys_.isVirtual();
+        }
 
-        virtual uint64_t getStatesNumber() const noexcept override;
+        StorageIndex getStatesNumber() const noexcept override
+        {
+            return innersys_.getStatesNumber();
+        }
 
-        virtual uint64_t getEvents() const noexcept override;
+        EventsSet<NEvents> getEvents() const noexcept override
+        {
+            return innersys_.getEvents();
+        }
 
-        virtual uint64_t getInitialState() const noexcept override;
+        StorageIndex getInitialState() const noexcept override
+        {
+            return innersys_.getInitialState();
+        }
 
-        virtual StatesSet getMarkedStates() const noexcept override;
+        StatesSet getMarkedStates() const noexcept override
+        {
+            return innersys_.getMarkedStates();
+        }
+
+        EventsSet<NEvents> getStateEvents(StorageIndex const& aQ) const
+          noexcept override
+        {
+            return innersys_.getStateEvents(aQ);
+        }
+
+        EventsSet<NEvents> getInvStateEvents(StorageIndex const& aQ) const
+          noexcept override
+        {
+            return innersys_.getInvStateEvents(aQ);
+        }
+
+        StorageIndexSigned trans(StorageIndex const& aQ, ScalarType e) const
+          noexcept override
+        {
+            return innersys_.trans(aQ, e);
+        }
+
+        StatesArray invtrans(StorageIndex const& aQ, ScalarType e) const
+          noexcept override
+        {
+            return innersys_.invtrans(aQ, e);
+        }
+
+        bool containstrans(StorageIndex const& aQ, ScalarType e) const
+          noexcept override
+        {
+            return innersys_.containstrans(aQ, e);
+        }
+
+        bool containsinvtrans(StorageIndex const& aQ, ScalarType e) const
+          noexcept override
+        {
+            return innersys_.containsinvtrans(aQ, e);
+        }
+
+        void allocateInvertedGraph() const noexcept override
+        {
+            return innersys_.allocateInvertedGraph();
+        }
+
+        void clearInvertedGraph() const noexcept override
+        {
+            return innersys_.clearInvertedGraph();
+        }
 
     private:
         SysT_ innersys_;
@@ -158,18 +233,21 @@ struct GenericSystem
 
     std::type_info const& type() const noexcept { return inner_->type(); }
 
-    long unsigned size() const noexcept { return inner_->size(); }
+    StorageIndex size() const noexcept { return inner_->size(); }
 
     bool isVirtual() const noexcept { return inner_->isVirtual(); }
 
-    uint64_t getStatesNumber() const noexcept
+    StorageIndex getStatesNumber() const noexcept
     {
         return inner_->getStatesNumber();
     }
 
-    uint64_t getEvents() const noexcept { return inner_->getEvents(); }
+    EventsSet<NEvents> getEvents() const noexcept
+    {
+        return inner_->getEvents();
+    }
 
-    uint64_t getInitialState() const noexcept
+    StorageIndex getInitialState() const noexcept
     {
         return inner_->getInitialState();
     }
@@ -179,21 +257,58 @@ struct GenericSystem
         return inner_->getMarkedStates();
     }
 
+    EventsSet<NEvents> getStateEvents(StorageIndex const& aQ) const noexcept
+    {
+        return inner_->getStateEvents(aQ);
+    }
+
+    EventsSet<NEvents> getInvStateEvents(StorageIndex const& aQ) const noexcept
+    {
+        return inner_->getInvStateEvents(aQ);
+    }
+    void allocateInvertedGraph() const noexcept
+    {
+        return inner_->allocateInvertedGraph();
+    }
+
+    StorageIndexSigned trans(StorageIndex const& aQ, ScalarType e) const
+      noexcept
+    {
+        return inner_->trans(aQ, e);
+    }
+
+    StatesArray invtrans(StorageIndex const& aQ, ScalarType e) const noexcept
+    {
+        return inner_->invtrans(aQ, e);
+    }
+
+    bool containstrans(StorageIndex const& aQ, ScalarType e) const noexcept
+    {
+        return inner_->containstrans(aQ, e);
+    }
+
+    bool containsinvtrans(StorageIndex const& aQ, ScalarType e) const noexcept
+    {
+        return inner_->containsinvtrans(aQ, e);
+    }
+
+    void clearInvertedGraph() const noexcept
+    {
+        return inner_->clearInvertedGraph();
+    }
+
     typename InnerSystemBase::ptr inner_;
 };
 
-template<class SysT_l, class SysT_r>
+template<class SysT_l,
+         class SysT_r,
+         uint8_t NEvents = SysTraits<SysT_l>::Ne_,
+         typename StorageIndex = typename SysTraits<SysT_l>::Si_>
 bool constexpr
-operator==(GenericSystem const& aLhs, GenericSystem const& aRhs)
+operator==(GenericSystem<NEvents, StorageIndex> const& aLhs,
+           GenericSystem<NEvents, StorageIndex> const& aRhs)
 {
     return aLhs.template cast<SysT_l>() == aRhs.template cast<SysT_r>();
 }
-
-template<>
-struct SysTraits<GenericSystem>
-{
-    uint8_t static constexpr Ne_ = 64;
-    using Si_ = unsigned long;
-};
 }
 #endif // GENERIC_SYSTEM_HPP
