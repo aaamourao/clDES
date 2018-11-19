@@ -332,68 +332,6 @@ private:
 };
 
 } // namespace op
-
-/*! \brief Specialize GenericSystem::InnerSystem struct to all derived classes
- *
- * details: Enables dynamic polymorphism with all classes derived from
- * DESystem by a type erasure approach.
- */
-template<class SysT_l, class SysT_r>
-struct GenericSystem::InnerSystem<op::SyncSysProxy<SysT_l, SysT_r>>
-  : GenericSystem::InnerSystemBase
-{
-    using wrappedSysT = op::SyncSysProxy<SysT_l, SysT_r>;
-    using Event_t = ScalarType;
-    using State_t = typename wrappedSysT::StorageIndex;
-    using Size_t = typename wrappedSysT::StorageIndex;
-
-    InnerSystem(wrappedSysT aSys)
-      : innersys_{ std::move(aSys) }
-    {}
-
-    wrappedSysT& operator*() { return innersys_; }
-
-    wrappedSysT const& operator*() const { return innersys_; }
-
-    std::type_info const& type() const noexcept override
-    {
-        return typeid(wrappedSysT);
-    }
-
-    InnerSystemBase* clone() const noexcept override
-    {
-        return new InnerSystem<wrappedSysT>{ wrappedSysT{ innersys_ } };
-    }
-
-    long unsigned size() const noexcept override { return innersys_.size(); }
-
-    bool isVirtual() const noexcept override { return innersys_.isVirtual(); }
-
-    uint64_t getStatesNumber() const noexcept override
-    {
-        return innersys_.getStatesNumber();
-    }
-
-    uint64_t getEvents() const noexcept override
-    {
-        return innersys_.getEvents().to_ulong();
-    }
-
-    uint64_t getInitialState() const noexcept override
-    {
-        return innersys_.getInitialState();
-    }
-
-    StatesSet getMarkedStates() const noexcept override
-    {
-        typename wrappedSysT::StatesSet const markedset =
-          innersys_.getMarkedStates();
-        return StatesSet(markedset.begin(), markedset.end());
-    }
-
-private:
-    wrappedSysT innersys_;
-};
 } // namespace cldes
 
 // include methods definitions

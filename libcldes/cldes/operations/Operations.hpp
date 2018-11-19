@@ -169,30 +169,6 @@ supC(SysT_l const& aP,
      SysT_r const& aE,
      EventsTableHost const& aNonContr) noexcept;
 
-/*! \brief Generate a expression tree of synchronize operations
- * \details Build a binary expression tree of parallel compositions
- * It is not necessary to keep a traditional vector representing
- * a binary tree, since each object keep track of its sons.
- * But we still need to keep track of them, since the SyncSysProxy uses
- * references, not copies. The tree is balanced like the following example:
- * e.g. to a vector of plants of size 5:
- *         P
- *        /\
- *       || p4
- *      / \
- *     /   \
- *    /     \
- *   ||     ||
- *  /  \    / \
- * p0  p1  p2 p3
- *
- * \param[in] aSystems Vector of systems to be mutually synchronized.
- * \return Binary tree pair: root and references
- */
-// template<uint8_t NEvents, typename StorageIndex>
-// BinExprTree<NEvents, StorageIndex>
-// GenBinExprTree(DESVector<NEvents, StorageIndex> const& aSystems);
-//
 /*! \brief Computes the monolithic supervisor of plants and specs
  * \details Build a binary expression tree of synchronizations and execute
  * the supervisor synthesis with the second level of the tree.
