@@ -297,8 +297,8 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
                             }
+                            c[q]->push_back(std::make_pair(fsqe, event));
                         }
-                        c[q]->push_back(std::make_pair(fsqe, event));
                     }
                     ++event;
                     event_it >>= 1;
