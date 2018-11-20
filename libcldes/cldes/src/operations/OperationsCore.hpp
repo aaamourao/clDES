@@ -47,22 +47,46 @@ synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept
     aVirtualSys.resizeStatesEvents(aVirtualSys.states_number_);
     aVirtualSys.trans_number_ = 0;
     aVirtualSys.triplet_.reserve(sparcitypattern);
-    for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_; ++qfrom) {
-        aVirtualSys.setStateEvents(qfrom, aVirtualSys.getStateEvents(qfrom));
-        aVirtualSys.setInvStateEvents(qfrom,
-                                      aVirtualSys.getInvStateEvents(qfrom));
-        auto event = 0u;
-        auto event_it = aVirtualSys.getStateEvents(qfrom);
-        while (event_it != 0) {
-            if (event_it.test(0)) {
-                auto const qto = aVirtualSys.trans(qfrom, event);
-                aVirtualSys.triplet_.push_back(Triplet<NEvents>(
-                  qfrom, qto, EventsSet<NEvents>{ 1ul << event }));
-                ++aVirtualSys.trans_number_;
+#ifdef CLDES_OPENMP_ENABLED
+#pragma omp parallel
+    {
+        std::vector<Triplet<NEvents>> triplet_parallel;
+#pragma omp for nowait
+        for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_;
+             ++qfrom) {
+#else
+    {
+        for (StorageIndex qfrom = 0; qfrom < aVirtualSys.states_number_;
+             ++qfrom) {
+#endif
+            aVirtualSys.setStateEvents(qfrom,
+                                       aVirtualSys.getStateEvents(qfrom));
+            aVirtualSys.setInvStateEvents(qfrom,
+                                          aVirtualSys.getInvStateEvents(qfrom));
+            auto event = 0u;
+            auto event_it = aVirtualSys.getStateEvents(qfrom);
+            while (event_it != 0) {
+                if (event_it.test(0)) {
+                    auto const qto = aVirtualSys.trans(qfrom, event);
+#ifdef CLDES_OPENMP_ENABLED
+                    triplet_parallel.push_back(
+#else
+                    aVirtualSys.triplet_.push_back(
+#endif
+                      Triplet<NEvents>(
+                        qfrom, qto, EventsSet<NEvents>{ 1ul << event }));
+                    ++aVirtualSys.trans_number_;
+                }
+                ++event;
+                event_it >>= 1;
             }
-            ++event;
-            event_it >>= 1;
         }
+#ifdef CLDES_OPENMP_ENABLED
+#pragma omp critical
+        aVirtualSys.triplet_.insert(aVirtualSys.triplet_.end(),
+                                    triplet_parallel.begin(),
+                                    triplet_parallel.end());
+#endif
     }
     return;
 }
@@ -128,6 +152,31 @@ processVirtSys_(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
 
     aVirtualSys.triplet_.reserve(aSparcityPattern);
     aVirtualSys.trans_number_ = 0;
+#ifdef CLDES_OPENMP_ENABLED
+#pragma omp parallel
+    {
+        std::vector<Triplet<NEvents>> triplet_parallel;
+#pragma omp for nowait
+        for (auto i = 0ul; i < aVirtualSys.states_number_; ++i) {
+            for (auto j = 0ul; j < aVirtualSys.transtriplet_[i].size(); ++j) {
+                auto qto_e = aVirtualSys.transtriplet_[i][j];
+                auto const q = aVirtualSys.virtual_states_[i];
+                auto const qto = qto_e.first;
+                if (aStatesMap.contains(qto)) {
+                    triplet_parallel.push_back(Triplet<NEvents>{
+                      aStatesMap[q],
+                      aStatesMap[qto],
+                      EventsSet<NEvents>{ 1ul << qto_e.second } });
+                    ++aVirtualSys.trans_number_;
+                }
+            }
+        }
+#pragma omp critical
+        aVirtualSys.triplet_.insert(aVirtualSys.triplet_.end(),
+                                    triplet_parallel.begin(),
+                                    triplet_parallel.end());
+    }
+#else
     while (!aVirtualSys.transtriplet_.empty()) {
         auto q_trans = aVirtualSys.transtriplet_.back();
         auto const q =
@@ -146,6 +195,7 @@ processVirtSys_(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
         }
         aVirtualSys.transtriplet_.pop_back();
     }
+#endif
     return;
 }
 
