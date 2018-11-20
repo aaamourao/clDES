@@ -67,7 +67,6 @@ op::SyncSysProxy<SysT_l, SysT_r>::operator RealSys() noexcept
     if (virtual_states_.empty()) {
         synchronizeEmptyStage2(*this);
     } else {
-        std::sort(virtual_states_.begin(), virtual_states_.end());
         synchronizeStage2(*this);
     }
 

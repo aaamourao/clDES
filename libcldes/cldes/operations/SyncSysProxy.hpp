@@ -93,7 +93,7 @@ public:
      * f(s, e) = s_out -> (s_out, (s, e)) is the inverted transition.
      */
     using TrVector =
-      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>*>>;
+      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>>>;
 
     /*! \brief SyncSysProxy unique constructor
      * Create a binary tree that represents multiple operations.
@@ -324,7 +324,7 @@ private:
     /*! \brief Events contained only in the right operator of a synchronizing
      * op.
      */
-    TrVector transtriplet_;
+    std::vector<InvArgtrans<StorageIndex>> transtriplet_;
 
     /*! \brief 3-tuples for filling graph_
      */

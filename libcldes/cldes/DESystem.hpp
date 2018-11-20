@@ -142,7 +142,7 @@ public:
      * \ details f(s, e) = s_out -> this vector stores = (s_out, (s, e))
      */
     using TrVector =
-      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>*>>;
+      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>>>;
 
     /*! \brief Graph const iterator
      * \details Used to iterate over the bfs result
@@ -529,15 +529,12 @@ protected:
     /*! \brief Remove vertices from graph_
      */
     inline void cropGraph_(
-      unsigned long const& aSparcityaPattern,
-      GraphHostData const&& aOldGraph,
-      StatesSet const&& aTrimStates,
-      std::vector<StorageIndexSigned> const& aStatesMap) noexcept;
+      spp::sparse_hash_set<StorageIndex> const& aTrimStates) noexcept;
 
     /*! \brief Remove marked states that are blocking
      */
     inline void cropMarkedStates_(
-      std::vector<StorageIndexSigned> const&& aStatesMap) noexcept;
+      spp::sparse_hash_set<StorageIndex> const&& aTrimStates) noexcept;
 
 private:
     friend class TransitionProxy<NEvents, StorageIndex>;

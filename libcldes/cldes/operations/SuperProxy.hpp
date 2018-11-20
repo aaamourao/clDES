@@ -93,7 +93,7 @@ public:
      * f(s, e) = s_out -> (s_out, (s, e)) is the inverted transition.
      */
     using TrVector =
-      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>*>>;
+      std::vector<std::pair<StorageIndex, InvArgtrans<StorageIndex>>>;
 
     /*! \brief SyncSysProxy unique constructor
      * Create a binary tree that represents multiple operations.

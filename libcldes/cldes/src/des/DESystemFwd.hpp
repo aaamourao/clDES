@@ -61,7 +61,7 @@ using InvArgtrans = std::vector<std::pair<StorageIndex, cldes::ScalarType>>;
  * {key = s_from, value= vec(s_from, e))
  */
 template<typename StorageIndex>
-using transMap = spp::sparse_hash_map<StorageIndex, InvArgtrans<StorageIndex>*>;
+using transMap = spp::sparse_hash_map<StorageIndex, InvArgtrans<StorageIndex>>;
 
 /*
  * Forward declarion of DESystemBase's friends class TransitionProxy. A

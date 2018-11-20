@@ -142,87 +142,59 @@ template<uint8_t NEvents, typename StorageIndex>
 DESystemBase<NEvents, StorageIndex, DESystem<NEvents, StorageIndex>>&
 DESystem<NEvents, StorageIndex>::trim() noexcept
 {
-    auto trimstates = this->trimStates();
-    if (trimstates.size() == static_cast<size_t>(graph_.rows())) {
-        return *this;
-    }
-    auto const old_graph = graph_;
-    std::vector<StorageIndexSigned> statesmap(this->states_number_, -1);
-    this->states_number_ = trimstates.size();
-    graph_.resize(static_cast<StorageIndexSigned>(this->states_number_),
-                  static_cast<StorageIndexSigned>(this->states_number_));
-    if (this->states_events_.size() > 0) {
-        this->states_events_.erase(this->states_events_.begin() +
-                                     this->states_number_,
-                                   this->states_events_.end());
-        this->inv_states_events_.erase(this->inv_states_events_.begin() +
-                                         this->states_number_,
-                                       this->inv_states_events_.end());
-    }
-    this->events_.reset();
-    unsigned long sparcitypattern = 0;
+    spp::sparse_hash_set<StorageIndex> trimstates;
     {
-        auto d = 0ul;
-        for (StorageIndex s : trimstates) {
-            statesmap[s] = d;
-            ++d;
-            sparcitypattern += old_graph.innerVector(s).nonZeros();
+        auto trimstatesstl = this->trimStates();
+        if (trimstatesstl.size() == static_cast<size_t>(graph_.rows())) {
+            return *this;
+        }
+        for (StorageIndex s : trimstatesstl) {
+            trimstates.insert(s);
         }
     }
-    cropGraph_(
-      sparcitypattern, std::move(old_graph), std::move(trimstates), statesmap);
-    cropMarkedStates_(std::move(statesmap));
+    this->states_number_ = trimstates.size();
+    this->events_.reset();
+    cropGraph_(trimstates);
+    cropMarkedStates_(std::move(trimstates));
     return *this;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 inline void
 DESystem<NEvents, StorageIndex>::cropMarkedStates_(
-  std::vector<StorageIndexSigned> const&& aStatesMap) noexcept
+  spp::sparse_hash_set<StorageIndex> const&& aTrimStates) noexcept
 {
-    auto const old_marked = this->marked_states_;
-    this->marked_states_.clear();
-    for (StorageIndex s : old_marked) {
-        if (aStatesMap[s] != -1) {
-            this->marked_states_.emplace(aStatesMap[s]);
-        }
-    }
+    std::vector<StorageIndex> markedvector(this->marked_states_.begin(),
+                                           this->marked_states_.end());
+    markedvector.erase(std::remove_if(markedvector.begin(),
+                                      markedvector.end(),
+                                      [aTrimStates](StorageIndex i) -> bool {
+                                          return aTrimStates.contains(i);
+                                      }),
+                       markedvector.end());
+    this->marked_states_ = StatesSet(markedvector.begin(), markedvector.end());
+    return;
 }
 
 template<uint8_t NEvents, typename StorageIndex>
 inline void
 DESystem<NEvents, StorageIndex>::cropGraph_(
-  unsigned long const& aSparcityPattern,
-  GraphHostData const&& aOldGraph,
-  StatesSet const&& aTrimStates,
-  std::vector<StorageIndexSigned> const& aStatesMap) noexcept
+  spp::sparse_hash_set<StorageIndex> const& aTrimStates) noexcept
 {
-    std::vector<Triplet_t> triplet;
-    triplet.reserve(aSparcityPattern);
-    // Build new graph_ slice by slice
-    {
-        auto row_id = 0ul;
-        for (StorageIndex s : aTrimStates) {
-            if (this->states_events_.size() > 0) {
-                this->states_events_[row_id].reset();
-                this->inv_states_events_[row_id].reset();
+    graph_.prune([aTrimStates, this](StorageIndexSigned i,
+                                     StorageIndexSigned j,
+                                     EventsSet<NEvents> e) -> bool {
+        if (aTrimStates.contains(i) && aTrimStates.contains(j)) {
+            this->events_ |= e;
+            if (!this->states_events_.empty()) {
+                this->states_events_[i] |= e;
+                this->inv_states_events_[j] |= e;
             }
-            for (RowIterator e(aOldGraph, s); e; ++e) {
-                if (aStatesMap[e.col()] != -1) {
-                    auto const col_id = aStatesMap[e.col()];
-                    triplet.push_back(Triplet_t(row_id, col_id, e.value()));
-                    this->events_ |= e.value();
-                    if (this->states_events_.size() > 0) {
-                        this->states_events_[row_id] |= e.value();
-                        this->inv_states_events_[col_id] |= e.value();
-                    }
-                }
-            }
-            ++row_id;
+            return true;
         }
-    }
-    graph_.setFromTriplets(triplet.begin(), triplet.end());
-    graph_.makeCompressed();
+        return false;
+    });
+    return;
 }
 
 template<uint8_t NEvents, typename StorageIndex>

@@ -78,12 +78,16 @@ synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept
     aVirtualSys.setStatesNumber(aVirtualSys.virtual_states_.size());
 
     // TODO: It SHOULD be returned in the future in a pair
-    StorageIndex cst = 0;
-    for (StorageIndex s : aVirtualSys.virtual_states_) {
-        statesmap[s] = cst;
-        ++cst;
+    {
+        auto sort_virtual_states = aVirtualSys.virtual_states_;
+        std::sort(sort_virtual_states.begin(), sort_virtual_states.end());
+        StorageIndex cst = 0;
+        for (StorageIndex s : sort_virtual_states) {
+            statesmap[s] = cst;
+            ++cst;
+        }
     }
-    aVirtualSys.virtual_states_.clear();
+    aVirtualSys.setInitialState(statesmap[0]);
     for (StorageIndex s0 : aVirtualSys.sys0_.getMarkedStates()) {
         for (StorageIndex s1 : aVirtualSys.sys1_.getMarkedStates()) {
             StorageIndex const key = s1 * aVirtualSys.n_states_sys0_ + s0;
@@ -126,9 +130,10 @@ processVirtSys_(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
     aVirtualSys.trans_number_ = 0;
     while (!aVirtualSys.transtriplet_.empty()) {
         auto q_trans = aVirtualSys.transtriplet_.back();
-        auto const q = q_trans.first;
-        while (!q_trans.second->empty()) {
-            auto const qto_e = q_trans.second->back();
+        auto const q =
+          aVirtualSys.virtual_states_[aVirtualSys.transtriplet_.size() - 1];
+        while (!q_trans.empty()) {
+            auto const qto_e = q_trans.back();
             auto const qto = qto_e.first;
             if (aStatesMap.contains(qto)) {
                 aVirtualSys.triplet_.push_back(
@@ -137,9 +142,8 @@ processVirtSys_(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
                                    EventsSet<NEvents>{ 1ul << qto_e.second }));
                 ++aVirtualSys.trans_number_;
             }
-            q_trans.second->pop_back();
+            q_trans.pop_back();
         }
-        delete q_trans.second;
         aVirtualSys.transtriplet_.pop_back();
     }
     return;
@@ -209,7 +213,6 @@ removeBadStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
                         f.push(s);
                         aRmTable.insert(s);
                         if (aC.contains(s)) {
-                            delete aC[s];
                             aC.erase(s);
                         }
                     }
@@ -249,8 +252,8 @@ supC(SysT_l const& aP,
     virtualsys.transtriplet_.reserve(c.size());
     for (auto tr : c) {
         virtualsys.virtual_states_.push_back(tr.first);
-        virtualsys.transtriplet_.push_back(tr);
-        virtualsys.trans_number_ += (*tr.second).size() / 2;
+        virtualsys.transtriplet_.push_back(tr.second);
+        virtualsys.trans_number_ += (tr.second).size();
     }
     c.clear();
 
@@ -287,7 +290,7 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
             if ((in_ncqx & q_events) != in_ncqx) {
                 removeBadStates_(aVirtualSys, c, q, aNonContrBit, rmtable);
             } else {
-                c[q] = new InvArgtrans<StorageIndex>();
+                c[q] = InvArgtrans<StorageIndex>();
                 cldes::ScalarType event = 0;
                 auto event_it = q_events;
                 while (event_it.any()) {
@@ -297,7 +300,7 @@ computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
                             if (!c.contains(fsqe)) {
                                 f.push(fsqe);
                             }
-                            c[q]->push_back(std::make_pair(fsqe, event));
+                            c[q].push_back(std::make_pair(fsqe, event));
                         }
                     }
                     ++event;
