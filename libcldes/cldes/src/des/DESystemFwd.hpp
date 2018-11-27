@@ -90,6 +90,8 @@ namespace op {
  */
 template<class SysT_l, class SysT_r>
 class SyncSysProxy;
+template<class SysT_l, class SysT_r>
+class SuperProxy;
 }
 
 /*! \brief Alias for graph 3-tuple

@@ -556,6 +556,8 @@ private:
      */
     template<class SysT_l, class SysT_r>
     friend class op::SyncSysProxy;
+    template<class SysT_l, class SysT_r>
+    friend class op::SuperProxy;
 
     // TODO: make dispatcher (type erasure) friend when it is done for dynamic
     // polymorphism

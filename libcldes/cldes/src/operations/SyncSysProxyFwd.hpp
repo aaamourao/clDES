@@ -40,59 +40,7 @@ using SparseStatesMap = spp::sparse_hash_map<StorageIndex, StorageIndex>;
 
 template<class SysT_l, class SysT_r>
 void
-synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
-
-template<class SysT_l, class SysT_r>
-void
 synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
-
-template<class SysT_l, class SysT_r>
-DESystem<SysTraits<SysT_l>::Ne_, typename SysTraits<SysT_l>::Si_>
-supC(SysT_l const& aP,
-     SysT_r const& aE,
-     EventsTableHost const& aNonContr) noexcept;
-
-#ifdef __clang__
-
-template<class SysT_l, class SysT_r>
-inline transMap<typename SysTraits<SysT_l>::Si_>
-computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
-                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aNonContrBit,
-                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aPNonContrBit,
-                   SysT_l const& aP) noexcept;
-
-template<class SysT_l, class SysT_r>
-void
-processVirtSys_(
-  SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
-  unsigned long const& aSparcityPattern,
-  SparseStatesMap<typename SysTraits<SysT_l>::Si_>&& aStatesMap) noexcept;
-
-template<class SysT_l, class SysT_r>
-long unsigned
-aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
-
-#elif __GNUC__
-
-template<class SysT_l, class SysT_r>
-transMap<typename SysTraits<SysT_l>::Si_>
-computeSupCStates_(SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
-                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aNonContrBit,
-                   EventsSet<SysTraits<SysT_l>::Ne_> const&& aPNonContrBit,
-                   SysT_l const& aP) noexcept;
-
-template<class SysT_l, class SysT_r>
-void
-processVirtSys_(
-  SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
-  unsigned long const& aSparcityPattern,
-  SparseStatesMap<typename SysTraits<SysT_l>::Si_>&& aStatesMap) noexcept;
-
-template<class SysT_l, class SysT_r>
-long unsigned
-aproxSpacPat_(SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
-
-#endif
 
 template<class SysT_l, class SysT_r>
 class SuperProxy;

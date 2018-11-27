@@ -35,14 +35,12 @@
 #include "cldes/Constants.hpp"
 #include "cldes/DESystem.hpp"
 #include "cldes/operations/SyncSysProxy.hpp"
+#include "cldes/operations/SuperProxy.hpp"
 #include "cldes/src/operations/OperationsFwd.hpp"
 
 namespace cldes {
 
 namespace op {
-
-template<class SysT_l>
-using SparseStatesMap_t = SparseStatesMap<typename SysTraits<SysT_l>::Si_>;
 
 template<class SysT_l>
 using EventsSet_t = EventsSet<SysTraits<SysT_l>::Ne_>;
@@ -119,20 +117,6 @@ synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
                        SysT_l,
                        SysT_r) noexcept;
 
-/*! \brief transform a virtual system in a real system: optmized to supervisor
- * synthesis
- *
- * Calculate transitions and other parameters of a virtual system which
- * represents a virtual parallel composition. It does not calculate the
- * states_events_ table, since supervisors are final system and may have a big
- * size
- *
- * @param[out] aVirtualSys Reference to the system which will be transformed.
- * \return void
- */
-template<class SysT_l, class SysT_r>
-void
-synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
 /*! \brief Remove bad states recursively
  * \details Remove a state and all the states that become a bad state when the

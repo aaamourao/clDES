@@ -29,24 +29,20 @@
 */
 
 #include <algorithm>
+#include <stack>
 
 namespace cldes {
 namespace op {
 
-template<class SysT_l, class SysT_r>
-void
-synchronizeStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
+template<typename StorageIndex>
+using StatesTableHost = spp::sparse_hash_set<StorageIndex>;
 
-template<class SysT_l, class SysT_r>
-void
-synchronizeEmptyStage2(SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
+template<typename StorageIndex>
+using SparseStatesMap = spp::sparse_hash_map<StorageIndex, StorageIndex>;
+
+template<typename StorageIndex>
+using StatesStack = std::stack<StorageIndex>;
 
 using EventsTableHost = spp::sparse_hash_set<uint8_t>;
-
-template<class SysT_l, class SysT_r>
-DESystem<SysTraits<SysT_l>::Ne_, typename SysTraits<SysT_l>::Si_>
-supC(SysT_l const& aP,
-     SysT_r const& aE,
-     EventsTableHost const& aNonContr) noexcept;
 }
 }

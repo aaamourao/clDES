@@ -64,12 +64,8 @@ op::SyncSysProxy<SysT_l, SysT_r>::SyncSysProxy(SysT_l const& aSys0,
 template<class SysT_l, class SysT_r>
 op::SyncSysProxy<SysT_l, SysT_r>::operator RealSys() noexcept
 {
-    if (virtual_states_.empty()) {
-        synchronizeEmptyStage2(*this);
-    } else {
-        synchronizeStage2(*this);
-    }
 
+    synchronizeEmptyStage2(*this);
     auto sys_ptr = std::make_shared<RealSys>(RealSys{});
 
     sys_ptr->states_number_ = std::move(this->states_number_);
@@ -78,7 +74,6 @@ op::SyncSysProxy<SysT_l, SysT_r>::operator RealSys() noexcept
     sys_ptr->states_events_ = std::move(this->states_events_);
     sys_ptr->inv_states_events_ = std::move(this->inv_states_events_);
     sys_ptr->events_ = std::move(this->events_);
-
     sys_ptr->trans_number_ = this->trans_number_;
     sys_ptr->graph_.resize(this->states_number_, this->states_number_);
     sys_ptr->graph_.setFromTriplets(triplet_.begin(), triplet_.end());

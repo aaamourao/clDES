@@ -66,6 +66,8 @@ public:
     uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
     using StorageIndex = typename SysTraits<SysT_l>::Si_;
 
+    using SparseStatesMap_t = SparseStatesMap<StorageIndex>;
+
     using EventsSet_t = EventsSet<NEvents>;
     /*! \brief Signed template parameter type for eigen indexes
      */
@@ -248,12 +250,6 @@ public:
     }
 
 protected:
-    /*! \brief Monolithic supervisor synthesis
-     */
-    friend RealSys supC<>(SysT_l const& aP,
-                          SysT_r const& aE,
-                          EventsTableHost const& aNonContr) noexcept;
-
     /*! \brief Disabled default constructor
      * \details There is no use for the default constructor.
      */
@@ -264,6 +260,21 @@ protected:
     void findRemovedStates_(SysT_l const& aP,
                             SysT_r const& aE,
                             EventsTableHost const& aNonContr) noexcept;
+
+    /*! \brief transform a virtual system in a real system: optmized to
+     * supervisor synthesis
+     *
+     * Calculate transitions and other parameters of a virtual system which
+     * represents a virtual parallel composition. It does not calculate the
+     * states_events_ table, since supervisors are final system and may have a
+     * big size
+     *
+     * @param[out] aVirtualSys Reference to the system which will be
+     * transformed. \return void
+     */
+    void supCStage2_(std::shared_ptr<RealSys> const& aSysPtr) noexcept;
+    void processVirtSys_(std::shared_ptr<RealSys> const& aSysPtr,
+                         SparseStatesMap_t&& aStatesMap) noexcept;
 
 private:
     /*! \brief Reference to the left operand
@@ -281,7 +292,8 @@ private:
 
     /*! \brief Virtual states contained in the current system
      */
-    StatesTableHost<StorageIndex> virtual_states_;
+    StatesTable virtual_states_;
+    StatesTableHost<StorageIndex> c_;
 
     /*! \brief Events contained only in the left operator of a synchronizing op.
      */
@@ -291,19 +303,6 @@ private:
      * op.
      */
     EventsSet<NEvents> only_in_spec_;
-
-    /*! \brief Events contained only in the right operator of a synchronizing
-     * op.
-     */
-    TrVector transtriplet_;
-
-    /*! \brief 3-tuples for filling graph_
-     */
-    std::vector<Triplet<NEvents>> triplet_;
-
-    /*! \brief 3-tuples for filling bit_graph_
-     */
-    std::vector<BitTriplet> bittriplet_;
 };
 
 } // namespace op

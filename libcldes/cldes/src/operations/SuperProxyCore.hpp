@@ -96,35 +96,38 @@ op::SuperProxy<SysT_l, SysT_r>::findRemovedStates_(
     while (!f.empty()) {
         auto const q = f.top();
         f.pop();
-        if (!rmtable.contains(q) && !virtual_states_.contains(q)) {
+        if (!rmtable.contains(q) && !c_.contains(q)) {
             auto const qx = q % virtualsys.n_states_sys0_;
             auto const q_events = virtualsys.getStateEvents(q);
             auto const in_ncqx = p_non_contr_bit & aP.getStateEvents(qx);
             auto const in_ncqx_and_q = in_ncqx & q_events;
             if (in_ncqx_and_q != in_ncqx) {
-                removeBadStates_(
-                  virtualsys, virtual_states_, q, non_contr_bit, rmtable);
+                --this->trans_number_;
+                removeBadStates_(virtualsys, c_, q, non_contr_bit, rmtable);
             } else {
-                virtual_states_.insert(q);
+                c_.insert(q);
                 cldes::ScalarType event = 0;
                 auto event_it = q_events;
                 while (event_it.any()) {
                     if (event_it.test(0)) {
                         auto const fsqe = virtualsys.trans(q, event);
                         if (!rmtable.contains(fsqe)) {
-                            if (!virtual_states_.contains(fsqe)) {
+                            if (!c_.contains(fsqe)) {
                                 f.push(fsqe);
                             }
+                            ++this->trans_number_;
                         }
                     }
                     ++event;
                     event_it >>= 1;
                 }
             }
+        } else if (rmtable.contains(q)) {
+            --this->trans_number_;
         }
     }
     rmtable.clear();
-    this->states_number_ = virtual_states_.size();
+    this->states_number_ = c_.size();
     trim();
     virtualsys.clearInvertedGraph();
     return;
@@ -133,10 +136,11 @@ op::SuperProxy<SysT_l, SysT_r>::findRemovedStates_(
 template<class SysT_l, class SysT_r>
 op::SuperProxy<SysT_l, SysT_r>::operator RealSys() noexcept
 {
+    virtual_states_ = StatesTable{ c_.begin(), c_.end() };
     std::sort(virtual_states_.begin(), virtual_states_.end());
-    synchronizeStage2(*this);
-
     auto sys_ptr = std::make_shared<RealSys>(RealSys{});
+    sys_ptr->graph_.resize(this->states_number_, this->states_number_);
+    supCStage2_(sys_ptr);
 
     sys_ptr->states_number_ = std::move(this->states_number_);
     sys_ptr->init_state_ = std::move(this->init_state_);
@@ -145,14 +149,90 @@ op::SuperProxy<SysT_l, SysT_r>::operator RealSys() noexcept
     sys_ptr->inv_states_events_ = std::move(this->inv_states_events_);
     sys_ptr->events_ = std::move(this->events_);
 
-    sys_ptr->graph_.resize(this->states_number_, this->states_number_);
-    sys_ptr->bit_graph_.resize(this->states_number_, this->states_number_);
-    sys_ptr->graph_.setFromTriplets(triplet_.begin(), triplet_.end());
-    triplet_.clear();
     sys_ptr->graph_.makeCompressed();
-    sys_ptr->bit_graph_.makeCompressed();
+    virtual_states_.clear();
 
     return *sys_ptr;
+}
+
+template<class SysT_l, class SysT_r>
+void
+op::SuperProxy<SysT_l, SysT_r>::supCStage2_(
+  std::shared_ptr<RealSys> const& aSysPtr) noexcept
+{
+    SparseStatesMap_t statesmap;
+    this->setStatesNumber(virtual_states_.size());
+
+    // TODO: It SHOULD be returned in the future in a pair
+    {
+        StorageIndex cst = 0;
+        for (StorageIndex s : virtual_states_) {
+            statesmap[s] = cst;
+            ++cst;
+        }
+    }
+    // TODO: Remove the following line?
+    this->setInitialState(statesmap[0]);
+    for (StorageIndex s0 : sys0_.getMarkedStates()) {
+        for (StorageIndex s1 : sys1_.getMarkedStates()) {
+            StorageIndex const key = s1 * n_states_sys0_ + s0;
+            if (statesmap.contains(key)) {
+                this->insertMarkedState(statesmap[key]);
+            }
+        }
+    }
+    processVirtSys_(aSysPtr, std::move(statesmap));
+    return;
+}
+
+template<class SysT_l, class SysT_r>
+inline void
+op::SuperProxy<SysT_l, SysT_r>::processVirtSys_(
+  std::shared_ptr<RealSys> const& aSysPtr,
+  SparseStatesMap_t&& aStatesMap) noexcept
+{
+    uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
+    // #ifdef CLDES_OPENMP_ENABLED
+    // #pragma omp parallel
+    //     {
+    //         std::vector<Triplet<NEvents>> triplet_parallel;
+    // #pragma omp for nowait
+    //         for (auto i = 0ul; i < this->states_number_; ++i) {
+    //             for (auto j = 0ul; j < transtriplet_[i].size(); ++j) {
+    //                 auto qto_e = transtriplet_[i][j];
+    //                 auto const q = virtual_states_[i];
+    //                 auto const qto = qto_e.first;
+    //                 if (aStatesMap.contains(qto)) {
+    //                     triplet_parallel.push_back(Triplet<NEvents>{
+    //                       aStatesMap[q],
+    //                       aStatesMap[qto],
+    //                       EventsSet<NEvents>{ 1ul << qto_e.second } });
+    //                 }
+    //             }
+    //         }
+    // #pragma omp critical
+    //         triplet_.insert(aVirtualSys.triplet_.end(),
+    //                         triplet_parallel.begin(),
+    //                         triplet_parallel.end());
+    //     }
+    // #else
+    for (auto q : virtual_states_) {
+        ScalarType event = 0;
+        auto q_events = getStateEvents_impl(q);
+        while (q_events.any()) {
+            if (q_events.test(0)) {
+                auto qto = trans_impl(q, event);
+                if (qto != -1 && aStatesMap.contains(qto)) {
+                    aSysPtr->graph_.coeffRef(aStatesMap[q], aStatesMap[qto]) =
+                      EventsSet<NEvents>{ 1ul << event };
+                }
+            }
+            ++event;
+            q_events >>= 1;
+        }
+    }
+    // #endif
+    return;
 }
 
 template<class SysT_l, class SysT_r>
@@ -161,7 +241,7 @@ op::SuperProxy<SysT_l, SysT_r>::containstrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const noexcept
 {
-    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
+    if (!this->c_.contains(aQ) || !this->events_.test(aEvent)) {
         return false;
     }
     // q = (qx, qy)
@@ -183,7 +263,7 @@ op::SuperProxy<SysT_l, SysT_r>::trans_impl(StorageIndex const& aQ,
                                            ScalarType const& aEvent) const
   noexcept
 {
-    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
+    if (!this->c_.contains(aQ) || !this->events_.test(aEvent)) {
         return -1;
     }
     // q = (qx, qy)
@@ -215,7 +295,7 @@ op::SuperProxy<SysT_l, SysT_r>::containsinvtrans_impl(
   StorageIndex const& aQ,
   ScalarType const& aEvent) const
 {
-    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
+    if (!this->c_.contains(aQ) || !this->events_.test(aEvent)) {
         return false;
     }
     // q = (qx, qy)
@@ -237,7 +317,7 @@ op::SuperProxy<SysT_l, SysT_r>::invtrans_impl(StorageIndex const& aQ,
                                               ScalarType const& aEvent) const
 {
     StatesArray<StorageIndex> inv_transitions;
-    if (!this->virtual_states_.contains(aQ) || !this->events_.test(aEvent)) {
+    if (!this->c_.contains(aQ) || !this->events_.test(aEvent)) {
         return inv_transitions;
     }
     // q = (qx, qy)
@@ -338,7 +418,7 @@ op::SuperProxy<SysT_l, SysT_r>::trim() noexcept
                 if (event_it.test(0)) {
                     auto const fsqelist = this->invtrans(q, event);
                     for (auto fsqe : fsqelist) {
-                        if (virtual_states_.contains(fsqe)) {
+                        if (c_.contains(fsqe)) {
                             if (!trimmed_virtual_states.contains(fsqe)) {
                                 f.push(fsqe);
                             }
@@ -350,8 +430,8 @@ op::SuperProxy<SysT_l, SysT_r>::trim() noexcept
             }
         }
     }
-    virtual_states_ = trimmed_virtual_states;
-    this->states_number_ = virtual_states_.size();
+    c_ = trimmed_virtual_states;
+    this->states_number_ = c_.size();
     return;
 }
 }

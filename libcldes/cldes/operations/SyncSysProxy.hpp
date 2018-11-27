@@ -245,11 +245,6 @@ public:
 protected:
     /*! \brief Second step of the lazy parallel composition
      */
-    friend void synchronizeStage2<>(
-      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
-
-    /*! \brief Second step of the lazy parallel composition
-     */
     friend void synchronizeEmptyStage2<>(
       SyncSysProxy<SysT_l, SysT_r>& aVirtualSys) noexcept;
 
@@ -261,40 +256,6 @@ protected:
     SyncSysProxy() = default;
 
 private:
-    friend RealSys supC<>(SysT_l const& aP,
-                          SysT_r const& aE,
-                          EventsTableHost const& aNonContr) noexcept;
-
-#ifdef __clang__
-    friend inline transMap<StorageIndex> computeSupCStates_<>(
-      SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
-      EventsSet<NEvents> const&& aNonContrBit,
-      EventsSet<NEvents> const&& aPNonContrBit,
-      SysT_l const& aP) noexcept;
-
-    friend inline void processVirtSys_<>(
-      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
-      unsigned long const& aSparcityPattern,
-      SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
-
-    friend inline long unsigned aproxSpacPat_<>(
-      SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
-#elif __GNUC__
-    friend transMap<StorageIndex> computeSupCStates_<>(
-      SyncSysProxy<SysT_l, SysT_r> const& aVirtualSys,
-      EventsSet<NEvents> const&& aNonContrBit,
-      EventsSet<NEvents> const&& aPNonContrBit,
-      SysT_l const& aP) noexcept;
-
-    friend void processVirtSys_<>(
-      SyncSysProxy<SysT_l, SysT_r>& aVirtualSys,
-      unsigned long const& aSparcityPattern,
-      SparseStatesMap<StorageIndex>&& aStatesMap) noexcept;
-
-    friend long unsigned aproxSpacPat_<>(
-      SyncSysProxy<SysT_l, SysT_r> const& aV) noexcept;
-#endif
-
     /*! \brief Reference to the left operand
      */
     SysT_l const& sys0_;
@@ -320,11 +281,6 @@ private:
      * op.
      */
     EventsSet<NEvents> only_in_1_;
-
-    /*! \brief Events contained only in the right operator of a synchronizing
-     * op.
-     */
-    std::vector<InvArgtrans<StorageIndex>> transtriplet_;
 
     /*! \brief 3-tuples for filling graph_
      */
