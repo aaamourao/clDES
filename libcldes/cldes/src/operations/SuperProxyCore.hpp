@@ -192,30 +192,32 @@ op::SuperProxy<SysT_l, SysT_r>::processVirtSys_(
   SparseStatesMap_t&& aStatesMap) noexcept
 {
     uint8_t static constexpr NEvents = SysTraits<SysT_l>::Ne_;
-    // #ifdef CLDES_OPENMP_ENABLED
-    // #pragma omp parallel
-    //     {
-    //         std::vector<Triplet<NEvents>> triplet_parallel;
-    // #pragma omp for nowait
-    //         for (auto i = 0ul; i < this->states_number_; ++i) {
-    //             for (auto j = 0ul; j < transtriplet_[i].size(); ++j) {
-    //                 auto qto_e = transtriplet_[i][j];
-    //                 auto const q = virtual_states_[i];
-    //                 auto const qto = qto_e.first;
-    //                 if (aStatesMap.contains(qto)) {
-    //                     triplet_parallel.push_back(Triplet<NEvents>{
-    //                       aStatesMap[q],
-    //                       aStatesMap[qto],
-    //                       EventsSet<NEvents>{ 1ul << qto_e.second } });
-    //                 }
-    //             }
-    //         }
-    // #pragma omp critical
-    //         triplet_.insert(aVirtualSys.triplet_.end(),
-    //                         triplet_parallel.begin(),
-    //                         triplet_parallel.end());
-    //     }
-    // #else
+#ifdef CLDES_OPENMP_ENABLED
+    std::vector<Triplet<NEvents>> triplet;
+#pragma omp parallel
+    {
+        std::vector<Triplet<NEvents>> triplet_parallel;
+#pragma omp for nowait collapse(2)
+        for (auto qit = 0ul; qit < this->states_number_; ++qit) {
+            for (ScalarType e = 0; e < NEvents; ++e) {
+                auto const q = virtual_states_[qit];
+                if (getStateEvents_impl(q).test(e)) {
+                    auto const qto = trans_impl(q, e);
+                    if (aStatesMap.contains(qto)) {
+                        triplet_parallel.push_back(
+                          Triplet<NEvents>{ aStatesMap[q],
+                                            aStatesMap[qto],
+                                            EventsSet<NEvents>{ 1ul << e } });
+                    }
+                }
+            }
+        }
+#pragma omp critical
+        triplet.insert(
+          triplet.end(), triplet_parallel.begin(), triplet_parallel.end());
+    }
+    aSysPtr->graph_.setFromTriplets(triplet.begin(), triplet.end());
+#else
     for (auto q : virtual_states_) {
         ScalarType event = 0;
         auto q_events = getStateEvents_impl(q);
@@ -223,15 +225,17 @@ op::SuperProxy<SysT_l, SysT_r>::processVirtSys_(
             if (q_events.test(0)) {
                 auto qto = trans_impl(q, event);
                 if (qto != -1 && aStatesMap.contains(qto)) {
+                    EventsSet<NEvents> const last_value =
+                      aSysPtr->graph_.coeff(aStatesMap[q], aStatesMap[qto]);
                     aSysPtr->graph_.coeffRef(aStatesMap[q], aStatesMap[qto]) =
-                      EventsSet<NEvents>{ 1ul << event };
+                      EventsSet<NEvents>{ 1ul << event } | last_value;
                 }
             }
             ++event;
             q_events >>= 1;
         }
     }
-    // #endif
+#endif
     return;
 }
 
