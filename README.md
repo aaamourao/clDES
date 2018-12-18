@@ -1,7 +1,5 @@
 # clDES
 
-Efficient algorithms for **Discrete-Event Systems**/deterministic
-finite state automatons
 operations targeting heterogeneous platforms.
 A **Supervisor Synthesizer** algorithm is also available.
 
