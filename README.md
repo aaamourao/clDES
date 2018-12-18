@@ -1,8 +1,5 @@
 # clDES
 
-operations targeting heterogeneous platforms.
-A **Supervisor Synthesizer** algorithm is also available.
-
 <p align="center">
 <img src="https://raw.githubusercontent.com/madc0ww/clDES/master/doc/logo_cl_cropped.png">
 </p>
