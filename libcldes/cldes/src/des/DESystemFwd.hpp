@@ -32,7 +32,6 @@
 
 #include <Eigen/Sparse>
 #include <algorithm>
-#include <boost/iterator/counting_iterator.hpp>
 #include <functional>
 #include <numeric>
 #include <sparsepp/spp.h>

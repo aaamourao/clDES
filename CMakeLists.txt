@@ -36,11 +36,10 @@ find_package(Doxygen
 add_subdirectory("${PROJECT_SOURCE_DIR}/doc")
 
 
-# { OpenCL, Boost, Eigen3, Doxygen } packages are required
+# { OpenCL, Eigen3, Doxygen } packages are required
 if(NOT ${CMAKE_BUILD_TYPE} MATCHES doc)
     include(ExternalProject)
 
-    find_package(Boost 1.58 REQUIRED)
     find_package(Eigen3 REQUIRED)
     if(CLDES_OPENCL_ENABLED)
         find_package(OpenCL 1.2 REQUIRED)
